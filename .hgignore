@@ -1,5 +1,6 @@
-^/lightopenid
-^/downloads
-^/vnstat
-^/dump
-^/parity
+syntax: glob
+lightopenid/
+downloads/
+vnstat/
+dump/
+parity/
