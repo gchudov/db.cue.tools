@@ -1,6 +1,6 @@
 # ln -s /var/www/html/hgweb.apache /etc/httpd/conf.d/hgweb.conf
 
-#ScriptAlias /hg "/var/www/html/hgweb.cgi"
+# ScriptAlias /hg "/var/www/html/hgweb.cgi"
 
 <VirtualHost *:80>
   ServerName hg.cuetools.net
