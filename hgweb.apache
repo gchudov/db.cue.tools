@@ -2,7 +2,7 @@
 
 #ScriptAlias /hg "/var/www/html/hgweb.cgi"
 
-<VirtualHost *>
+<VirtualHost *:80>
   ServerName hg.cuetools.net
 
   ServerAdmin gchudov@gmail.com
