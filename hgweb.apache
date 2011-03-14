@@ -1,0 +1,27 @@
+# ln -s /var/www/html/hgweb.apache /etc/httpd/conf.d/hgweb.conf
+
+#ScriptAlias /hg "/var/www/html/hgweb.cgi"
+
+<VirtualHost *>
+  ServerName hg.cuetools.net
+
+  ServerAdmin gchudov@gmail.com
+  CustomLog logs/hg_access_log combined
+  ErrorLog logs/hg_error_log
+
+#  ScriptAlias / "/var/www/html/hgweb.cgi"
+
+  RewriteEngine on
+  RewriteRule (.*) /var/www/html/hgweb.cgi/$1
+
+  # Or we can use mod_alias for starting CGI script and making URLs "nice":
+  # ScriptAliasMatch ^(.*) /home/user/webdir/hgweb.cgi/$1
+
+  <Directory "/var/www/html/">
+    Order allow,deny
+    Allow from all
+    AllowOverride All
+    Options ExecCGI
+    AddHandler cgi-script .cgi
+  </Directory>
+</VirtualHost>
