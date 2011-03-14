@@ -13,7 +13,7 @@
 
   RewriteEngine on
   RewriteRule (.*) /var/www/html/hgweb.cgi/$1
-
+  
   # Or we can use mod_alias for starting CGI script and making URLs "nice":
   # ScriptAliasMatch ^(.*) /home/user/webdir/hgweb.cgi/$1
 
@@ -23,5 +23,12 @@
     AllowOverride All
     Options ExecCGI
     AddHandler cgi-script .cgi
+    AuthType Digest
+    AuthName "Mercurial repositories"
+    AuthDigestProvider file
+    AuthUserFile /var/www/hgusers
+    <LimitExcept GET>
+      Require valid-user
+    </LimitExcept>
   </Directory>
 </VirtualHost>
