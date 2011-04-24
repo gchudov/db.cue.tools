@@ -1,119 +1,117 @@
 <?php
-
 require_once( 'phpctdb/ctdb.php' );
 
-/**
- * Convert php.ini shorthands to byte
- *
- * @author <gilthans dot NO dot SPAM at gmail dot com>
- * @link   http://de3.php.net/manual/en/ini.core.php#79564
- */
-function php_to_byte($v){
-    $l = substr($v, -1);
-    $ret = substr($v, 0, -1);
-    switch(strtoupper($l)){
-        case 'P':
-            $ret *= 1024;
-        case 'T':
-            $ret *= 1024;
-        case 'G':
-            $ret *= 1024;
-        case 'M':
-            $ret *= 1024;
-        case 'K':
-            $ret *= 1024;
-        break;
-    }
-    return $ret;
-}
-
-// Return the human readable size of a file
-// @param int $size a file size
-// @param int $dec a number of decimal places
-
-function filesize_h($size, $dec = 1)
-{
-    $sizes = array('byte(s)', 'kb', 'mb', 'gb');
-    $count = count($sizes);
-    $i = 0;
-
-    while ($size >= 1024 && ($i < $count - 1)) {
-        $size /= 1024;
-        $i++;
-    }
-
-    return round($size, $dec) . ' ' . $sizes[$i];
-}
-
-$file = $_FILES['uploadedfile'];
-
-//echo $file['name'], ini_get('upload_max_filesize');
-
-    // give info on PHP catched upload errors
-    if($file['error']) switch($file['error']){
-        case 1:
-        case 2:
-            echo sprintf($lang['uploadsize'],
-                filesize_h(php_to_byte(ini_get('upload_max_filesize'))));
-            echo "Error ", $file['error'];
-            return;
-        default:
-            echo $lang['uploadfail'];
-            echo "Error ", $file['error'];
-    }
-
-//if ($_SERVER['HTTP_USER_AGENT'] != "CUETools 205") {
-//  echo "user agent ", $_SERVER['HTTP_USER_AGENT'], " is not allowed";
-//  return;
-//}
-
-$tmpname = $file['tmp_name'];
-$size = (@file_exists($tmpname)) ? filesize($tmpname) : 0;
-if ($size == 0) {
-  echo "no file uploaded";
-  return;
-}
+//if ($_SERVER['HTTP_USER_AGENT'] != "CUETools 205")
+//  die ("user agent " . $_SERVER['HTTP_USER_AGENT'] . " is not allowed");
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
 
-$ctdb = new phpCTDB($tmpname);
-$record = $ctdb->ctdb2pg();
-unset($ctdb);
+$confirmid = @$_POST['confirmid'];
+if (!$confirmid)
+{
+  $result= pg_query("SELECT nextval('submissions2_id_seq1')");
+  $sub2_id = pg_fetch_result($result,0,0);
+  pg_free_result($result);
+} else
+  $sub2_id = $confirmid;
 
-if ($record['agent']=='CUETools 205')
-	die ('outdated client version');
+$tocid = @$_POST['tocid'];
+if (!$tocid) die('tocid not specified');
 
-$result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($record['tocid']))
-  or die('Query failed: ' . pg_last_error());
-$rescount = pg_num_rows($result);
-while (TRUE == ($record2 = pg_fetch_array($result)))
-  if ($record2['crc32'] == $record['crc32']) {
-		// TODO: conirm
-		die("Duplicate entry");
-	}
-pg_free_result($result);
+$paritysample = @$_POST['parity'];
+if (!$paritysample) die('parity not specified');
 
-$target_path = phpCTDB::discid2path(sprintf('%03d-%s', $record['trackcount'], phpCTDB::toc2arid($record)));
+$crc32 = @$_POST['crc32'];
+if (!$crc32) die('crc32 not specified');
 
-$subres = pg_insert($dbconn, 'submissions2', $record);
-$result= pg_query("SELECT currval('submissions2_id_seq1')");
+if (@$_POST['parityfile'])
+{
+  $file = $_FILES['parityfile'];
+  if ($file['error'])
+    die("Error " . $file['error'] . "; upload_max_filesize " . ini_get('upload_max_filesize'));
+  $tmpname = $file['tmp_name'];
+  @file_exists($tmpname) or die("file doesn't exist");
+  if (filesize($tmpname) == 0) die("file is empty");
+  $target_path = sprintf("parity2/%s/%s", substr($tocid, 0, 1), substr($tocid, 1, 1));
+  $parfile = sprintf("%s/%s.%08x.bin", $target_path, substr($tocid, 2), $sub2_id);
+} else {
+  $tmpname = false;
+  $parfile = false;
+}
 
 $record3 = false;
-$record3['entryid'] = pg_fetch_result($result,0,0);
-$record3['confidence'] = $record['confidence'];
-$record3['userid'] = $record['userid'];
-$record3['agent'] = $record['agent'];
-$record3['time'] = $record['time'];
+$record3['entryid'] = $sub2_id;
+$record3['confidence'] = @$_POST['confidence'];
+$record3['userid'] = @$_POST['userid'];
+$record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
+$record3['time'] = date ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
-pg_insert($dbconn,'submissions',$record3);
 
-@mkdir($target_path, 0777, true);
-if(!move_uploaded_file($tmpname, $record['parfile']))
-  die('error uploading file ' . $tmpname . ' to ' . $record['parfile']);
+if ($confirmid) {
+  $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid))
+    or die('Query failed: ' . pg_last_error());
+  if (pg_affected_rows($result) < 1) die('not found');
+  if (pg_affected_rows($result) > 1) die('not unique');
+  pg_free_result($result);
 
-if ($rescount > 1)
-  printf("%s has been updated", $record['tocid']);
+  if ($parfile) {
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET parfile=$1, parity=$2, crc32=$3 WHERE id=$4 AND tocid=$5 AND parfile IS NULL", array($parfile, $paritysample, $crc32, $sub2_id, $tocid))
+      or die('Query failed: ' . pg_last_error());
+    if (pg_affected_rows($result) < 1) die('not found');
+    if (pg_affected_rows($result) > 1) die('not unique');
+    pg_free_result($result);
+  }
+} else
+{
+  $record = false;
+  $record['id'] = $sub2_id;
+  $record['trackcount'] = @$_POST['trackcount'];
+  $record['audiotracks'] = @$_POST['audiotracks'];
+  $record['firstaudio'] = @$_POST['firstaudio'];
+  $record['trackoffsets'] = @$_POST['trackoffsets'];
+  $record['crc32'] = $crc32;
+  $record['confidence'] = $record3['confidence'];
+  $record['parity'] = $paritysample;
+  $record['userid'] = $record3['userid'];
+  $record['agent'] = $record3['agent'];
+  $record['time'] = $record3['time'];
+  $record['artist'] = @$_POST['artist'];
+  $record['title'] = @$_POST['title'];
+  $record['tocid'] = $tocid;
+  if ($parfile)
+    $record['parfile'] = $parfile;
+
+  if (phpCTDB::toc2tocid($record) != $tocid) die('tocid mismatch');
+
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($tocid))
+    or die('Query failed: ' . pg_last_error());
+  $rescount = pg_num_rows($result);
+  while (TRUE == ($record2 = pg_fetch_array($result)))
+    if ($record2['crc32'] == $crc32) {
+	// TODO: conirm
+	die("Duplicate entry");
+  }
+  pg_free_result($result);
+
+  pg_insert($dbconn, 'submissions2', $record)
+    or die('Query failed');
+}
+
+pg_insert($dbconn, 'submissions', $record3)
+  or die('Query failed');
+
+if ($parfile)
+{
+  @mkdir($target_path, 0777, true);
+  move_uploaded_file($tmpname, $parfile)
+    or die('error uploading file ' . $tmpname . ' to ' . $parfile);
+}
+
+if ($confirmid)
+  printf("%s has been confirmed", $tocid);
+else if ($rescount > 1)
+  printf("%s has been updated", $tocid);
 else
-  printf("%s has been uploaded", $record['tocid']);
+  printf("%s has been uploaded", $tocid);
 ?>
