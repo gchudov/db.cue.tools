@@ -1,3 +1,5 @@
+#vim: set ts=4 sw=4 ft=apache :
+
 # ln -s /var/www/html/hgweb.apache /etc/httpd/conf.d/hgweb.conf
 
 # ScriptAlias /hg "/var/www/html/hgweb.cgi"

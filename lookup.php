@@ -19,7 +19,7 @@ printf('<?xml version="1.0" encoding="UTF-8"?>');
 printf('<ctdb xmlns="http://db.cuetools.net/ns/mmd-1.0#" xmlns:ext="http://db.cuetools.net/ns/ext-1.0#">');
 while($record)
 {
-	printf('<entry id="%d" crc32="%08x" confidence="%d" npar="8" stride="5880">', $record['id'], $record['crc32'], $record['confidence']);
+	printf('<entry id="%d" crc32="%08x" confidence="%d" npar="8" stride="5880" hasparity="%s">', $record['id'], $record['crc32'], $record['confidence'], $record['parfile'] ? "1" : "0" );
 		printf('<parity>%s</parity>', $record['parity']);
 		printf('<toc trackcount="%d" audiotracks="%d" firstaudio="%d">%s</toc>', 
 			$record['trackcount'], $record['audiotracks'], $record['firstaudio'], $record['trackoffsets']);

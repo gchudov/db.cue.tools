@@ -18,7 +18,7 @@ $result = pg_query_params($dbconn, "SELECT EXTRACT(EPOCH FROM time) from submiss
   or die('Query failed: ' . pg_last_error());
 $xdata2 = pg_fetch_all_columns($result, 0);
 //$interval = $ydata[count($ydata)-1] / (pg_num_rows($result) * $interval);
-$interval = 5;
+$interval = 1;
 $ydata2 = range(1, pg_num_rows($result) * $interval, $interval);
 pg_free_result($result);
 

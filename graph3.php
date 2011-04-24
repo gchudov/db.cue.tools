@@ -12,6 +12,12 @@ $result = pg_query_params($dbconn, "SELECT EXTRACT(EPOCH FROM time) from submiss
 $xdata = pg_fetch_all_columns($result, 0);
 $ydata = range(1, pg_num_rows($result) * $interval, $interval);
 pg_free_result($result);
+$result = pg_query_params($dbconn, "SELECT EXTRACT(EPOCH FROM time) from submissions WHERE subid % $1 = 0 AND agent ilike 'EAC%' ORDER by time", array($interval))
+	or die('Query failed: ' . pg_last_error());
+$interval = 32;
+$xdata1 = pg_fetch_all_columns($result, 0);
+$ydata1 = range(1, pg_num_rows($result) * $interval, $interval);
+pg_free_result($result);
 
 $dateUtils = new DateScaleUtils();
 
@@ -46,6 +52,10 @@ $graph->Add($lp1);
 $lp2 = new LinePlot($ydata,$xdata);
 $lp2->SetColor('orange');
 $graph->Add($lp2);
+
+$lp3 = new LinePlot($ydata1,$xdata1);
+$lp3->SetColor('green');
+$graph->Add($lp3);
 
 // And send back to the client
 $graph->Stroke();
