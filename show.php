@@ -128,7 +128,7 @@ if ($isadmin)
 include 'table_end.php';
 printf('<br>');
 include 'table_start.php';
-printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Track</th><th>Start</th><th>Length</th><th>Start sector</th><th>End sector</th></tr>');
+printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Track</th><th>Start</th><th>Length</th><th>Start sector</th><th>End sector</th><th>CRC</th></tr>');
 function TimeToString($time)
 {
 	$frame = $time % 75;
@@ -139,6 +139,7 @@ function TimeToString($time)
   return sprintf('%d:%02d.%02d',$min,$sec,$frame);
 }
 $ids = explode(' ', $record['trackoffsets']);
+$crcs = explode(' ', $record['trackcrcs']);
 for ($tr = 0; $tr < count($ids) - 1; $tr++)
 {
   $trstart = $ids[$tr];
@@ -147,7 +148,9 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
 		$trend -= 11400;
   $trstartmsf = TimeToString($trstart);
   $trlenmsf = TimeToString($trend + 1 - $trstart);
-	printf('<tr><td class=td_ar>%d</td><td class=td_ar>%s</td><td class=td_ar>%s</td><td class=td_ar>%d</td><td class=td_ar>%d</td></tr>', $tr + 1, $trstartmsf, $trlenmsf, $trstart, $trend);
+  $trmod = $tr + 1 - $record['firstaudio'];
+  $trcrc = $trmod < count($crcs) ? $crcs[$trmod] : "";
+	printf('<tr><td class=td_ar>%d</td><td class=td_ar>%s</td><td class=td_ar>%s</td><td class=td_ar>%d</td><td class=td_ar>%d</td><td class=td_ar>%s</td></tr>', $tr + 1, $trstartmsf, $trlenmsf, $trstart, $trend, $trcrc);
 }
 printf("</table>");
 include 'table_end.php';

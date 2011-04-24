@@ -1,8 +1,24 @@
 <?php
-require_once( 'phpctdb/ctdb.php' );
 
 //if ($_SERVER['HTTP_USER_AGENT'] != "CUETools 205")
 //  die ("user agent " . $_SERVER['HTTP_USER_AGENT'] . " is not allowed");
+
+function toc2tocid($record)
+{
+  $ids = explode(' ', $record['trackoffsets']);
+  $tocid = '';
+  $pregap = $ids[$record['firstaudio'] - 1];
+  for ($tr = $record['firstaudio']; $tr < $record['firstaudio'] + $record['audiotracks'] - 1; $tr++)
+    $tocid = sprintf('%s%08X', $tocid, $ids[$tr] - $pregap);
+  $leadout = $ids[$record['firstaudio'] + $record['audiotracks'] - 1] -
+    (($record['firstaudio'] == 1 && $record['audiotracks'] < $record['trackcount']) ? 11400 : 0); // Enhanced CD
+  $tocid = sprintf('%s%08X', $tocid, $leadout - $pregap);
+  //echo $tocid;
+  $tocid = str_pad($tocid, 800, '0');
+  $tocid = base64_encode(pack("H*" , sha1($tocid)));
+  $tocid = str_replace('+', '.', str_replace('/', '_', str_replace('=', '-', $tocid)));
+  return $tocid;
+}
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
@@ -25,6 +41,9 @@ if (!$paritysample) die('parity not specified');
 $crc32 = @$_POST['crc32'];
 if (!$crc32) die('crc32 not specified');
 
+$trackcrcs = @$_POST['trackcrcs'];
+if (!$trackcrcs) die('trackcrcs not specified');
+
 if (@$_POST['parityfile'])
 {
   $file = $_FILES['parityfile'];
@@ -33,8 +52,9 @@ if (@$_POST['parityfile'])
   $tmpname = $file['tmp_name'];
   @file_exists($tmpname) or die("file doesn't exist");
   if (filesize($tmpname) == 0) die("file is empty");
-  $target_path = sprintf("parity2/%s/%s", substr($tocid, 0, 1), substr($tocid, 1, 1));
-  $parfile = sprintf("%s/%s.%08x.bin", $target_path, substr($tocid, 2), $sub2_id);
+  $tocidsafe = str_replace('.','+',$tocid); 
+  $target_path = sprintf("parity2/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
+  $parfile = sprintf("%s/%s.%08x.bin", $target_path, substr($tocidsafe, 2), $crc32);
 } else {
   $tmpname = false;
   $parfile = false;
@@ -56,7 +76,7 @@ if ($confirmid) {
   pg_free_result($result);
 
   if ($parfile) {
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET parfile=$1, parity=$2, crc32=$3 WHERE id=$4 AND tocid=$5 AND parfile IS NULL", array($parfile, $paritysample, $crc32, $sub2_id, $tocid))
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET parfile=$1, parity=$2, crc32=$3, trackcrcs=$4 WHERE id=$5 AND tocid=$6 AND parfile IS NULL", array($parfile, $paritysample, $crc32, $trackcrcs, $sub2_id, $tocid))
       or die('Query failed: ' . pg_last_error());
     if (pg_affected_rows($result) < 1) die('not found');
     if (pg_affected_rows($result) > 1) die('not unique');
@@ -71,6 +91,7 @@ if ($confirmid) {
   $record['firstaudio'] = @$_POST['firstaudio'];
   $record['trackoffsets'] = @$_POST['trackoffsets'];
   $record['crc32'] = $crc32;
+  $record['trackcrcs'] = $trackcrcs;
   $record['confidence'] = $record3['confidence'];
   $record['parity'] = $paritysample;
   $record['userid'] = $record3['userid'];
@@ -82,7 +103,7 @@ if ($confirmid) {
   if ($parfile)
     $record['parfile'] = $parfile;
 
-  if (phpCTDB::toc2tocid($record) != $tocid) die('tocid mismatch');
+  if (toc2tocid($record) != $tocid) die('tocid mismatch');
 
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($tocid))
     or die('Query failed: ' . pg_last_error());
