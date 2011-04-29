@@ -6,14 +6,27 @@ require_once( 'phpctdb/ctdb.php' );
 include_once('auth.php');
 
 $realm = 'Restricted area';
+if (@$_GET['login']) makeAuth($realm);
 $isadmin = ('admin' == getAuth($realm));
-if ((@$_GET['login'] && !$isadmin) || @$_GET['logout']) makeAuth($realm);
 
 $id = @$_GET['id'];
 
 if ($isadmin)
 {
 	if (!$id) $id = $_POST['id'];
+
+  if (@$_POST['delete']=='delete') {
+		$result = pg_query_params($dbconn, "DELETE FROM submissions WHERE entryid=$1", array((int)$id))
+		  or die('Query failed: ' . pg_last_error());
+		pg_free_result($result);
+		$result = pg_query_params($dbconn, "DELETE FROM submissions2 WHERE id=$1", array((int)$id))
+		  or die('Query failed: ' . pg_last_error());
+		if (pg_affected_rows($result) < 1) die('not found');
+		if (pg_affected_rows($result) > 1) die('not unique');
+		pg_free_result($result);
+    die('deleted');
+  }
+
 
 	$set_artist = @$_POST['set_artist_mb'];
 	if (!$set_artist) $set_artist = @$_POST['set_artist'];
@@ -121,7 +134,7 @@ if ($mbmeta)
 			printf('<td>%s</td></tr>', $mbr['albumname']);
 		}
 if ($isadmin)
-	printf('<tr><td colspan=2 align=center><input type="submit" name="update" value="Update" /></td></tr>');
+	printf('<tr><td><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
 ?>
 </table>
 <?php 
@@ -149,7 +162,7 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
   $trstartmsf = TimeToString($trstart);
   $trlenmsf = TimeToString($trend + 1 - $trstart);
   $trmod = $tr + 1 - $record['firstaudio'];
-  $trcrc = $trmod < count($crcs) ? $crcs[$trmod] : "";
+  $trcrc = $trmod >= 0 && $trmod < count($crcs) ? $crcs[$trmod] : "";
 	printf('<tr><td class=td_ar>%d</td><td class=td_ar>%s</td><td class=td_ar>%s</td><td class=td_ar>%d</td><td class=td_ar>%d</td><td class=td_ar>%s</td></tr>', $tr + 1, $trstartmsf, $trlenmsf, $trstart, $trend, $trcrc);
 }
 printf("</table>");
