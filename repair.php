@@ -1,6 +1,6 @@
 <?php
 
-require_once( 'phpctdb/ctdb.php' );
+#require_once( 'phpctdb/ctdb.php' );
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
 	or die('Could not connect: ' . pg_last_error());

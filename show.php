@@ -170,15 +170,16 @@ include 'table_end.php';
 if ($isadmin) {
 	printf('<br>');
 	include 'table_start.php';
-  printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Date</th><th>Agent</th><th>User</th><th>Ip</th></tr>');
+  printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Date</th><th>Agent</th><th>User</th><th>Ip</th><th>Conf</th></tr>');
 	$result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1", array($record['id']))
   	or die('Query failed: ' . pg_last_error());
 	while (TRUE == ($record3 = pg_fetch_array($result)))
-	  printf('<tr><td class=td_ar>%s</td><td class=td_ar><a href="/?agent=%s">%.15s</a></td><td class=td_ar><a href="/?uid=%s">%s</a></td><td class=td_ar>%s</td></tr>', 
+	  printf('<tr><td class=td_ar>%s</td><td class=td_ar><a href="/?agent=%s">%.15s</a></td><td class=td_ar><a href="/?uid=%s">%s</a></td><td class=td_ar>%s</td><td class=td_ar>%s</td></tr>', 
       $record3['time'], 
       $record3['agent'], $record3['agent'], 
       $record3['userid'], '*',
-      @$record3['ip']);
+      @$record3['ip'],
+      @$record3['confidence']);
 	pg_free_result($result);
   printf("</table>");
 	include 'table_end.php';

@@ -44,6 +44,11 @@ if (!$crc32) die('crc32 not specified');
 $trackcrcs = @$_POST['trackcrcs'];
 if (!$trackcrcs) die('trackcrcs not specified');
 
+$confidence = @$_POST['confidence'];
+if (!$confidence) die('confidence not specified');
+
+$quality = @$_POST['quality'] or die('quality not specified');
+
 if (@$_POST['parityfile'])
 {
   $file = $_FILES['parityfile'];
@@ -60,28 +65,48 @@ if (@$_POST['parityfile'])
   $parfile = false;
 }
 
+$needparfile = false;
+if ($confirmid)
+{ 
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE id=$1", array($confirmid))
+    or die('Query failed: ' . pg_last_error());
+  $oldrecord = pg_fetch_array($result)
+    or die('Query failed: ' . pg_last_error());
+  pg_free_result($result);
+  $oldparfile = @$oldrecord['parfile'] or $needparfile = true;
+  @$oldrecord['trackcrcs'] or $needparfile = true;
+}
+else
+{
+  if ($quality < 50)
+    die('insufficient quality');
+  if ($confidence > 1) 
+    $needparfile = true;
+}
+
+if ($parfile && !$needparfile)
+  die ('parity not needed'); // parfile = false?
+if (!$parfile && $needparfile)
+  die ('parity needed');
+
 $record3 = false;
 $record3['entryid'] = $sub2_id;
-$record3['confidence'] = @$_POST['confidence'];
+$record3['confidence'] = $confidence;
 $record3['userid'] = @$_POST['userid'];
 $record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
 $record3['time'] = date ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
 
 if ($confirmid) {
-  $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid))
-    or die('Query failed: ' . pg_last_error());
+  if ($parfile)
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, parfile=$1, parity=$2, crc32=$3, trackcrcs=$4 WHERE id=$5 AND tocid=$6", array($parfile, $paritysample, $crc32, $trackcrcs, $sub2_id, $tocid));
+  else
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid));
+  $result or die('Query failed: ' . pg_last_error());
   if (pg_affected_rows($result) < 1) die('not found');
   if (pg_affected_rows($result) > 1) die('not unique');
   pg_free_result($result);
-
-  if ($parfile) {
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET parfile=$1, parity=$2, crc32=$3, trackcrcs=$4 WHERE id=$5 AND tocid=$6 AND parfile IS NULL", array($parfile, $paritysample, $crc32, $trackcrcs, $sub2_id, $tocid))
-      or die('Query failed: ' . pg_last_error());
-    if (pg_affected_rows($result) < 1) die('not found');
-    if (pg_affected_rows($result) > 1) die('not unique');
-    pg_free_result($result);
-  }
+  if ($oldparfile) unlink($oldparfile);
 } else
 {
   $record = false;
