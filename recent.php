@@ -1,6 +1,4 @@
 <?php
-/* Set internal character encoding to UTF-8 */
-mb_internal_encoding("UTF-8");
 include 'logo_start.php'; 
 require_once( 'phpctdb/ctdb.php' );
 include_once('auth.php');

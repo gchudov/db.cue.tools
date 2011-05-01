@@ -52,6 +52,7 @@
 		<td rowspan=3><img width=128 height=128 border=0 alt="" src=ctdb.png></td>
 		<td class=td_status>
 <?php
+mb_internal_encoding("UTF-8");
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
 $dbresult = pg_query('SELECT count(id) FROM submissions2'); 

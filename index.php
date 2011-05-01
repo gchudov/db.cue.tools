@@ -1,6 +1,5 @@
 <?php
 include 'logo_start.php'; 
-require_once( 'phpctdb/ctdb.php' );
 include_once('auth.php');
 
 $realm = 'Restricted area';
