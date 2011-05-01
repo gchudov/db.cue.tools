@@ -73,7 +73,8 @@ if ($confirmid)
   $oldrecord = pg_fetch_array($result)
     or die('Query failed: ' . pg_last_error());
   pg_free_result($result);
-  $oldparfile = @$oldrecord['parfile'] or $needparfile = true;
+  $oldparfile = @$oldrecord['parfile'];
+  if (!$oldparfile || !@file_exists($oldparfile)) $needparfile = true;
   @$oldrecord['trackcrcs'] or $needparfile = true;
 }
 else
@@ -106,7 +107,7 @@ if ($confirmid) {
   if (pg_affected_rows($result) < 1) die('not found');
   if (pg_affected_rows($result) > 1) die('not unique');
   pg_free_result($result);
-  if ($oldparfile) unlink($oldparfile);
+  if ($oldparfile && $parfile) unlink($oldparfile);
 } else
 {
   $record = false;
