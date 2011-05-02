@@ -1,4 +1,13 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<?php
+mb_internal_encoding("UTF-8");
+include_once('auth.php');
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
+    or die('Could not connect: ' . pg_last_error());
+$realm = 'ctdb';
+$userinfo = getAuth($realm);
+$isadmin = $userinfo && $userinfo['admin'];
+?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title>CUETools DB</title>
@@ -52,13 +61,6 @@
 		<td rowspan=3><img width=128 height=128 border=0 alt="" src=ctdb.png></td>
 		<td class=td_status>
 <?php
-mb_internal_encoding("UTF-8");
-include_once('auth.php');
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
-    or die('Could not connect: ' . pg_last_error());
-$realm = 'ctdb';
-$userinfo = getAuth($realm);
-$isadmin = $userinfo && $userinfo['admin'];
 $dbresult = pg_query('SELECT count(id) FROM submissions2'); 
 $rec = pg_fetch_array($dbresult);
 printf("%d unique discs", $rec[0]);
