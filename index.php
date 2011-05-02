@@ -1,10 +1,7 @@
 <?php
 include 'logo_start.php'; 
-include_once('auth.php');
 
-$realm = 'Restricted area';
-$isadmin = ('admin' == getAuth($realm));
-if ((@$_GET['login'] && !$isadmin) || @$_GET['logout']) makeAuth($realm);
+if ((@$_GET['login'] && !$userinfo) || (@$_GET['logout'] && $userinfo)) makeAuth1($realm, 'Login requested');
 
 $count = 20;
 $query = 'SELECT * FROM submissions2';

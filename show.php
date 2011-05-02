@@ -3,11 +3,8 @@
 //mb_internal_encoding('UTF-8');
 include 'logo_start.php';
 require_once( 'phpctdb/ctdb.php' );
-include_once('auth.php');
 
-$realm = 'Restricted area';
-if (@$_GET['login']) makeAuth($realm);
-$isadmin = ('admin' == getAuth($realm));
+if ((@$_GET['login'] && !$userinfo) || (@$_GET['logout'] && $userinfo)) makeAuth1($realm, 'Login requested');
 
 $id = @$_GET['id'];
 

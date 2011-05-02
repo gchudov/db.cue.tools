@@ -59,6 +59,10 @@ $dbresult = pg_query('SELECT count(id) FROM submissions2');
 $rec = pg_fetch_array($dbresult);
 printf("%d unique discs", $rec[0]);
 pg_free_result($dbresult);
+include_once('auth.php');
+$realm = 'ctdb';
+$userinfo = getAuth($realm);
+$isadmin = $userinfo && $userinfo['admin'];
 ?>
 		</td>
 	</tr>
@@ -75,6 +79,10 @@ pg_free_result($dbresult);
 					<td><a href=/about.php>About</a></td>
 					<td><a href=http://www.hydrogenaudio.org/forums/index.php?showtopic=79882>Forum</a></td>
 					<td><a href=http://www.cuetools.net>CUETools</a></td>
+<?php 
+if ($isadmin) printf('<td><a href=/recent.php>Recent</a></td>');
+if ($userinfo) printf('<td><a href=/?logout=1>Logout</a></td>');
+?>
 				</tr>
 			</table>
 			<?php include 'table_end.php'; ?>

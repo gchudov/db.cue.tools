@@ -1,12 +1,7 @@
 <?php
 include 'logo_start.php'; 
-require_once( 'phpctdb/ctdb.php' );
-include_once('auth.php');
 
-$realm = 'Restricted area';
-$isadmin = ('admin' == getAuth($realm));
-if (!$isadmin || @$_GET['logout']) makeAuth($realm);
-
+if (!$isadmin) makeAuth1($realm, 'Admin priveleges required');
 
 printf("<center><h3>Recent additions:</h3>");
 include 'table_start.php';
