@@ -99,6 +99,7 @@ if ($isadmin)
 } else
 {
 	printf('<tr><td>AccurateRip ID</td><td>%s</td></tr>', phpCTDB::toc2arid($record));
+	printf('<tr><td>Confidence</td><td>%d</td></tr>', $record['confidence']);
 }
 //printf('<tr><td valign=top>TOC</td><td align=center>');
 //printf('</td></tr>');

@@ -14,7 +14,7 @@ $ydata = range(1, pg_num_rows($result) * $interval, $interval);
 pg_free_result($result);
 $result = pg_query_params($dbconn, "SELECT EXTRACT(EPOCH FROM time) from submissions WHERE subid % $1 = 0 AND agent ilike 'EAC%' ORDER by time", array($interval))
 	or die('Query failed: ' . pg_last_error());
-$interval = 32;
+$interval = 16;
 $xdata1 = pg_fetch_all_columns($result, 0);
 $ydata1 = range(1, pg_num_rows($result) * $interval, $interval);
 pg_free_result($result);

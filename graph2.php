@@ -6,8 +6,8 @@ require_once ('jpgraph/jpgraph_utils.inc.php');
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
-$interval = 10;
-$result = pg_query_params($dbconn, "SELECT confidence from submissions2 WHERE id % $1 = 0 AND confidence < 100 AND confidence > 3 ORDER by confidence DESC", array($interval))
+$interval = 5;
+$result = pg_query_params($dbconn, "SELECT confidence from submissions2 WHERE id % $1 = 0 AND confidence < 200 AND confidence > 0 ORDER by confidence DESC", array($interval))
 	or die('Query failed: ' . pg_last_error());
 $ydata = pg_fetch_all_columns($result, 0);
 $xdata = range(0, pg_num_rows($result) * $interval - 1, $interval);
@@ -16,7 +16,7 @@ pg_free_result($result);
 //$dateUtils = new DateScaleUtils();
 
 // Setup a basic graph
-$width=800; $height=400;
+$width=1024; $height=600;
 $graph = new Graph($width, $height);
 $graph->SetScale('linlin');
 $graph->SetMargin(60,20,40,60);
