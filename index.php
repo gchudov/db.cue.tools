@@ -21,20 +21,7 @@ if ($where_artist != '')
   $term = ' AND ';
   $url = $url . '&artist=' . urlencode($where_artist);
 }
-$where_uid=@$_GET['uid'];
-if ($where_uid != '')
-{
-  $query = $query . $term . "userid='" . pg_escape_string($where_uid) . "'";
-  $term = ' AND ';
-  $url = $url . '&uid=' . urlencode($where_uid);
-}
-$where_agent=@$_GET['agent'];
-if ($where_agent != '')
-{
-  $query = $query . $term . "agent ilike '%" . pg_escape_string($where_agent) . "%'";
-  $term = ' AND ';
-  $url = $url . '&agent=' . urlencode($where_agent);
-}
+
 $query = $query . " ORDER BY id";
 $result = pg_query($query) or die('Query failed: ' . pg_last_error());
 $start = @$_GET['start'];

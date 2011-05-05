@@ -121,9 +121,6 @@ if ($confirmid) {
   $record['trackcrcs'] = $trackcrcs;
   $record['confidence'] = $record3['confidence'];
   $record['parity'] = $paritysample;
-  $record['userid'] = $record3['userid'];
-  $record['agent'] = $record3['agent'];
-  $record['time'] = $record3['time'];
   $record['artist'] = @$_POST['artist'];
   $record['title'] = @$_POST['title'];
   $record['tocid'] = $tocid;

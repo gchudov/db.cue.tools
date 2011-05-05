@@ -170,9 +170,6 @@ class phpCTDB{
 		$record['crc32'] = $disc['CRC ']['int'];
 		$record['confidence'] = $disc['CONF']['int'];
 		$record['parity'] = base64_encode($this->read($disc['PAR ']['offset'], 16));
-		$record['userid'] = $disc['USER']['value'];
-		$record['agent'] = $disc['TOOL']['value'];
-		$record['time'] = date ("Y-m-d H:i:s");
 		$record['artist'] = @$disc['ART ']['value'];
 		$record['title'] = @$disc['nam ']['value'];
 		$record['tocid'] = phpCTDB::toc2tocid($record);

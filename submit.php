@@ -81,7 +81,7 @@ $ctdb = new phpCTDB($tmpname);
 $record = $ctdb->ctdb2pg();
 unset($ctdb);
 
-if ($record['agent']=='CUETools 205')
+if ($_SERVER['HTTP_USER_AGENT']=='CUETools 205')
 	die ('outdated client version');
 
 $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($record['tocid']))
@@ -102,9 +102,9 @@ $result= pg_query("SELECT currval('submissions2_id_seq1')");
 $record3 = false;
 $record3['entryid'] = pg_fetch_result($result,0,0);
 $record3['confidence'] = $record['confidence'];
-$record3['userid'] = $record['userid'];
-$record3['agent'] = $record['agent'];
-$record3['time'] = $record['time'];
+$record3['userid'] = @$_POST['userid'];
+$record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
+$record3['time'] = date ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
 pg_insert($dbconn,'submissions',$record3);
 
