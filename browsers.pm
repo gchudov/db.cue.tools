@@ -33,7 +33,10 @@
 	'opera'     => 5,
 	'safari'    => 6,
 	'chrome'    => 7,
-	'konqueror' => 8
+	'konqueror' => 8,
+	'cuetools'  => 9,
+	'cueripper' => 10,
+	'eac'       => 11
 );
 
 # BrowsersSearchIDOrder
@@ -270,6 +273,9 @@
 'svn', 'Subversion client', 
 'msie','MS Internet Explorer',
 'netscape','Netscape',
+'cuetools','CUETools',
+'cueripper','CUERipper',
+'eac','EAC',
 
 'elinks','ELinks',
 'firebird','Firebird (Old Firefox)',
@@ -518,6 +524,9 @@
 'svn','subversion',
 'msie','msie',
 'netscape','netscape',
+'cuetools','cuetools',
+'cueripper','cueripper',
+'eac','eac',
 
 'firebird','phoenix',
 'go!zilla','gozilla',
