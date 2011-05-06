@@ -26,14 +26,11 @@ if ($term == ' WHERE ')
 	$query = $query . $term . "confidence>=100";
 	$term = ' AND ';
 }
-$query = $query . " ORDER BY confidence";
+$start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
+$query = $query . " ORDER BY confidence DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
 $result = pg_query($query) or die('Query failed: ' . pg_last_error());
-$start = @$_GET['start'];
 if (pg_num_rows($result) == 0)
   die('nothing found');
-if ($count > pg_num_rows($result))
-	$count = pg_num_rows($result);
-if ($start == '') $start = pg_num_rows($result) - $count;
 
 printf("<center><h3>Popular discs:</h3>");
 include 'list.php';

@@ -167,7 +167,7 @@ class phpCTDB{
 		$record['audiotracks'] = $this->audiotracks;
 		$record['firstaudio'] = $this->firstaudio;
 		$record['trackoffsets'] = $this->trackoffsets;
-		$record['crc32'] = $disc['CRC ']['int'];
+		$record['crc32'] = $disc['CRC ']['int'] & 0xffffffff;
 		$record['confidence'] = $disc['CONF']['int'];
 		$record['parity'] = base64_encode($this->read($disc['PAR ']['offset'], 16));
 		$record['artist'] = @$disc['ART ']['value'];

@@ -22,15 +22,11 @@ if ($where_artist != '')
   $url = $url . '&artist=' . urlencode($where_artist);
 }
 
-$query = $query . " ORDER BY id";
+$start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
+$query = $query . " ORDER BY id DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
 $result = pg_query($query) or die('Query failed: ' . pg_last_error());
-$start = @$_GET['start'];
 if (pg_num_rows($result) == 0)
   die('nothing found');
-if ($count > pg_num_rows($result))
-	$count = pg_num_rows($result);
-if ($start == '') $start = pg_num_rows($result) - $count;
-
 printf("<center><h3>Recent additions:</h3>");
 include 'list.php';
 pg_free_result($result);
@@ -39,10 +35,10 @@ if ($where_discid != '' && $isadmin) {
   include 'table_start.php';
   printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Date</th><th>Agent</th><th>User</th><th>Ip</th><th>CTDB Id</th><th>AR</th></tr>');
 
-  $result = pg_query_params($dbconn, "SELECT s.time as time, s.agent as agent, s.userid as userid, ip, s.entryid as entryid, s.confidence as confidence, crc32 FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid WHERE e.tocid = $1 ORDER by entryid DESC", array($where_discid))
+  $result = pg_query_params($dbconn, "SELECT time, agent, userid, ip, s.entryid as entryid, s.confidence as confidence, crc32 FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid WHERE e.tocid = $1 ORDER by entryid DESC", array($where_discid))
     or die('Query failed: ' . pg_last_error());
   while (TRUE == ($record3 = pg_fetch_array($result)))
-    printf('<tr><td class=td_ar>%s</td><td class=td_ar><a href="/?agent=%s">%.15s</a></td><td class=td_ar><a href="/?uid=%s">%s</a></td><td class=td_ar>%s</td><td class=td_ar>%08x</td><td class=td_ar>%d</td></tr>',
+    printf('<tr><td class=td_ar>%s</td><td class=td_ar><a href="/recent.php?agent=%s">%.15s</a></td><td class=td_ar><a href="/recent.php?uid=%s">%s</a></td><td class=td_ar>%s</td><td class=td_ar>%08x</td><td class=td_ar>%d</td></tr>',
       $record3['time'],
       $record3['agent'], $record3['agent'],
       $record3['userid'], '*',
