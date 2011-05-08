@@ -14,12 +14,12 @@
 #  ScriptAlias / "/var/www/html/hgweb.cgi"
 
   RewriteEngine on
-  RewriteRule (.*) /var/www/html/hgweb.cgi/$1
+  RewriteRule (.*) /var/www/ctdbweb/hgweb.cgi/$1
   
   # Or we can use mod_alias for starting CGI script and making URLs "nice":
   # ScriptAliasMatch ^(.*) /home/user/webdir/hgweb.cgi/$1
 
-  <Directory "/var/www/html/">
+  <Directory "/var/www/ctdbweb/">
     Order allow,deny
     Allow from all
     AllowOverride All

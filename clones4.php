@@ -3,7 +3,7 @@ include 'logo_start.php';
 require_once( 'phpctdb/ctdb.php' );
 
 $count = 50;
-$query = "select a.* from submissions2 a, submissions2 b where substring(a.trackoffsets from '(.*) ([^ ]*)$') = substring(b.trackoffsets from '(.*) ([^ ]*)$') AND (substring(a.trackoffsets from ' ([^ ]*)$')=int4( substring(b.trackoffsets from ' ([^ ]*)$')) + 150 OR substring(b.trackoffsets from ' ([^ ]*)$')=int4( substring(a.trackoffsets from ' ([^ ]*)$')) + 150)";
+$query = "select a.* from submissions2 a, submissions2 b where substring(a.trackoffsets from '(.*) ([^ ]*)$') = substring(b.trackoffsets from '(.*) ([^ ]*)$') AND (int4(substring(a.trackoffsets from ' ([^ ]*)$'))=int4( substring(b.trackoffsets from ' ([^ ]*)$')) + 150 OR int4(substring(b.trackoffsets from ' ([^ ]*)$'))=int4( substring(a.trackoffsets from ' ([^ ]*)$')) + 150)";
 $result = pg_query(str_replace('select a.*','select count(a.*)', $query));
 $total = pg_fetch_row($result);
 $total = $total[0];
