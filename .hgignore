@@ -1,0 +1,6 @@
+syntax: glob
+lightopenid/
+downloads/
+vnstat/
+dump/
+parity/
