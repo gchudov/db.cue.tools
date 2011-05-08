@@ -61,7 +61,7 @@ $record = pg_fetch_array($result);
 pg_free_result($result);
 
 $mbid = phpCTDB::toc2mbid($record);
-$mbmeta = phpCTDB::mblookup($mbid);
+$mbmeta = phpCTDB::mblookupnew($mbid);
 
 printf('<center>');
 
@@ -123,13 +123,13 @@ else if ($record['title'] != '')
 	printf('<tr><td>Title</td><td>%s</td></tr>', $record['title']);
 if ($mbmeta)
 	foreach ($mbmeta as $mbr)
-		if ($mbr['albumname'] != $record['title'])
+		//if ($mbr['albumname'] != $record['title'])
 		{
 			if ($isadmin)
 				printf('<tr><td>Title (MB)<input type=RADIO name="set_title_mb" value="%s"></td>', $mbr['albumname']);
 			else
-				printf('<tr><td>Title (MB)</td>');
-			printf('<td>%s</td></tr>', $mbr['albumname']);
+				printf('<tr><td>Musicbrainz</td>');
+			printf('<td><a%s>%s</a></td></tr>', $mbr['info_url'] ? ' href=' . $mbr['info_url'] : '', $mbr['albumname'] . ($mbr['totaldiscs'] != 1 ? ' <i>(disc ' . $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') . ')</i>': '') . ($mbr['year'] ? ' <i>(' . $mbr['year'] . ')</i>' : '') . ($mbr['barcode'] ? ' <i>[' . $mbr['barcode'] . ']</i>' : ''));
 		}
 if ($isadmin)
 	printf('<tr><td><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
@@ -150,6 +150,7 @@ function TimeToString($time)
   return sprintf('%d:%02d.%02d',$min,$sec,$frame);
 }
 $ids = explode(' ', $record['trackoffsets']);
+//$crcs = explode(',', $record['tcrc']);
 $crcs = explode(' ', $record['trackcrcs']);
 for ($tr = 0; $tr < count($ids) - 1; $tr++)
 {
