@@ -61,7 +61,8 @@ $record = pg_fetch_array($result);
 pg_free_result($result);
 
 $mbid = phpCTDB::toc2mbid($record);
-$mbmeta = phpCTDB::mblookupnew($mbid);
+$mbmeta = false;
+phpCTDB::mblookupnew($mbid, $mbmeta);
 
 printf('<center>');
 
@@ -88,25 +89,25 @@ printf('<tr><td>CDDB/Freedb ID</td><td><form align=right method=post action="htt
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
 if ($isadmin)
 {
-	sscanf(phpCTDB::toc2arid($record),"%04x%04x", $arId0h, $arId0);
-	printf('<tr><td>AccurateRip ID</td><td><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>', $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['trackcount'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
-	printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
-	printf('<input type=hidden name=id value=%s>', $id);
-	printf('<tr><td>Confidence</td><td>%d</td></tr>', $record['confidence']);
-	printf('<tr><td>Parity file</td><td><a href="repair.php?tocid=%s&id=%s">%s</a></td></tr>', $record['tocid'], $record['id'], $record['parfile']);
+  sscanf(phpCTDB::toc2arid($record),"%04x%04x", $arId0h, $arId0);
+  printf('<tr><td>AccurateRip ID</td><td><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['trackcount'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
+  printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
+  printf('<input type=hidden name=id value=%s>', $id);
+  printf('<tr><td>Confidence</td><td>%d</td></tr>' . "\n", $record['confidence']);
+  printf('<tr><td>Parity file</td><td><a href="repair.php?tocid=%s&id=%s">%s</a></td></tr>' . "\n", $record['tocid'], $record['id'], $record['parfile']);
   printf('<tr><td colspan=2 align=center>');
-  printf('</td></tr>');
+  printf("</td></tr>\n");
 } else
 {
-	printf('<tr><td>AccurateRip ID</td><td>%s</td></tr>', phpCTDB::toc2arid($record));
-	printf('<tr><td>Confidence</td><td>%d</td></tr>', $record['confidence']);
+  printf('<tr><td>AccurateRip ID</td><td>%s</td></tr>', phpCTDB::toc2arid($record));
+  printf('<tr><td>Confidence</td><td>%d</td></tr>', $record['confidence']);
 }
 //printf('<tr><td valign=top>TOC</td><td align=center>');
 //printf('</td></tr>');
 if ($isadmin)
-	printf('<tr><td>Artist</td><td><input maxlength=200 size=50 type="Text" name="set_artist" value="%s" \></td></tr>', $record['artist']);
+	printf('<tr><td>Artist</td><td><input maxlength=200 size=50 type="Text" name="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
 else if ($record['artist'] != '')
-	printf('<tr><td>Artist</td><td>%s</td></tr>', $record['artist']);
+	printf('<tr><td>Artist</td><td>%s</td></tr>' . "\n", $record['artist']);
 if ($mbmeta)
 	foreach ($mbmeta as $mbr)
 		if ($mbr['artistname'] != $record['artist'])
@@ -115,10 +116,10 @@ if ($mbmeta)
 				printf('<tr><td>Artist (MB)<input type=RADIO name="set_artist_mb" value="%s"></td>', $mbr['artistname']);
 			else
 				printf('<tr><td>Artist (MB)</td>');
-			printf('<td>%s</td></tr>', $mbr['artistname']);
+			printf("<td>%s</td></tr>\n", $mbr['artistname']);
 		}
 if ($isadmin)
-	printf('<tr><td>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" value="%s" \></td></tr>', $record['title']);
+	printf('<tr><td>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
 else if ($record['title'] != '')
 	printf('<tr><td>Title</td><td>%s</td></tr>', $record['title']);
 if ($mbmeta)
@@ -129,7 +130,7 @@ if ($mbmeta)
 				printf('<tr><td>Title (MB)<input type=RADIO name="set_title_mb" value="%s"></td>', $mbr['albumname']);
 			else
 				printf('<tr><td>Musicbrainz</td>');
-			printf('<td><a%s>%s</a></td></tr>', $mbr['info_url'] ? ' href=' . $mbr['info_url'] : '', $mbr['albumname'] . ($mbr['totaldiscs'] != 1 ? ' <i>(disc ' . $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') . ')</i>': '') . ($mbr['year'] ? ' <i>(' . $mbr['year'] . ')</i>' : '') . ($mbr['barcode'] ? ' <i>[' . $mbr['barcode'] . ']</i>' : ''));
+			printf("<td><a%s>%s</a></td></tr>\n", $mbr['info_url'] ? ' href=' . $mbr['info_url'] : '', $mbr['albumname'] . ($mbr['totaldiscs'] != 1 ? ' <i>(disc ' . $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') . ')</i>': '') . ($mbr['year'] ? ' <i>(' . $mbr['year'] . ')</i>' : '') . ($mbr['barcode'] ? ' <i>[' . $mbr['barcode'] . ']</i>' : ''));
 		}
 if ($isadmin)
 	printf('<tr><td><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
@@ -139,7 +140,7 @@ if ($isadmin)
 include 'table_end.php';
 printf('<br>');
 include 'table_start.php';
-printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Track</th><th>Start</th><th>Length</th><th>Start sector</th><th>End sector</th><th>CRC</th></tr>');
+printf("<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Track</th><th>Start</th><th>Length</th><th>Start sector</th><th>End sector</th><th>CRC</th></tr>\n");
 function TimeToString($time)
 {
 	$frame = $time % 75;
@@ -162,7 +163,7 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
   $trlenmsf = TimeToString($trend + 1 - $trstart);
   $trmod = $tr + 1 - $record['firstaudio'];
   $trcrc = $trmod >= 0 && $trmod < count($crcs) ? $crcs[$trmod] : "";
-	printf('<tr><td class=td_ar>%d</td><td class=td_ar>%s</td><td class=td_ar>%s</td><td class=td_ar>%d</td><td class=td_ar>%d</td><td class=td_ar>%s</td></tr>', $tr + 1, $trstartmsf, $trlenmsf, $trstart, $trend, $trcrc);
+	printf('<tr><td class=td_ar>%d</td><td class=td_ar>%s</td><td class=td_ar>%s</td><td class=td_ar>%d</td><td class=td_ar>%d</td><td class=td_ar>%s</td></tr>' . "\n", $tr + 1, $trstartmsf, $trlenmsf, $trstart, $trend, $trcrc);
 }
 printf("</table>");
 include 'table_end.php';

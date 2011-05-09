@@ -159,19 +159,14 @@ class phpCTDB{
 		return $mbmeta;
 	}
 
-	static function mblookupnew($mbid)
+	static function mblookupnew($mbid, &$mbmeta = false)
 	{
 		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
 		if (!$mbconn)
 			return false;
-		$mbmeta = false;
 		// first get cttoc ids; then select where WHERE mc.cdtoc IN $1;
-		$mbresult = pg_query_params('SELECT DISTINCT rca.cover_art_url as coverarturl, rm.info_url, array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = ac.id), \'\') as artistname, rn.name as albumname, m.position as discnumber, m.name as discname, (select count(*) from medium where release = r.id) as totaldiscs, r.date_year as year, r.barcode FROM medium_cdtoc mc INNER JOIN medium m on m.id = mc.medium INNER JOIN release r on r.id = m.release INNER JOIN release_name rn on r.name = rn.id INNER JOIN release_group rg on rg.id = r.release_group INNER JOIN artist_credit ac ON ac.id = rg.artist_credit LEFT OUTER JOIN release_coverart rca ON rca.id = r.id LEFT OUTER JOIN release_meta rm ON rm.id = r.id WHERE mc.cdtoc = (SELECT id FROM cdtoc c WHERE c.discid = $1) ORDER BY year', array($mbid));
-		$mbmeta = false;
-		while(true == ($mbrecord = pg_fetch_array($mbresult)))
-		{
-			$mbmeta[] = $mbrecord;
-		}
+		$mbresult = pg_query_params('SELECT DISTINCT (select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, rca.cover_art_url as coverarturl, rm.info_url, array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = ac.id), \'\') as artistname, rn.name as albumname, m.position as discnumber, m.name as discname, (select count(*) from medium where release = r.id) as totaldiscs, r.date_year as year, r.barcode FROM medium_cdtoc mc INNER JOIN medium m on m.id = mc.medium INNER JOIN release r on r.id = m.release INNER JOIN release_name rn on r.name = rn.id INNER JOIN release_group rg on rg.id = r.release_group INNER JOIN artist_credit ac ON ac.id = rg.artist_credit LEFT OUTER JOIN release_coverart rca ON rca.id = r.id LEFT OUTER JOIN release_meta rm ON rm.id = r.id WHERE mc.cdtoc = (SELECT id FROM cdtoc c WHERE c.discid = $1) ORDER BY year', array($mbid));
+		$mbmeta = pg_fetch_all($mbresult);
 		pg_free_result($mbresult);
 		return $mbmeta;
 	}
