@@ -39,38 +39,21 @@ foreach($records as $record)
 $mbmetas = false;
 foreach (array_unique($mbids) as $mbid)
 {
-  phpCTDB::mblookupnew($mbid, $mbmetas);
-}
-function pg_array_parse( $text, &$output, $limit = false, $offset = 1 )
-{
-  if( false === $limit )
-  {
-    $limit = strlen( $text )-1;
-    $output = array();
-  }
-  if( '{}' != $text )
-    do
-    {
-      if( '{' != $text{$offset} )
-      {
-        preg_match( "/(\\{?\"([^\"\\\\]|\\\\.)*\"|[^,{}]+)+([,}]+)/", $text, $match, 0, $offset );
-        $offset += strlen( $match[0] );
-        $output[] = ( '"' != $match[1]{0} ? $match[1] : stripcslashes( substr( $match[1], 1, -1 ) ) );
-        if( '},' == $match[3] ) return $offset;
-      }
-      else  $offset = pg_array_parse( $text, $output[], $limit, $offset+1 );
-    }
-    while( $limit > $offset );
-  return $output;
+  foreach (phpCTDB::mblookupnew($mbid) as $im)
+    $mbmetas[] = $im;
 }
 $xmlmbmeta = false; 
 $i = 0;
 foreach ($mbmetas as $mbmeta)
 {
-  $tracklist = false;
-  pg_array_parse($mbmeta['tracklist'], $tracklist);
-  $xmlmbmeta[$i] = array('track' => $tracklist);
+  $tracks = false;
+  $j = 0;
+  foreach ($mbmeta['tracklist'] as $track) {
+    $tracks[$j . ' attr'] = $track;
+    $tracks[$j++] = false;
+  }
   $xmlmbmeta[$i . ' attr'] = array(
+    'musicbrainz_release_gid' => $mbmeta['gid'],
     'artist' => $mbmeta['artistname'],
     'album' => $mbmeta['albumname'],
     'year' => $mbmeta['year'], 
@@ -81,7 +64,7 @@ foreach ($mbmetas as $mbmeta)
     'infourl' => $mbmeta['info_url'], 
     'barcode' => $mbmeta['barcode']
   );
-  $i++;
+  $xmlmbmeta[$i++] = array('track' => $tracks, 'label' => $mbmeta['catno']);
 }
 $data = array(
 	'ctdb attr' => array('xmlns'=>"http://db.cuetools.net/ns/mmd-1.0#", 'xmlns:ext'=>"http://db.cuetools.net/ns/ext-1.0#"),
