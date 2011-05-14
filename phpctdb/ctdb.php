@@ -159,15 +159,139 @@ class phpCTDB{
 		return $mbmeta;
 	}
 
-	static function mblookupnew($mbid, &$mbmeta = false)
+	static function pg_array_indexes($args)
+	{
+          $i = 1;
+	  $res = '';
+	  foreach($args as $arg)
+	    $res = $res . ',$' . $i++;
+	  return '(' . substr($res,1) . ')';  
+	}
+
+	static function pg_array_parse( $text, &$output, $limit = false, $offset = 1 )
+	{
+	  if( false === $limit )
+	  {
+	    $limit = strlen( $text )-1;
+	    $output = array();
+	  }
+	  if( '{}' != $text )
+	    do
+	    {
+	      if( '{' != $text{$offset} )
+	      {
+	        preg_match( "/(\\{?\"([^\"\\\\]|\\\\.)*\"|[^,{}]+)+([,}]+)/", $text, $match, 0, $offset );
+	        $offset += strlen( $match[0] );
+	        $output[] = ( '"' != $match[1]{0} ? $match[1] : stripcslashes( substr( $match[1], 1, -1 ) ) );
+	        if( '},' == $match[3] ) return $offset;
+	      }
+	      else  $offset = phpCTDB::pg_array_parse( $text, $output[], $limit, $offset+1 );
+	    }
+	    while( $limit > $offset );
+	  return $output;
+	}
+
+	static function mblookupnew($mbid)
 	{
 		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
 		if (!$mbconn)
 			return false;
 		// first get cttoc ids; then select where WHERE mc.cdtoc IN $1;
-		$mbresult = pg_query_params('SELECT DISTINCT (select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, rca.cover_art_url as coverarturl, rm.info_url, array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = ac.id), \'\') as artistname, rn.name as albumname, m.position as discnumber, m.name as discname, (select count(*) from medium where release = r.id) as totaldiscs, r.date_year as year, r.barcode FROM medium_cdtoc mc INNER JOIN medium m on m.id = mc.medium INNER JOIN release r on r.id = m.release INNER JOIN release_name rn on r.name = rn.id INNER JOIN release_group rg on rg.id = r.release_group INNER JOIN artist_credit ac ON ac.id = rg.artist_credit LEFT OUTER JOIN release_coverart rca ON rca.id = r.id LEFT OUTER JOIN release_meta rm ON rm.id = r.id WHERE mc.cdtoc = (SELECT id FROM cdtoc c WHERE c.discid = $1) ORDER BY year', array($mbid));
+		$mbresult = pg_query_params($mbconn,
+		  'SELECT ' . 
+		  'm.tracklist as tracklistno, ' .
+//                  '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' . 
+                  'rca.cover_art_url as coverarturl, ' . 
+                  'rm.info_url, ' . 
+                  'r.gid, ' .
+		  'r.artist_credit, ' .
+//                  'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
+                  'rn.name as albumname, ' .
+                  'm.position as discnumber, ' .
+                  'm.name as discname, ' .
+                  '(select count(*) from medium where release = r.id) as totaldiscs, ' .
+                  '(select array_agg(ln.name || \' \' || rl.catalog_number) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as catno, ' .
+                  'r.date_year as year, ' .
+                  'r.barcode ' .
+                  'FROM cdtoc c ' .
+		  'INNER JOIN medium_cdtoc mc on mc.cdtoc = c.id ' .
+                  'INNER JOIN medium m on m.id = mc.medium ' .
+                  'INNER JOIN release r on r.id = m.release ' .
+                  'INNER JOIN release_name rn on rn.id = r.name ' .
+//                  'INNER JOIN release_group rg on rg.id = r.release_group ' .
+//                  'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
+                  'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
+                  'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
+                  'WHERE c.discid = $1 ' .
+                  'ORDER BY year', array($mbid));
 		$mbmeta = pg_fetch_all($mbresult);
 		pg_free_result($mbresult);
+
+		$tracklists = false;
+		$artistcredits = false;
+
+		foreach($mbmeta as $r)
+		  $tracklists[] = $r['tracklistno'];
+		$tracklists = array_unique($tracklists);
+		$mbresult = pg_query_params($mbconn,
+		  'SELECT ' .
+		  't.tracklist as tracklistno, ' .
+		  'array_agg(t.artist_credit ORDER BY t.position) as artist_credit, ' .
+                  'array_agg(tn.name ORDER BY t.position) as tracknames ' .
+		  'FROM track t ' . 
+		  'INNER JOIN track_name tn ON tn.id = t.name ' .
+		  'WHERE t.tracklist IN ' . phpCTDB::pg_array_indexes($tracklists) . ' ' .
+		  'GROUP BY t.tracklist', $tracklists);
+		$tracklists = pg_fetch_all($mbresult);
+		pg_free_result($mbresult);
+		$trackliststonames = false;
+		$trackliststocredits = false;
+		foreach($tracklists as $tr) {
+		  $trartistcredits = false;
+		  $tracknames = false;
+		  phpCTDB::pg_array_parse($tr['artist_credit'], $trartistcredits);
+		  phpCTDB::pg_array_parse($tr['tracknames'], $tracknames);
+		  $trackliststonames[$tr['tracklistno']] = $tracknames;
+		  $trackliststocredits[$tr['tracklistno']] = $trartistcredits;
+		  foreach($trartistcredits as $trcr)
+		    $artistcredits[] = $trcr;
+		}
+
+		foreach($mbmeta as $r)
+		  $artistcredits[] = $r['artist_credit'];
+		$artistcredits = array_unique($artistcredits);
+		$mbresult = pg_query_params($mbconn,
+		  'SELECT ' .
+		  'acn.artist_credit, ' .
+		  'array_to_string(array_agg(an.name || COALESCE(acn.join_phrase,\'\')),\'\') as artistname ' .
+		  'FROM artist_credit_name acn ' .
+		  'INNER JOIN artist_name an ON an.id = acn.name ' .
+		  'WHERE acn.artist_credit IN ' . phpCTDB::pg_array_indexes($artistcredits) . ' ' .
+		  'GROUP BY acn.artist_credit', $artistcredits);
+		$artistcredits = pg_fetch_all($mbresult);
+		pg_free_result($mbresult);
+		$artistcreditstonames = false;
+		foreach($artistcredits as $cr)
+		  $artistcreditstonames[$cr['artist_credit']] = $cr['artistname'];
+
+		$tltl = false;
+		foreach($tracklists as $tr) {
+		  $tl = false;
+		  $tlnames = $trackliststonames[$tr['tracklistno']];
+		  $tlart = $trackliststocredits[$tr['tracklistno']];
+		  for ($trno = 0; $trno < count($tlnames); $trno++)
+		    $tl[] = array('name' => $tlnames[$trno], 'artist' => $artistcreditstonames[$tlart[$trno]]);
+		  $tltl[$tr['tracklistno']] = $tl;
+		}
+
+		foreach($mbmeta as &$r) {
+		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
+		  $r['tracklist'] = $tltl[$r['tracklistno']];
+		  $catno = false;
+		  if (@$r['catno'])
+		    phpCTDB::pg_array_parse($r['catno'], $catno);
+		  $r['catno'] = $catno;
+		}
 		return $mbmeta;
 	}
 

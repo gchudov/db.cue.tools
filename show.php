@@ -61,8 +61,7 @@ $record = pg_fetch_array($result);
 pg_free_result($result);
 
 $mbid = phpCTDB::toc2mbid($record);
-$mbmeta = false;
-phpCTDB::mblookupnew($mbid, $mbmeta);
+$mbmeta = phpCTDB::mblookupnew($mbid);
 
 printf('<center>');
 
