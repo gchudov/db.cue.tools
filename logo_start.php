@@ -61,7 +61,7 @@ $isadmin = $userinfo && $userinfo['admin'];
 		<td rowspan=3><img width=128 height=128 border=0 alt="" src=ctdb.png></td>
 		<td class=td_status>
 <?php
-$dbresult = pg_query('SELECT count(id) FROM submissions2'); 
+$dbresult = pg_query($dbconn,"SELECT reltuples FROM pg_class WHERE oid = 'submissions2'::regclass"); 
 $rec = pg_fetch_array($dbresult);
 printf("%d unique discs", $rec[0]);
 pg_free_result($dbresult);
