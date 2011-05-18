@@ -1,24 +1,8 @@
 <?php
+require_once( 'phpctdb/ctdb.php' );
 
 //if ($_SERVER['HTTP_USER_AGENT'] != "CUETools 205")
 //  die ("user agent " . $_SERVER['HTTP_USER_AGENT'] . " is not allowed");
-
-function toc2tocid($record)
-{
-  $ids = explode(' ', $record['trackoffsets']);
-  $tocid = '';
-  $pregap = $ids[$record['firstaudio'] - 1];
-  for ($tr = $record['firstaudio']; $tr < $record['firstaudio'] + $record['audiotracks'] - 1; $tr++)
-    $tocid = sprintf('%s%08X', $tocid, $ids[$tr] - $pregap);
-  $leadout = $ids[$record['firstaudio'] + $record['audiotracks'] - 1] -
-    (($record['firstaudio'] == 1 && $record['audiotracks'] < $record['trackcount']) ? 11400 : 0); // Enhanced CD
-  $tocid = sprintf('%s%08X', $tocid, $leadout - $pregap);
-  //echo $tocid;
-  $tocid = str_pad($tocid, 800, '0');
-  $tocid = base64_encode(pack("H*" , sha1($tocid)));
-  $tocid = str_replace('+', '.', str_replace('/', '_', str_replace('=', '-', $tocid)));
-  return $tocid;
-}
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
@@ -32,8 +16,11 @@ if (!$confirmid)
 } else
   $sub2_id = $confirmid;
 
-$tocid = @$_POST['tocid'];
-if (!$tocid) die('tocid not specified');
+$toc_s = @$_POST['toc'];
+if (!$toc_s) die('toc not specified');
+
+$toc = phpCTDB::toc_s2toc($toc_s);
+$tocid = phpCTDB::toc2tocid($toc);
 
 $paritysample = @$_POST['parity'];
 if (!$paritysample) die('parity not specified');
@@ -113,10 +100,10 @@ if ($confirmid) {
 {
   $record = false;
   $record['id'] = $sub2_id;
-  $record['trackcount'] = @$_POST['trackcount'];
-  $record['audiotracks'] = @$_POST['audiotracks'];
-  $record['firstaudio'] = @$_POST['firstaudio'];
-  $record['trackoffsets'] = @$_POST['trackoffsets'];
+  $record['trackcount'] = $toc['trackcount'];
+  $record['audiotracks'] = $toc['audiotracks'];
+  $record['firstaudio'] = $toc['firstaudio'];
+  $record['trackoffsets'] = $toc['trackoffsets'];
   $record['crc32'] = $crc32;
   $record['trackcrcs'] = $trackcrcs;
   $record['confidence'] = $record3['confidence'];
@@ -127,7 +114,7 @@ if ($confirmid) {
   if ($parfile)
     $record['parfile'] = $parfile;
 
-  if (toc2tocid($record) != $tocid) die('tocid mismatch');
+  if (phpCTDB::toc2tocid($record) != $tocid) die('tocid mismatch');
 
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($tocid))
     or die('Query failed: ' . pg_last_error());
