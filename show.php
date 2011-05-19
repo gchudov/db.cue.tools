@@ -129,7 +129,7 @@ if ($mbmeta)
 				printf('<tr><td>Title (MB)<input type=RADIO name="set_title_mb" value="%s"></td>', $mbr['albumname']);
 			else
 				printf('<tr><td>Musicbrainz</td>');
-			printf("<td><a%s>%s</a></td></tr>\n", $mbr['info_url'] ? ' href=' . $mbr['info_url'] : '', $mbr['albumname'] . ($mbr['totaldiscs'] != 1 ? ' <i>(disc ' . $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') . ')</i>': '') . ($mbr['year'] ? ' <i>(' . $mbr['year'] . ')</i>' : '') . ($mbr['barcode'] ? ' <i>[' . $mbr['barcode'] . ']</i>' : ''));
+			printf("<td><a%s>%s</a></td></tr>\n", $mbr['info_url'] ? ' href=' . $mbr['info_url'] : '', $mbr['albumname'] . ($mbr['totaldiscs'] != 1 ? ' <i>(disc ' . $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') . ')</i>': '') . ($mbr['first_release_date_year'] ? ' <i>(' . $mbr['first_release_date_year'] . ')</i>' : '') . ($mbr['barcode'] ? ' <i>[' . $mbr['barcode'] . ']</i>' : ''));
 		}
 if ($isadmin)
 	printf('<tr><td><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');

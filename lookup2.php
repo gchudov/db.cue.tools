@@ -82,15 +82,17 @@ foreach ($mbmetas as $mbmeta)
   }
   $labels = false;
   $j = 0;
-  foreach ($mbmeta['label'] as $label) {
-    $labels[$j . ' attr'] = $label;
-    $labels[$j++] = false;
-  }
+  $labels_orig = @$mbmeta['label'];
+  if ($labels_orig)
+    foreach ($labels_orig as $label) {
+      $labels[$j . ' attr'] = $label;
+      $labels[$j++] = false;
+    }
   $xmlmbmeta[$i . ' attr'] = array(
     'release_gid' => $mbmeta['gid'],
     'artist' => $mbmeta['artistname'],
     'album' => $mbmeta['albumname'],
-    'year' => $mbmeta['year'], 
+    'year' => $mbmeta['first_release_date_year'], 
     'releasedate' => $mbmeta['releasedate'], 
     'country' => $mbmeta['country'], 
     'discnumber' => $mbmeta['discnumber'], 
