@@ -229,6 +229,7 @@ class phpCTDB{
 		// first get cttoc ids; then select where WHERE mc.cdtoc IN $1;
 		$mbresult = pg_query_params($mbconn,
 		  'SELECT ' . 
+		  'rgm.first_release_date_year, ' .
 		  '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
 		  'c.leadout_offset, ' .
 		  'c.track_offset, ' .
@@ -245,7 +246,7 @@ class phpCTDB{
                   '(select count(*) from medium where release = r.id) as totaldiscs, ' .
                   '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
                   '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
-                  'r.date_year as year, ' .
+//                  'r.date_year as year, ' .
                   'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
                   'r.barcode ' .
                   'FROM cdtoc c ' .
@@ -257,8 +258,9 @@ class phpCTDB{
 //                  'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
                   'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
                   'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
+		  'LEFT OUTER JOIN release_group_meta rgm ON rgm.id = r.release_group ' .
                   'WHERE c.discid = $1 ' .
-                  'ORDER BY year', array($mbid));
+                  'ORDER BY r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', array($mbid));
 		$mbmeta = pg_fetch_all($mbresult);
 		pg_free_result($mbresult);
 
