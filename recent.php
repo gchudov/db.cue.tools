@@ -82,7 +82,7 @@ if ($query == '')
 $result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, s.entryid as entryid, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid WHERE " . $query . " ORDER by s.subid DESC LIMIT 50", $params)
   or die('Query failed: ' . pg_last_error());
 while (TRUE == ($record3 = pg_fetch_array($result)))
-  printf('<tr><td class=td_discid>%s</td><td class=td_artist><img src="%s"> <a href="?agent=%s">%s</a></td><td class=td_discid><a href="?drivename=%s">%s</a></td><td class=td_discid><a href="?uid=%s">%.5s</a></td><td class=td_discid><a href="?ip=%s">%s</a></td><td class=td_artist><a href="?artist=%s">%s</a></td><td class=td_album>%s</td><td class=td_discid><a href="?tocid=%s">%.5s</a></td><td class=td_ar>%s</td><td class=td_ctdbid><a href="show.php?tocid=%s&id=%d">%08x</td><td class=td_ar>%s</td></tr>' . "\n",
+  printf('<tr><td class=td_discid>%s</td><td class=td_artist><img src="%s"> <a href="?agent=%s">%s</a></td><td class=td_discid><a href="?drivename=%s">%s</a></td><td class=td_discid><a href="?uid=%s">%.5s</a></td><td class=td_discid><a href="?ip=%s">%s</a></td><td class=td_artist><a href="?artist=%s">%s</a></td><td class=td_album>%s</td><td class=td_discid><a href="?tocid=%s">%.5s</a></td><td class=td_ar>%s</td><td class=td_ctdbid><a href="show.php?id=%d">%08x</td><td class=td_ar>%s</td></tr>' . "\n",
     $show_date ? $record3['time'] : substr($record3['time'],11),
     agentIcon($record3['agent']), $record3['agent'],  agentName($record3['agent']),
     $record3['drivename'], mb_substr($record3['drivename'],0,28),
@@ -96,7 +96,6 @@ while (TRUE == ($record3 = pg_fetch_array($result)))
 		$record3['tocid'],
 		$record3['tocid'],
 		($record3['firstaudio'] > 1) ? ('1+' . $record3['audiotracks']) : (($record3['audiotracks'] < $record3['trackcount']) ? ($record3['audiotracks'] . '+1') : $record3['audiotracks']),
-		$record3['tocid'],
 		$record3['entryid'],
 		$record3['crc32'],
 		$record3['confidence'] == $record3['confidence2'] ? $record3['confidence'] : sprintf('%d/%d', $record3['confidence'], $record3['confidence2'])
