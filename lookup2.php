@@ -36,7 +36,7 @@ $mbmetas = false;
 if ($dometa)
 foreach (array_unique($mbids) as $mbid)
 {
-  $mbmeta_t = phpCTDB::mblookupnew($mbid);
+  $mbmeta_t = phpCTDB::mblookup($mbid);
   if ($mbmeta_t)
     foreach ($mbmeta_t as $im)
       $mbmetas[] = $im;

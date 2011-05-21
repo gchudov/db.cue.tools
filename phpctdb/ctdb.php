@@ -163,32 +163,6 @@ class phpCTDB{
 	  return implode(':', $ids);
 	}
 
-	static function mblookup($mbid)
-	{
-		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz_user");
-		if (!$mbconn)
-			return false;
-		$mbresult = pg_query_params('SELECT DISTINCT album'
-		. ' FROM album_cdtoc, cdtoc'
-		. ' WHERE album_cdtoc.cdtoc = cdtoc.id'
-		. ' AND cdtoc.discid = $1',
-		array($mbid)
-		);
-		$mbmeta = false;
-		while(true == ($mbrecord = pg_fetch_array($mbresult)))
-		{
-			$mbresult2 = pg_query_params('SELECT a.name as albumname, ar.name as artistname, coverarturl'
-			. ' FROM album a INNER JOIN albummeta m ON m.id = a.id, artist ar'
-			. ' WHERE a.id = $1'
-			. ' AND ar.id = a.artist', 
-			array($mbrecord[0]));
-			$mbmeta[] = pg_fetch_array($mbresult2);
-			pg_free_result($mbresult2);
-		}
-		pg_free_result($mbresult);
-		return $mbmeta;
-	}
-
 	static function pg_array_indexes($args)
 	{
           $i = 1;
@@ -221,7 +195,7 @@ class phpCTDB{
 	  return $output;
 	}
 
-	static function mblookupnew($mbid)
+	static function mblookup($mbid)
 	{
 		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
 		if (!$mbconn)
