@@ -97,7 +97,7 @@ pg_free_result($result);
 $target_path = phpCTDB::discid2path(sprintf('%03d-%s', $record['trackcount'], phpCTDB::toc2arid($record)));
 
 $subres = pg_insert($dbconn, 'submissions2', $record);
-$result= pg_query("SELECT currval('submissions2_id_seq1')");
+$result= pg_query("SELECT currval('submissions2_id_seq')");
 
 $record3 = false;
 $record3['entryid'] = pg_fetch_result($result,0,0);

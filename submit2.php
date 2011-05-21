@@ -10,7 +10,7 @@ $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
 $confirmid = @$_POST['confirmid'];
 if (!$confirmid)
 {
-  $result= pg_query("SELECT nextval('submissions2_id_seq1')");
+  $result= pg_query("SELECT nextval('submissions2_id_seq')");
   $sub2_id = pg_fetch_result($result,0,0);
   pg_free_result($result);
 } else

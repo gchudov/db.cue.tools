@@ -260,7 +260,7 @@ class phpCTDB{
                   'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
 		  'LEFT OUTER JOIN release_group_meta rgm ON rgm.id = r.release_group ' .
                   'WHERE c.discid = $1 ' .
-                  'ORDER BY r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', array($mbid));
+                  'ORDER BY rgm.first_release_date_year NULLS LAST, r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', array($mbid));
 		$mbmeta = pg_fetch_all($mbresult);
 		pg_free_result($mbresult);
 

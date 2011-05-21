@@ -30,21 +30,21 @@ $isadmin = $userinfo && $userinfo['admin'];
 	font-family: sans-serif;
 }
 .td_artist {
-  padding: 1px 10px;
+  padding: 1px 8px;
 }
 .td_album {
-  padding: 1px 10px;
+  padding: 1px 8px;
 }
 .td_discid {
-  padding: 1px 5px;
+  padding: 1px 4px;
 	font-family: Courier;
 }
 .td_ctdbid {
-  padding: 1px 5px;
+  padding: 1px 4px;
 	font-family: Courier;
 }
 .td_ar {
-  padding: 1px 5px;
+  padding: 1px 4px;
   text-align: right;
 	font-family: Courier;
 }
