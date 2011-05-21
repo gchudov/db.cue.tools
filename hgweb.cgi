@@ -4,7 +4,7 @@
 # See also http://mercurial.selenic.com/wiki/PublishingRepositories
 
 # Path to repo or hgweb config to serve (see 'hg help hgweb')
-config = "/var/www/html/hgweb.config"
+config = "/var/www/ctdbweb/hgweb.config"
 
 # Uncomment and adjust if Mercurial is not installed system-wide:
 #import sys; sys.path.insert(0, "/path/to/python/lib")
