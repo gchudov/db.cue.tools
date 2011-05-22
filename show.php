@@ -81,13 +81,22 @@ $json_releases = false;
 if ($mbmeta)
   foreach ($mbmeta as $mbr)
   {
+    $label = '';
+    $labels_orig = @$mbr['label'];
+    if ($labels_orig)
+      foreach ($labels_orig as $l)
+        $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
+ 
     $json_releases[] = array(
       $mbr['first_release_date_year'],
       $mbr['artistname'], 
       $mbr['albumname'], 
       $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : '',
+      $mbr['country'], 
       $mbr['releasedate'], 
-      $mbr['barcode'], 
+      mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label, 
+      array('v' => $mbr['barcode'], 'p' => $timefmt), 
+      $mbr['gid'],
     );
   }
 
@@ -107,7 +116,7 @@ if ($mbmeta)
         data.addColumn('string', 'CRC');
         data.addRows(<?php echo json_encode($json_tracks)?>);
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
-        table.draw(data, {allowHtml: true, width: 640, sort: 'disable', showRowNumber: true});
+        table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
 <?php
 if ($json_releases)
 {
@@ -117,11 +126,18 @@ if ($json_releases)
         data.addColumn('string', 'Artist');
         data.addColumn('string', 'Album');
         data.addColumn('string', 'Disc');
+        data.addColumn('string', 'C');
         data.addColumn('string', 'Release');
+        data.addColumn('string', 'Label');
         data.addColumn('string', 'Barcode');
+        data.addColumn('string', 'gid');
         data.addRows(<?php echo json_encode($json_releases)?>);
+        var formatter = new google.visualization.TablePatternFormat('<a href="http://musicbrainz.org/release/{0}">{1}</a>');
+        formatter.format(data, [8, 2], 2); // Apply formatter and set the formatted value of the first column.
+        var view = new google.visualization.DataView(data);
+        view.setColumns([0,1,2,3,4,5,6,7]); // Create a view with the first column only.
         var table = new google.visualization.Table(document.getElementById('releases_div'));
-        table.draw(data, {allowHtml: true, width: 640, sort: 'disable', showRowNumber: true});
+        table.draw(view, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
 <?php
 }
 ?>
