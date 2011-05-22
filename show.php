@@ -21,10 +21,8 @@ if ($isadmin)
     die('deleted');
   }
 
-  $set_artist = @$_POST['set_artist_mb'];
-  if (!$set_artist) $set_artist = @$_POST['set_artist'];
-  $set_title = @$_POST['set_title_mb'];
-  if (!$set_title) $set_title = @$_POST['set_title'];
+  $set_artist = @$_POST['set_artist'];
+  $set_title = @$_POST['set_title'];
 
   if ($set_artist || $set_title)
   {
@@ -74,8 +72,23 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
   $trcrc = $trmod >= 0 && $trmod < count($crcs) ? $crcs[$trmod] : "";
   //print_r($mbmeta[0]);
   $trname = $tracklist ? ($trmod >= 0 && $trmod < count($tracklist) ? $tracklist[$trmod]['name'] : "[data track]") : "";
-  $json_tracks[] = array($trname, array('v' => $trstartmsf, 'p' => $timefmt), array('v' => $trlenmsf, 'p' => $timefmt), $trstart, $trend, $trcrc);
+  $json_tracks[] = array('c' => array(
+    array('v' => $trname), 
+    array('v' => $trstartmsf, 'p' => $timefmt), 
+    array('v' => $trlenmsf, 'p' => $timefmt), 
+    array('v' => $trstart), 
+    array('v' => $trend),
+    array('v' => $trcrc),
+  ));
 }
+$json_tracks_table = array('cols' => array(
+  array('label' => 'Track', 'type' => 'string'),
+  array('label' => 'Start', 'type' => 'string'),
+  array('label' => 'Length', 'type' => 'string'),
+  array('label' => 'Start', 'type' => 'number'),
+  array('label' => 'End', 'type' => 'number'),
+  array('label' => 'CRC', 'type' => 'string'),
+), 'rows' => $json_tracks);
 
 $json_releases = false;
 if ($mbmeta)
@@ -87,19 +100,30 @@ if ($mbmeta)
       foreach ($labels_orig as $l)
         $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
  
-    $json_releases[] = array(
-      $mbr['first_release_date_year'],
-      $mbr['artistname'], 
-      $mbr['albumname'], 
-      $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : '',
-      $mbr['country'], 
-      $mbr['releasedate'], 
-      mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label, 
-      array('v' => $mbr['barcode'], 'p' => $timefmt), 
-      $mbr['gid'],
+    $json_releases[] = array('c' => array(
+      array('v' => $mbr['first_release_date_year']),
+      array('v' => $mbr['artistname']), 
+      array('v' => $mbr['albumname']), 
+      array('v' => $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
+      array('v' => $mbr['country']), 
+      array('v' => $mbr['releasedate']), 
+      array('v' => mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label), 
+      array('v' => $mbr['barcode'], 'p' => $timefmt)), 
+      array('v' => $mbr['gid']),
     );
   }
 
+$json_releases_table = array('cols' => array(
+  array('label' => 'Year', 'type' => 'string'),
+  array('label' => 'Artist', 'type' => 'string'),
+  array('label' => 'Album', 'type' => 'string'),
+  array('label' => 'Disc', 'type' => 'string'),
+  array('label' => 'C', 'type' => 'string'),
+  array('label' => 'Release', 'type' => 'string'),
+  array('label' => 'Label', 'type' => 'string'),
+  array('label' => 'Barcode', 'type' => 'string'),
+  array('label' => 'gid', 'type' => 'string'),
+), 'rows' => $json_releases);
 
 ?>
     <script type='text/javascript' src='https://www.google.com/jsapi'></script>
@@ -107,40 +131,23 @@ if ($mbmeta)
       google.load('visualization', '1', {packages:['table']});
       google.setOnLoadCallback(drawTable);
       function drawTable() {
-        var data = new google.visualization.DataTable();
-        data.addColumn('string', 'Track');
-        data.addColumn('string', 'Start');
-        data.addColumn('string', 'Length');
-        data.addColumn('number', 'Start');
-        data.addColumn('number', 'End');
-        data.addColumn('string', 'CRC');
-        data.addRows(<?php echo json_encode($json_tracks)?>);
+        var data = new google.visualization.DataTable(<?php echo json_encode($json_tracks_table) ?>, 0.6);
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
         table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
-<?php
-if ($json_releases)
-{
-?>
-        var data = new google.visualization.DataTable();
-        data.addColumn('string', 'Year');
-        data.addColumn('string', 'Artist');
-        data.addColumn('string', 'Album');
-        data.addColumn('string', 'Disc');
-        data.addColumn('string', 'C');
-        data.addColumn('string', 'Release');
-        data.addColumn('string', 'Label');
-        data.addColumn('string', 'Barcode');
-        data.addColumn('string', 'gid');
-        data.addRows(<?php echo json_encode($json_releases)?>);
+        var data = new google.visualization.DataTable(<?php echo json_encode($json_releases_table) ?>);
+        if (data.getNumberOfRows() > 0) {
         var formatter = new google.visualization.TablePatternFormat('<a href="http://musicbrainz.org/release/{0}">{1}</a>');
         formatter.format(data, [8, 2], 2); // Apply formatter and set the formatted value of the first column.
         var view = new google.visualization.DataView(data);
         view.setColumns([0,1,2,3,4,5,6,7]); // Create a view with the first column only.
         var table = new google.visualization.Table(document.getElementById('releases_div'));
         table.draw(view, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
-<?php
-}
-?>
+        google.visualization.events.addListener(table, 'select', function() {
+          var srow = table.getSelection()[0].row;
+          document.getElementById('set_artist').value = data.getValue(srow,1);
+          document.getElementById('set_title').value = data.getValue(srow,2) + (data.getValue(srow,3) != '' ? ' (disc ' + data.getValue(srow,3) + ')' : '');
+        });
+        }
       }
     </script>
 <?php
@@ -189,27 +196,13 @@ if ($isadmin)
 //printf('<tr><td valign=top>TOC</td><td align=center>');
 //printf('</td></tr>');
 if ($isadmin)
-	printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
+	printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
 else if ($record['artist'] != '')
 	printf('<tr><td class=td_album>Artist</td><td class=td_album>%s</td></tr>' . "\n", $record['artist']);
-if ($mbmeta && $isadmin)
-	foreach ($mbmeta as $mbr)
-		if ($mbr['artistname'] != $record['artist'])
-		{
-			printf('<tr><td class=td_album>Artist (MB)<input type=RADIO name="set_artist_mb" value="%s"></td>', $mbr['artistname']);
-			printf("<td class=td_album>%s</td></tr>\n", $mbr['artistname']);
-		}
 if ($isadmin)
-	printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
+	printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" id="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
 else if ($record['title'] != '')
 	printf('<tr><td class=td_album>Title</td><td>%s</td></tr>', $record['title']);
-if ($mbmeta && $isadmin)
-	foreach ($mbmeta as $mbr)
-		//if ($mbr['albumname'] != $record['title'])
-		{
-			printf('<tr><td class=td_album>Title (MB)<input type=RADIO name="set_title_mb" value="%s"></td>', $mbr['albumname']);
-			printf("<td class=td_album><a%s>%s</a></td></tr>\n", $mbr['info_url'] ? ' href=' . $mbr['info_url'] : '', $mbr['albumname'] . ($mbr['totaldiscs'] != 1 ? ' <i>(disc ' . $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') . ')</i>': '') . ($mbr['first_release_date_year'] ? ' <i>(' . $mbr['first_release_date_year'] . ')</i>' : '') . ($mbr['barcode'] ? ' <i>[' . $mbr['barcode'] . ']</i>' : ''));
-		}
 if ($isadmin)
 	printf('<tr><td class=td_album><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
 ?>
