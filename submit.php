@@ -104,7 +104,7 @@ $record3['entryid'] = pg_fetch_result($result,0,0);
 $record3['confidence'] = $record['confidence'];
 $record3['userid'] = @$_POST['userid'];
 $record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
-$record3['time'] = date ("Y-m-d H:i:s");
+$record3['time'] = gmdate ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
 pg_insert($dbconn,'submissions',$record3);
 

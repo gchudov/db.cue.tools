@@ -83,7 +83,7 @@ $record3['confidence'] = $confidence;
 $record3['userid'] = @$_POST['userid'];
 $record3['drivename'] = @$_POST['drivename'];
 $record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
-$record3['time'] = date ("Y-m-d H:i:s");
+$record3['time'] = gmdate ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
 
 if ($confirmid) {
