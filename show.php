@@ -101,20 +101,20 @@ if ($mbmeta)
         $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
  
     $json_releases[] = array('c' => array(
-      array('v' => $mbr['first_release_date_year']),
+      array('v' => (int)$mbr['first_release_date_year']),
       array('v' => $mbr['artistname']), 
       array('v' => $mbr['albumname']), 
       array('v' => $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
       array('v' => $mbr['country']), 
       array('v' => $mbr['releasedate']), 
       array('v' => mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label), 
-      array('v' => $mbr['barcode'], 'p' => $timefmt)), 
+      array('v' => $mbr['barcode'], 'p' => $timefmt), 
       array('v' => $mbr['gid']),
-    );
+    ));
   }
 
 $json_releases_table = array('cols' => array(
-  array('label' => 'Year', 'type' => 'string'),
+  array('label' => 'Year', 'type' => 'number'),
   array('label' => 'Artist', 'type' => 'string'),
   array('label' => 'Album', 'type' => 'string'),
   array('label' => 'Disc', 'type' => 'string'),
@@ -141,7 +141,7 @@ $json_releases_table = array('cols' => array(
         var view = new google.visualization.DataView(data);
         view.setColumns([0,1,2,3,4,5,6,7]); // Create a view with the first column only.
         var table = new google.visualization.Table(document.getElementById('releases_div'));
-        table.draw(view, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
+        table.draw(view, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: false});
         google.visualization.events.addListener(table, 'select', function() {
           var srow = table.getSelection()[0].row;
           document.getElementById('set_artist').value = data.getValue(srow,1);
