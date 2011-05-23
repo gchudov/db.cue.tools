@@ -329,78 +329,7 @@ class phpCTDB{
 		$record['artist'] = @$disc['ART ']['value'];
 		$record['title'] = @$disc['nam ']['value'];
 		$record['tocid'] = phpCTDB::toc2tocid($record);
-		$discid = sprintf('%03d-%s', $record['trackcount'], phpCTDB::toc2arid($record));
-		$record['parfile'] = sprintf("%s/%08x.bin", phpCTDB::discid2path($discid), $record['crc32']);
 		return $record;
-	}
-
-	static function pg2ctdb($dbconn, $tocid)
-	{
-		$result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($tocid))
-			or die('Query failed: ' . pg_last_error());
-		$rescount = pg_num_rows($result);
-		if ($rescount < 1) die('not found');
-
-		$totalconf = 0;
-		$newctdb = false;
-		$newctdb['name'] = 'CTDB';
-			$newhead = false;
-			$newhead['name'] = 'HEAD';
-				$newtotal = false;
-				$newtotal['name'] = 'TOTL';
-				$newtotal['value'] =	phpCTDB::BigEndian2String($totalconf,4);
-			$newhead['subatoms'][] = $newtotal;
-		$newctdb['subatoms'][] = $newhead;
-
-		while (TRUE == ($record = pg_fetch_array($result)))
-		{
-			$totalconf += $record['confidence'];
-				$newdisc = false;
-				$newdisc['name'] = 'DISC';
-
-					$newatom = false;
-					$newatom['name'] = 'CRC ';
-					$newatom['value'] = phpCTDB::Hex2String(sprintf('%08x',$record['crc32']));
-				$newdisc['subatoms'][] = $newatom;
-
-					$newatom = false;
-					$newatom['name'] = 'NPAR';
-					$newatom['value'] =	phpCTDB::BigEndian2String(8,4);
-				$newdisc['subatoms'][] = $newatom;
-
-					$newatom = false;
-					$newatom['name'] = 'CONF';
-					$newatom['value'] = phpCTDB::BigEndian2String((int)($record['confidence']),4);
-				$newdisc['subatoms'][] = $newatom;
-
-					$newatom = false;
-					$newatom['name'] = 'PAR ';
-					$newatom['value'] = base64_decode($record['parity']);
-				$newdisc['subatoms'][] = $newatom;
-
-			$target_path = phpCTDB::discid2path(sprintf('%03d-%s', $record['trackcount'], phpCTDB::toc2arid($record)));
-			// can be different!!!
-
-			$newctdb['subatoms'][] = $newdisc;
-		}
-
-		pg_free_result($result);
-
-		$newctdb['subatoms'][0]['subatoms'][0]['value'] = phpCTDB::BigEndian2String($totalconf,4);
-		
-		$ftyp=false;	
-		$ftyp['name'] = 'ftyp';
-		$ftyp['value'] = 'CTDB';
-
-		@mkdir($target_path, 0777, true);
-		$tname = sprintf("%s/ctdb.tmp", $target_path);
-		$tfp = fopen($tname, 'wb');
-		phpCTDB::unparse_atom($tfp,$ftyp);
-		phpCTDB::unparse_atom($tfp,$newctdb);
-		fclose($tfp);
-		if(!rename($tname,sprintf("%s/ctdb.bin", $target_path)))
-			die('error uploading file ' . $target_path);
-		return $rescount;
 	}
 
 	static function Hex2Int($hex_word, $signed = false)
@@ -466,25 +395,6 @@ class phpCTDB{
 
 	static function BigEndian2String($number, $minbytes=1, $synchsafe=false) {
 		return strrev(phpCTDB::LittleEndian2String($number, $minbytes, $synchsafe));
-	}
-
-	static function discid2path($id)
-	{
-		$err = sscanf($id, "%03d-%04x%04x-%04x%04x-%04x%04x", $tracks, $id1a, $id1b, $id2a, $id2b, $cddbida, $cddbidb);
-		$parsedid = sprintf("%03d-%04x%04x-%04x%04x-%04x%04x", $tracks, $id1a, $id1b, $id2a, $id2b, $cddbida, $cddbidb);
-		if ($id != $parsedid)
-			die("bad id ". $id);
-		return sprintf("parity/%x/%x/%x/%s", $id1b & 15, ($id1b >> 4) & 15, ($id1b >> 8) & 15, $parsedid);
-	}
-
-	static function ctdbid2path($discid, $ctdbid)
-	{
-		$path = phpCTDB::discid2path($discid);
-		sscanf($ctdbid, "%04x%04x", $ctdbida, $ctdbidb);
-		$parsedctdbid = sprintf("%04x%04x", $ctdbida, $ctdbidb);
-		if ($ctdbid != $parsedctdbid)
-			die("bad id ". $ctdbid);
-		return sprintf("%s/%s.bin", $path, $ctdbid);
 	}
 
 	static function unparse_atom($fp, $atom)
