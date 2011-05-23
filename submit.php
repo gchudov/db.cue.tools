@@ -81,6 +81,10 @@ $ctdb = new phpCTDB($tmpname);
 $record = $ctdb->ctdb2pg();
 unset($ctdb);
 
+$tocidsafe = str_replace('.','+',$record['tocid']);
+$target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
+$record['parfile'] = sprintf("%s/%s.%08x.bin", $target_path, substr($tocidsafe, 2), $record['crc32']);
+
 if ($_SERVER['HTTP_USER_AGENT']=='CUETools 205')
 	die ('outdated client version');
 
@@ -93,8 +97,6 @@ while (TRUE == ($record2 = pg_fetch_array($result)))
 		die("Duplicate entry");
 	}
 pg_free_result($result);
-
-$target_path = phpCTDB::discid2path(sprintf('%03d-%s', $record['trackcount'], phpCTDB::toc2arid($record)));
 
 $subres = pg_insert($dbconn, 'submissions2', $record);
 $result= pg_query("SELECT currval('submissions2_id_seq')");

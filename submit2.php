@@ -45,7 +45,7 @@ if (@$_POST['parityfile'])
   @file_exists($tmpname) or die("file doesn't exist");
   if (filesize($tmpname) == 0) die("file is empty");
   $tocidsafe = str_replace('.','+',$tocid); 
-  $target_path = sprintf("parity2/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
+  $target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
   $parfile = sprintf("%s/%s.%08x.bin", $target_path, substr($tocidsafe, 2), $crc32);
 } else {
   $tmpname = false;
