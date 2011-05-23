@@ -158,7 +158,7 @@ printf('<center>');
 $imgfound = false;
 if ($mbmeta)
 	foreach ($mbmeta as $mbr)
-		if ($mbr['coverarturl'])
+		if ($mbr['coverarturl'] && $mbr['coverarturl'] != '')
 		{
 			if (!$imgfound) include 'table_start.php';
 			printf('<img src="%s">', $mbr['coverarturl']);
@@ -168,6 +168,15 @@ if ($imgfound) {
 	include 'table_end.php';
 	printf('<br>');
 }
+
+printf("<div id='releases_div'></div>\n");
+if (!$mbmeta && ($record['artist'] != '' || $record['title'] != ''))
+  printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
+else
+  printf('<br>');
+printf("<div id='tracks_div'></div>\n");
+printf('<br>');
+
 include 'table_start.php';
 printf('<table border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
@@ -190,29 +199,15 @@ if ($isadmin)
   printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
   printf('<input type=hidden name=id value=%s>', $id);
   printf('<tr><td class=td_album>Parity file</td><td class=td_album><a href="repair.php?id=%s">%s</a></td></tr>' . "\n", $record['id'], $record['parfile']);
-  printf('<tr><td colspan=2 align=center>');
-  printf("</td></tr>\n");
+  printf('<tr><td colspan=2 align=center></td></tr>');
+  printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
+  printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" id="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
+  printf('<tr><td class=td_album><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
 }
-//printf('<tr><td valign=top>TOC</td><td align=center>');
-//printf('</td></tr>');
-if ($isadmin)
-	printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
-else if ($record['artist'] != '')
-	printf('<tr><td class=td_album>Artist</td><td class=td_album>%s</td></tr>' . "\n", $record['artist']);
-if ($isadmin)
-	printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" id="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
-else if ($record['title'] != '')
-	printf('<tr><td class=td_album>Title</td><td>%s</td></tr>', $record['title']);
-if ($isadmin)
-	printf('<tr><td class=td_album><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
 ?>
 </table>
 <?php 
 include 'table_end.php';
-printf('<br>');
-printf("<div id='releases_div'></div>\n");
-printf('<br>');
-printf("<div id='tracks_div'></div>\n");
 if ($isadmin) {
 	printf('<br>');
 	include 'table_start.php';
