@@ -126,6 +126,9 @@ $json_releases_table = array('cols' => array(
 ), 'rows' => $json_releases);
 
 ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
     <script type='text/javascript' src='https://www.google.com/jsapi'></script>
     <script type='text/javascript'>
       google.load('visualization', '1', {packages:['table']});
@@ -143,9 +146,11 @@ $json_releases_table = array('cols' => array(
         var table = new google.visualization.Table(document.getElementById('releases_div'));
         table.draw(view, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: false});
         google.visualization.events.addListener(table, 'select', function() {
-          var srow = table.getSelection()[0].row;
-          document.getElementById('set_artist').value = data.getValue(srow,1);
-          document.getElementById('set_title').value = data.getValue(srow,2) + (data.getValue(srow,3) != '' ? ' (disc ' + data.getValue(srow,3) + ')' : '');
+          if (table.getSelection().length > 0 && document.getElementById('set_artist') != null) {
+            var srow = table.getSelection()[0].row;
+            document.getElementById('set_artist').value = data.getValue(srow,1);
+            document.getElementById('set_title').value = data.getValue(srow,2) + (data.getValue(srow,3) != '' ? ' (disc ' + data.getValue(srow,3) + ')' : '');
+          }
         });
         }
       }
