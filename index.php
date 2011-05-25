@@ -32,7 +32,7 @@ if ($json_entries == '') die('nothing found');
 
 include 'list1.php';
 include 'logo_start2.php'; 
-printf("<center><h3>Recent additions:</h3>");
+printf("<center><h3>CUETools Database: recent additions</h3>");
 printf("<div id='entries_div'></div>\n");
 if ($where_discid != '' && $isadmin) {
   printf('<br>');
