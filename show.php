@@ -129,9 +129,8 @@ $json_releases_table = array('cols' => array(
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <script type='text/javascript' src='https://www.google.com/jsapi'></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
     <script type='text/javascript'>
-      google.load('visualization', '1', {packages:['table']});
       google.setOnLoadCallback(drawTable);
       function drawTable() {
         var data = new google.visualization.DataTable(<?php echo json_encode($json_tracks_table) ?>, 0.6);

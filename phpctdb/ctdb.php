@@ -57,6 +57,58 @@ class phpCTDB{
 			die('wrong trackcount');
 	}
 
+  static function query2json($conn, $query)
+  {
+    $result = @pg_query($conn, $query);
+    if (!$result) {
+      header($_SERVER["SERVER_PROTOCOL"]." 500 Internal Server Error");
+      die(pg_last_error());
+    }
+    if (pg_num_rows($result) == 0)
+      return ''; 
+    $records = pg_fetch_all($result);
+    pg_free_result($result);
+    return phpCTDB::records2json($records);
+  }
+
+  static function records2json($records)
+  {
+    $nfmt = array('style' => 'font-family:courier; text-align:right;');
+    $json_entries = false;
+    foreach($records as $record)
+    {
+      $trcnt = ($record['firstaudio'] > 1) ?
+        ('1+' . $record['audiotracks']) :
+        (($record['audiotracks'] < $record['trackcount'])
+         ? ($record['audiotracks'] . '+1')
+         : $record['audiotracks']);
+      $artist = sprintf('<a href="?artist=%s">%s</a>', 
+          urlencode($record['artist']), 
+          mb_substr($record['artist'],0,60));
+      $tocid = sprintf('<a href="?tocid=%s">%s</a>', 
+          $record['tocid'], 
+          $record['tocid']);
+      $json_entries[] = array('c' => array(
+            array('v' => $record['artist'], 'f' => $artist),
+            array('v' => $record['title'], 'f' => mb_substr($record['title'],0,60)),
+            array('v' => $record['tocid'], 'p' => $nfmt, 'f' => $tocid),
+            array('v' => $trcnt, 'p' => $nfmt),
+            array('v' => $record['id'], 'p' => $nfmt, 'f' => sprintf('<a href="show.php?id=%d">%08x</a>', $record['id'], $record['crc32'])),
+            array('v' => $record['confidence'], 'p' => $nfmt),
+            ));
+    }
+    $json_entries_table = array('cols' => array(
+          array('label' => 'Artist', 'type' => 'string'),
+          array('label' => 'Album', 'type' => 'string'),
+          array('label' => 'Disc Id', 'type' => 'string'),
+          array('label' => 'Tracks', 'type' => 'string'),
+          array('label' => 'CTDB Id', 'type' => 'string'),
+          array('label' => 'AR', 'type' => 'string'),
+          ), 'rows' => $json_entries);
+
+    return json_encode($json_entries_table);
+  }
+
 	static function toc2mbtoc($record)
 	{
 		$ids = explode(' ', $record['trackoffsets']);
