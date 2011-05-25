@@ -1,82 +1,22 @@
-<title>CUETools DB</title>
-<style type="text/css">
-.style1 {
-	font-size: x-small;
-	font-family: Arial, Helvetica, sans-serif;
-}
-.style_fixed {
-	#font-size: x-small;
-	font-family: Courier;
-}
-.style_logo {
-	font-size: x-large;
-	font-family: Arial, Helvetica, sans-serif;
-}
-.td_status {
-	font-size: x-small;
-  text-align: center;
-	font-family: sans-serif;
-}
-.td_artist {
-  padding: 1px 8px;
-}
-.td_album {
-  padding: 1px 8px;
-}
-.td_discid {
-  padding: 1px 4px;
-	font-family: Courier;
-}
-.td_ctdbid {
-  padding: 1px 4px;
-	font-family: Courier;
-}
-.td_ar {
-  padding: 1px 4px;
-  text-align: right;
-	font-family: Courier;
-}
-.classy_table {
-  border-style:none;
-#  border-color-right: #D0D0D0
-#  border-color-left: #D0D0D0
-}
-</style>
-</head>
-<body>
-<table border=0 cellspacing=0 cellpadding=3 align=center>
-	<tr>
-		<td rowspan=3><img width=128 height=128 border=0 alt="" src=ctdb.png></td>
-		<td class=td_status>
 <?php
 $dbresult = pg_query($dbconn,"SELECT reltuples FROM pg_class WHERE oid = 'submissions2'::regclass"); 
 $rec = pg_fetch_array($dbresult);
-printf("%d unique discs", $rec[0]);
+$cntunique = $rec[0];
 pg_free_result($dbresult);
 ?>
-		</td>
-	</tr>
-	<tr align=center height=34%>
-		<td class=style_logo>CUETools Database</td>
-	</tr>
-	<tr align=center height=33%>
-		<td>
-			<?php include 'table_start.php'; ?>
-			<table width=300 border=0 cellspacing=8 cellpadding=0 align=center>
-				<tr align=center>
-					<td><a href=/>Home</a></td>
-					<td><a href=/top.php>Popular</a></td>
-					<td><a href=/about.php>About</a></td>
-					<td><a href=http://www.hydrogenaudio.org/forums/index.php?showtopic=79882>Forum</a></td>
-					<td><a href=http://www.cuetools.net>CUETools</a></td>
-<?php 
-if ($isadmin) printf('<td><a href=/recent.php>Recent</a></td>');
-if ($userinfo) printf('<td><a href=/?logout=1>Logout</a></td>');
-?>
-				</tr>
-			</table>
-			<?php include 'table_end.php'; ?>
-		</td>
-	</tr>
-</table>
+<title>CUETools DB</title>
+<link rel="stylesheet" type="text/css" href="/ctdb.css" />
+</head>
+<body>
+<ul id="nav">
+  <li><img width=64 height=64 border=0 alt="" src=ctdb.png></li>
+  <li id="nav-1"><a href="/">Home</a></li>
+  <li id="nav-2"><a href="/top.php">Popular</a></li>
+  <li id="nav-3"><a href="/about.php">About</a></li>
+	<li id="nav-4"><a href="http://www.hydrogenaudio.org/forums/index.php?showtopic=79882" target="_blank">Forum</a></li>
+	<?php if ($isadmin) { ?><li id="nav-6"><a href="/recent.php">Recent</a></li><?php }?>
+	<?php if ($isadmin) { ?><li id="nav-7"><a href="/?logout=1">Logout</a></li><?php }?>
+	<li id="nav-0"><a href="http://www.cuetools.net" target="_blank">CUETools</a></li>
+	<li id="nav-11"><a><?php echo 'CUETools DB: ' . $cntunique . ' unique discs'?></a></li>
+</ul>
 <br clear=all>
