@@ -1,5 +1,5 @@
 <?php include 'logo_start.php'; ?>
-<h1>About CUETools Database</h2>
+<center><h2>About CUETools Database</h2></center>
 <h2>What's it for?</h2>
 You probably heard about <a href=http://www.accuraterip.com/>AccurateRip</a>, a wonderfull database of CD rip checksums, which helps you make sure your CD rip is an exact copy of original CD. What it can tell you is how many other people got the same data when copying this CD.
 
