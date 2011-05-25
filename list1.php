@@ -1,35 +1,3 @@
-<?php
-$nfmt = array('style' => 'font-family:courier; text-align:right;');
-$json_entries = false;
-while(true == ($record = pg_fetch_array($result)))
-{
-  $trcnt = ($record['firstaudio'] > 1) ? 
-    ('1+' . $record['audiotracks']) : 
-    (($record['audiotracks'] < $record['trackcount']) 
-      ? ($record['audiotracks'] . '+1') 
-      : $record['audiotracks']);
-  $json_entries[] = array('c' => array(
-    array('v' => $record['artist'], 'f' => sprintf('<a href="?artist=%s">%s</a>', urlencode($record['artist']), mb_substr($record['artist'],0,60))),
-    array('v' => $record['title'], 'f' => mb_substr($record['title'],0,60)),
-    array('v' => $record['tocid'], 'p' => $nfmt, 'f' => sprintf('<a href="?tocid=%s">%s</a>', $record['tocid'], $record['tocid'])),
-    array('v' => $trcnt, 'p' => $nfmt),
-    array('v' => $record['id'], 'p' => $nfmt, 'f' => sprintf('<a href="show.php?id=%d">%08x</a>', $record['id'], $record['crc32'])),
-    array('v' => $record['confidence'], 'p' => $nfmt),
-  ));
-}
-$json_entries_table = array('cols' => array(
-  array('label' => 'Artist', 'type' => 'string'),
-  array('label' => 'Album', 'type' => 'string'),
-  array('label' => 'Disc Id', 'type' => 'string'),
-  array('label' => 'Tracks', 'type' => 'string'),
-  array('label' => 'CTDB Id', 'type' => 'string'),
-  array('label' => 'AR', 'type' => 'string'),
-), 'rows' => $json_entries);
-
-pg_free_result($result);
-if (@$_GET['json'])
-  die(json_encode($json_entries_table));
-?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -38,7 +6,7 @@ if (@$_GET['json'])
 google.setOnLoadCallback(drawTable);
 function drawTable() 
 {
-  var data = new google.visualization.DataTable(<?php echo json_encode($json_entries_table)?>);
+  var data = new google.visualization.DataTable(<?php echo $json_entries?>);
   var table = new google.visualization.Table(document.getElementById('entries_div'));
   var opts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, pageSize: <?php echo $count?>, page: 'event', pagingButtonsConfiguration : 'both'};
   var start = <?php echo $start?>;

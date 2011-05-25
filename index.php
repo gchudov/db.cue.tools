@@ -1,5 +1,6 @@
 <?php
 include 'logo_start1.php';
+require_once( 'phpctdb/ctdb.php' );
 
 if ((@$_GET['login'] && !$userinfo) || (@$_GET['logout'] && $userinfo)) makeAuth1($realm, 'Login requested');
 
@@ -24,13 +25,10 @@ if ($where_artist != '')
 
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
 $query = $query . " ORDER BY id DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
-$result = @pg_query($query);
-if (!$result) {
-  header($_SERVER["SERVER_PROTOCOL"]." 500 Internal Server Error"); 
-  die(pg_last_error());
-}
-if (pg_num_rows($result) == 0)
-  die('nothing found');
+
+$json_entries = phpCTDB::query2json($dbconn, $query);
+if (@$_GET['json']) die($json_entries);
+if ($json_entries == '') die('nothing found');
 
 include 'list1.php';
 include 'logo_start2.php'; 

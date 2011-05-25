@@ -28,9 +28,10 @@ if ($term == ' WHERE ')
 }
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
 $query = $query . " ORDER BY confidence DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
-$result = pg_query($query) or die('Query failed: ' . pg_last_error());
-if (pg_num_rows($result) == 0)
-  die('nothing found');
+
+$json_entries = phpCTDB::query2json($dbconn, $query);
+if (@$_GET['json']) die($json_entries);
+if ($json_entries == '') die('nothing found');
 
 include 'list1.php';
 include 'logo_start2.php';
