@@ -1,5 +1,5 @@
 <?php
-include 'logo_start.php'; 
+include 'logo_start1.php'; 
 require_once( 'phpctdb/ctdb.php' );
 
 $count = 20;
@@ -32,9 +32,10 @@ $result = pg_query($query) or die('Query failed: ' . pg_last_error());
 if (pg_num_rows($result) == 0)
   die('nothing found');
 
+include 'list1.php';
+include 'logo_start2.php';
 printf("<center><h3>Popular discs:</h3>");
-include 'list.php';
-pg_free_result($result);
+printf("<div id='entries_div'></div>\n");
 printf("</center>");
 ?>
 </body>
