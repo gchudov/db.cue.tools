@@ -35,7 +35,7 @@ if ($json_entries == '') die('nothing found');
 
 include 'list1.php';
 include 'logo_start2.php';
-printf("<center><h3>Popular discs:</h3>");
+printf("<center><h3>CUETools Database: popular discs</h3>");
 printf("<div id='entries_div'></div>\n");
 printf("</center>");
 ?>
