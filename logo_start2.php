@@ -9,7 +9,7 @@ pg_free_result($dbresult);
 </head>
 <body>
 <ul id="nav">
-  <li><img width=64 height=64 border=0 alt="" src=ctdb.png></li>
+  <li><img width=64 height=64 border=0 alt="" src=ctdb64.png></li>
   <li id="nav-1"><a href="/">Home</a></li>
   <li id="nav-2"><a href="/top.php">Popular</a></li>
   <li id="nav-3"><a href="/about.php">About</a></li>
