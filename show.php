@@ -90,41 +90,8 @@ $json_tracks_table = array('cols' => array(
   array('label' => 'CRC', 'type' => 'string'),
 ), 'rows' => $json_tracks);
 
-$json_releases = false;
 if ($mbmeta)
-  foreach ($mbmeta as $mbr)
-  {
-    $label = '';
-    $labels_orig = @$mbr['label'];
-    if ($labels_orig)
-      foreach ($labels_orig as $l)
-        $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
- 
-    $json_releases[] = array('c' => array(
-      array('v' => (int)$mbr['first_release_date_year']),
-      array('v' => $mbr['artistname']), 
-      array('v' => $mbr['albumname']), 
-      array('v' => $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
-      array('v' => $mbr['country']), 
-      array('v' => $mbr['releasedate']), 
-      array('v' => mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label), 
-      array('v' => $mbr['barcode'], 'p' => $timefmt), 
-      array('v' => $mbr['gid']),
-    ));
-  }
-
-$json_releases_table = array('cols' => array(
-  array('label' => 'Year', 'type' => 'number'),
-  array('label' => 'Artist', 'type' => 'string'),
-  array('label' => 'Album', 'type' => 'string'),
-  array('label' => 'Disc', 'type' => 'string'),
-  array('label' => 'C', 'type' => 'string'),
-  array('label' => 'Release', 'type' => 'string'),
-  array('label' => 'Label', 'type' => 'string'),
-  array('label' => 'Barcode', 'type' => 'string'),
-  array('label' => 'gid', 'type' => 'string'),
-), 'rows' => $json_releases);
-
+  $json_releases = phpCTDB::musicbrainz2json($mbmeta);
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -136,22 +103,25 @@ $json_releases_table = array('cols' => array(
         var data = new google.visualization.DataTable(<?php echo json_encode($json_tracks_table) ?>, 0.6);
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
         table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
-        var data = new google.visualization.DataTable(<?php echo json_encode($json_releases_table) ?>);
-        if (data.getNumberOfRows() > 0) {
-        var formatter = new google.visualization.TablePatternFormat('<a href="http://musicbrainz.org/release/{0}">{1}</a>');
-        formatter.format(data, [8, 2], 2); // Apply formatter and set the formatted value of the first column.
-        var view = new google.visualization.DataView(data);
-        view.setColumns([0,1,2,3,4,5,6,7]); // Create a view with the first column only.
-        var table = new google.visualization.Table(document.getElementById('releases_div'));
-        table.draw(view, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: false});
-        google.visualization.events.addListener(table, 'select', function() {
-          if (table.getSelection().length > 0 && document.getElementById('set_artist') != null) {
-            var srow = table.getSelection()[0].row;
-            document.getElementById('set_artist').value = data.getValue(srow,1);
-            document.getElementById('set_title').value = data.getValue(srow,2) + (data.getValue(srow,3) != '' ? ' (disc ' + data.getValue(srow,3) + ')' : '');
+        <?php if ($mbmeta) { ?>
+        var mbdata = new google.visualization.DataTable(<?php echo $json_releases ?>);
+        var mbdiv = document.getElementById('releases_div');
+        for (var row = 0; row < mbdata.getNumberOfRows(); row++)
+          mbdata.setProperty(row, 7, 'style', 'font-family:courier; text-align:right;');
+        var formatter = new google.visualization.TablePatternFormat('<a target=_blank href="http://musicbrainz.org/release/{1}">{0}</a>');
+        formatter.format(mbdata, [2, 8], 2); 
+        var mbview = new google.visualization.DataView(mbdata);
+        mbview.hideColumns([8]); 
+        var mbtable = new google.visualization.Table(mbdiv);
+        mbtable.draw(mbview, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: false});
+        google.visualization.events.addListener(mbtable, 'select', function() {
+          if (mbtable.getSelection().length > 0 && document.getElementById('set_artist') != null) {
+            var srow = mbtable.getSelection()[0].row;
+            document.getElementById('set_artist').value = mbdata.getValue(srow,1);
+            document.getElementById('set_title').value = mbdata.getValue(srow,2) + (mbdata.getValue(srow,3) != '' ? ' (disc ' + mbdata.getValue(srow,3) + ')' : '');
           }
         });
-        }
+        <?php } ?>
       }
     </script>
 <?php
@@ -173,6 +143,7 @@ if ($imgfound) {
 	printf('<br>');
 }
 
+printf('<br>');
 printf("<div id='releases_div'></div>\n");
 if (!$mbmeta && ($record['artist'] != '' || $record['title'] != ''))
   printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);

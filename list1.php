@@ -12,13 +12,12 @@ function drawTable()
   var start = <?php echo $start?>;
   var prev = start != 0;
   var next = data.getNumberOfRows() >= <?php echo $count?>;
+  var mbdiv = document.getElementById('musicbrainz_div');
   opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
   google.visualization.events.addListener(table, 'page', function(e) {
     var xmlhttp = new XMLHttpRequest();
     var shift = <?php echo $count?> * e['page'];
     xmlhttp.open("GET", '?json=1&start=' + (start + shift) + '<?php echo $url?>', false); // true
-    //xmlhttp.onreadystatechange=function() {
-    //}
     xmlhttp.send(null);
     if (xmlhttp.readyState != 4) {
       alert('error ' + xmlhttp.readyState);
@@ -33,9 +32,49 @@ function drawTable()
   prev = start != 0;
   next = data.getNumberOfRows() >= <?php echo $count?>;
   opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
-    table.draw(data, opts);
+    var view = new google.visualization.DataView(data);
+    view.hideColumns([6]);
+    table.draw(view, opts);
+    if (mbdiv != null) mbdiv.innerHTML = '';
   });
+  if (mbdiv != null)
+    google.visualization.events.addListener(table, 'select', function() {
+      if (table.getSelection().length == 0) {
+        mbdiv.innerHTML = '';
+        return;
+      }
+      var srow = table.getSelection()[0].row;
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.open("GET", '/mbjson.php?mbid=' + data.getValue(srow, 6), true);
+      mbdiv.innerHTML = '<img src="hourglass.png" alt="Looking up metadata...">';
+      xmlhttp.onreadystatechange=function() {
+        if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
+        if (xmlhttp.status == 404) {
+          mbdiv.innerHTML = 'No metadata found';
+          xmlhttp = null;
+          return;
+        }
+        if (xmlhttp.status != 200) {
+          mbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
+          xmlhttp = null;
+          return;
+        }
+        var mbdata = new google.visualization.DataTable(xmlhttp.responseText);
+        xmlhttp = null;
+        for (var row = 0; row < mbdata.getNumberOfRows(); row++)
+          mbdata.setProperty(row, 7, 'style', 'font-family:courier; text-align:right;');
+        var formatter = new google.visualization.TablePatternFormat('<a target=_blank href="http://musicbrainz.org/release/{1}">{0}</a>');
+        formatter.format(mbdata, [2, 8], 2); 
+        var mbview = new google.visualization.DataView(mbdata);
+        mbview.hideColumns([8]); 
+        var mbtable = new google.visualization.Table(mbdiv);
+        mbtable.draw(mbview, {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false});
+      }
+      xmlhttp.send(null);
+    });
 
-  table.draw(data, opts);
+  var view = new google.visualization.DataView(data);
+  view.hideColumns([6]);
+  table.draw(view, opts);
 }
 </script>
