@@ -16,7 +16,7 @@ pg_free_result($dbresult);
 	<li id="nav-4"><a href="http://www.hydrogenaudio.org/forums/index.php?showtopic=79882" target="_blank">Forum</a></li>
 	<?php if ($isadmin) { ?><li id="nav-6"><a href="/recent.php">Recent</a></li><?php }?>
 	<?php if ($isadmin) { ?><li id="nav-7"><a href="/?logout=1">Logout</a></li><?php }?>
-	<li id="nav-8"><a href="/downloads/CUETools.CTDB.EACPlugin.rar" target="_blank">EAC Plugin</a></li>
+	<li id="nav-8"><a href="/plugin.php">EAC Plugin</a></li>
 	<li id="nav-0"><a href="http://www.cuetools.net" target="_blank">CUETools</a></li>
 	<li id="nav-11"><a><?php echo 'CUETools DB: ' . $cntunique . ' unique discs'?></a></li>
 </ul>
