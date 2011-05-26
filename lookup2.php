@@ -61,7 +61,7 @@ foreach($records as $record)
     'confidence' => $record['confidence'], 
     'npar' => 8, 
     'stride' => 5880,
-    'hasparity' => ($record['parfile'] ? "1" : "0"),
+    'hasparity' => ($record['parfile'] ? "/" . $record['parfile'] : false),
     'parity' => $record['parity'],
     'toc' => phpCTDB::toc_toc2s($record)
   );
