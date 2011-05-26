@@ -95,6 +95,7 @@ class phpCTDB{
             array('v' => $trcnt, 'p' => $nfmt),
             array('v' => $record['id'], 'p' => $nfmt, 'f' => sprintf('<a href="show.php?id=%d">%08x</a>', $record['id'], $record['crc32'])),
             array('v' => $record['confidence'], 'p' => $nfmt),
+            array('v' => phpCTDB::toc2mbid($record)),
             ));
     }
     $json_entries_table = array('cols' => array(
@@ -104,9 +105,50 @@ class phpCTDB{
           array('label' => 'Tracks', 'type' => 'string'),
           array('label' => 'CTDB Id', 'type' => 'string'),
           array('label' => 'AR', 'type' => 'string'),
+          array('label' => 'MB Id', 'type' => 'string'),
           ), 'rows' => $json_entries);
 
     return json_encode($json_entries_table);
+  }
+
+  static function musicbrainz2json($mbmeta)
+  {
+    $json_releases = false;
+    foreach ($mbmeta as $mbr)
+    {
+      $label = '';
+      $labels_orig = @$mbr['label'];
+      if ($labels_orig)
+        foreach ($labels_orig as $l)
+          $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
+
+      $json_releases[] = array(
+          'c' => array(
+            array('v' => (int)$mbr['first_release_date_year']),
+            array('v' => $mbr['artistname']),
+            array('v' => $mbr['albumname']),
+            array('v' => $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
+            array('v' => $mbr['country']),
+            array('v' => $mbr['releasedate']),
+            array('v' => mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label),
+            array('v' => $mbr['barcode']),
+            array('v' => $mbr['gid']),
+            ));
+    }
+    $json_releases_table = array(
+        'cols' => array(
+          array('label' => 'Year', 'type' => 'number'),
+          array('label' => 'Artist', 'type' => 'string'),
+          array('label' => 'Album', 'type' => 'string'),
+          array('label' => 'Disc', 'type' => 'string'),
+          array('label' => 'C', 'type' => 'string'),
+          array('label' => 'Release', 'type' => 'string'),
+          array('label' => 'Label', 'type' => 'string'),
+          array('label' => 'Barcode', 'type' => 'string'),
+          array('label' => 'Gid', 'type' => 'string'),
+          ), 
+        'rows' => $json_releases);
+    return json_encode($json_releases_table);
   }
 
 	static function toc2mbtoc($record)
@@ -359,9 +401,14 @@ class phpCTDB{
 		  if (@$r['catno']) {
 		    phpCTDB::pg_array_parse($r['catno'], $catno);
 		    phpCTDB::pg_array_parse($r['label'], $label);
+        for($i = 0; $i < count($catno); $i++)
+          $labelcat[] = array('name' => $label[$i], 'catno' => $catno[$i]);
+/*        if (count($catno) != count($label)) die($label[232]);
 		    for($i = 0; $i < count($catno); $i++)
-		      $labelcat[] = array('name' => $label[$i], 'catno' => $catno[$i]);
-                  }
+		      $labelcat[$i]['catno'] = $catno[$i];
+		    for($i = 0; $i < count($label); $i++)
+		      $labelcat[$i]['name'] = $label[$i];*/
+      }
 		  $r['label'] = $labelcat;
 		}
 		return $mbmeta;
