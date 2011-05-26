@@ -68,7 +68,7 @@ function drawTable()
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8]); 
         var mbtable = new google.visualization.Table(mbdiv);
-        mbtable.draw(mbview, {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false});
+        mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 5, sort: 'disable', showRowNumber: false});
       }
       xmlhttp.send(null);
     });
