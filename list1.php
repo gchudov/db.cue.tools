@@ -4,9 +4,36 @@
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
+function ctdbEntryData(json)
+{
+  function decimalToHexString(number)
+  {
+    if (number < 0)
+    {
+        number = 0xFFFFFFFF + number + 1;
+    }
+    var hex = number.toString(16).toUpperCase();
+    return "00000000".substr(0, 8 - hex.length) + hex; 
+  }
+
+  var data = new google.visualization.DataTable(json);
+  for (var row = 0; row < data.getNumberOfRows(); row++) {
+    var artist = data.getValue(row, 0);
+    data.setFormattedValue(row, 0, '<a href="?artist=' + encodeURIComponent(artist) + '">' + artist.substring(0,50) + '</a>');
+    data.setFormattedValue(row, 1, data.getValue(row, 1).substring(0,60));
+    var toc = data.getValue(row, 2);
+    data.setFormattedValue(row, 2, '<a href="?tocid=' + toc + '">' + toc + '</a>');
+    data.setFormattedValue(row, 4, '<a href="show.php?id=' + data.getValue(row, 4).toString(10) + '">' + decimalToHexString(data.getValue(row, 6)) + '</a>');
+    data.setProperty(row, 2, 'style', 'font-family:courier; text-align:right;');
+    data.setProperty(row, 3, 'style', 'font-family:courier; text-align:right;');
+    data.setProperty(row, 4, 'style', 'font-family:courier; text-align:right;');
+    data.setProperty(row, 5, 'style', 'font-family:courier; text-align:right;');
+  }
+  return data;  
+}
 function drawTable() 
 {
-  var data = new google.visualization.DataTable(<?php echo $json_entries?>);
+  var data = ctdbEntryData(<?php echo $json_entries?>);
   var table = new google.visualization.Table(document.getElementById('entries_div'));
   var opts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, pageSize: <?php echo $count?>, page: 'event', pagingButtonsConfiguration : 'both'};
   var start = <?php echo $start?>;
@@ -27,13 +54,13 @@ function drawTable()
       alert(xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText);
       return;
     }
-    data = new google.visualization.DataTable(xmlhttp.responseText);
+    data = ctdbEntryData(xmlhttp.responseText);
     start += shift;
   prev = start != 0;
   next = data.getNumberOfRows() >= <?php echo $count?>;
   opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
     var view = new google.visualization.DataView(data);
-    view.hideColumns([6]);
+    view.hideColumns([6,7]);
     table.draw(view, opts);
     if (mbdiv != null) mbdiv.innerHTML = '';
   });
@@ -74,7 +101,7 @@ function drawTable()
     });
 
   var view = new google.visualization.DataView(data);
-  view.hideColumns([6]);
+  view.hideColumns([6,7]);
   table.draw(view, opts);
 }
 </script>

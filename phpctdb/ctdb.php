@@ -82,19 +82,14 @@ class phpCTDB{
         (($record['audiotracks'] < $record['trackcount'])
          ? ($record['audiotracks'] . '+1')
          : $record['audiotracks']);
-      $artist = sprintf('<a href="?artist=%s">%s</a>', 
-          urlencode($record['artist']), 
-          mb_substr($record['artist'],0,60));
-      $tocid = sprintf('<a href="?tocid=%s">%s</a>', 
-          $record['tocid'], 
-          $record['tocid']);
       $json_entries[] = array('c' => array(
-            array('v' => $record['artist'], 'f' => $artist),
-            array('v' => $record['title'], 'f' => mb_substr($record['title'],0,60)),
-            array('v' => $record['tocid'], 'p' => $nfmt, 'f' => $tocid),
-            array('v' => $trcnt, 'p' => $nfmt),
-            array('v' => $record['id'], 'p' => $nfmt, 'f' => sprintf('<a href="show.php?id=%d">%08x</a>', $record['id'], $record['crc32'])),
-            array('v' => $record['confidence'], 'p' => $nfmt),
+            array('v' => $record['artist']),
+            array('v' => $record['title']),
+            array('v' => $record['tocid']),
+            array('v' => $trcnt),
+            array('v' => (int)$record['id']),
+            array('v' => (int)$record['confidence']),
+            array('v' => (int)$record['crc32']),
             array('v' => phpCTDB::toc2mbid($record)),
             ));
     }
@@ -103,8 +98,9 @@ class phpCTDB{
           array('label' => 'Album', 'type' => 'string'),
           array('label' => 'Disc Id', 'type' => 'string'),
           array('label' => 'Tracks', 'type' => 'string'),
-          array('label' => 'CTDB Id', 'type' => 'string'),
-          array('label' => 'AR', 'type' => 'string'),
+          array('label' => 'CTDB Id', 'type' => 'number'),
+          array('label' => 'AR', 'type' => 'number'),
+          array('label' => 'CRC32', 'type' => 'number'),
           array('label' => 'MB Id', 'type' => 'string'),
           ), 'rows' => $json_entries);
 
