@@ -79,13 +79,13 @@ function drawTable()
       mbdiv.innerHTML = '<img src="throb.gif" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
-        if (xmlhttp.status == 404) {
-          mbdiv.innerHTML = '<img src="face-sad.png" alt="No metadata found">';
+        if (xmlhttp.status != 200) {
+          mbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
           xmlhttp = null;
           return;
         }
-        if (xmlhttp.status != 200) {
-          mbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
+        if (xmlhttp.responseText == 'null') {
+          mbdiv.innerHTML = '<img src="face-sad.png" alt="No metadata found">';
           xmlhttp = null;
           return;
         }

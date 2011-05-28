@@ -109,6 +109,8 @@ class phpCTDB{
 
   static function musicbrainz2json($mbmeta)
   {
+    if (!$mbmeta)
+      return json_encode($false);
     $json_releases = false;
     foreach ($mbmeta as $mbr)
     {
