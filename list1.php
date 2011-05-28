@@ -72,7 +72,7 @@ function drawTable()
       }
       var srow = table.getSelection()[0].row;
       var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open("GET", '/mbjson.php?mbid=' + data.getValue(srow, 6), true);
+      xmlhttp.open("GET", '/mbjson.php?mbid=' + data.getValue(srow, 7), true);
       mbdiv.innerHTML = '<img src="hourglass.png" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
