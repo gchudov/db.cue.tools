@@ -6,6 +6,8 @@ Since <a href="http://www.exactaudiocopy.de/en/index.php/resources/download/" ta
 This plugin verifies your rips against CTDB database, and submits new CDs to it.
 <p>
 It can also serve as a metadata plugin, providing access to Musicbrainz metadata via CTDB.
+<p>
+To install it, just unpack all files from this archive into the folder where you have EAC.exe.
 
 </body>
 </html>
