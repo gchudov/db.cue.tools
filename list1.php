@@ -19,8 +19,11 @@ function ctdbEntryData(json)
   var data = new google.visualization.DataTable(json);
   for (var row = 0; row < data.getNumberOfRows(); row++) {
     var artist = data.getValue(row, 0);
+    if (!artist) artist = "Unknown Artist";
     data.setFormattedValue(row, 0, '<a href="?artist=' + encodeURIComponent(artist) + '">' + artist.substring(0,50) + '</a>');
-    data.setFormattedValue(row, 1, data.getValue(row, 1).substring(0,60));
+    var title = data.getValue(row, 1);
+    if (!title) title = "Unknown Title";
+    data.setFormattedValue(row, 1, title.substring(0,60));
     var toc = data.getValue(row, 2);
     data.setFormattedValue(row, 2, '<a href="?tocid=' + toc + '">' + toc + '</a>');
     data.setFormattedValue(row, 4, '<a href="show.php?id=' + data.getValue(row, 4).toString(10) + '">' + decimalToHexString(data.getValue(row, 6)) + '</a>');
