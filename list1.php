@@ -73,11 +73,11 @@ function drawTable()
       var srow = table.getSelection()[0].row;
       var xmlhttp = new XMLHttpRequest();
       xmlhttp.open("GET", '/mbjson.php?mbid=' + data.getValue(srow, 7), true);
-      mbdiv.innerHTML = '<img src="hourglass.png" alt="Looking up metadata...">';
+      mbdiv.innerHTML = '<img src="throb.gif" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
         if (xmlhttp.status == 404) {
-          mbdiv.innerHTML = 'No metadata found';
+          mbdiv.innerHTML = '<img src="face-sad.png" alt="No metadata found">';
           xmlhttp = null;
           return;
         }
