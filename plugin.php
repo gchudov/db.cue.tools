@@ -1,7 +1,7 @@
 <?php include 'logo_start.php'; ?>
 <center><h2>CUETools Database Plugin for EAC</h2></center>
 
-Since <a href="http://www.exactaudiocopy.de/en/index.php/resources/download/" target=_blank>version 1.0 beta 2</a>, popular CD Ripper Exact Audio Copy (EAC) supports data processing plugins, and <a href="/downloads/CUETools.CTDB.EACPlugin.rar">here</a> you can download a plugin that enables CTDB support.
+Since <a href="http://www.exactaudiocopy.de/en/index.php/resources/download/" target=_blank>version 1.0 beta 2</a>, popular CD Ripper Exact Audio Copy (EAC) supports data processing plugins, and <a href="http://s3.cuetools.net/CUETools.CTDB.EACPlugin.rar">here</a> you can download a plugin that enables CTDB support.
 <p>
 This plugin verifies your rips against CTDB database, and submits new CDs to it.
 <p>
