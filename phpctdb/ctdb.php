@@ -339,26 +339,20 @@ class phpCTDB{
 		foreach($mbmeta as $r)
 		  $tracklists[] = $r['tracklistno'];
 		$tracklists = array_unique($tracklists);
-		$mbresult = pg_query_params($mbconn,
-		  'SELECT ' .
-		  't.tracklist as tracklistno, ' .
-		  'array_agg(t.artist_credit ORDER BY t.position) as artist_credit, ' .
-                  'array_agg(tn.name ORDER BY t.position) as tracknames ' .
-		  'FROM track t ' . 
-		  'INNER JOIN track_name tn ON tn.id = t.name ' .
-		  'WHERE t.tracklist IN ' . phpCTDB::pg_array_indexes($tracklists) . ' ' .
-		  'GROUP BY t.tracklist', $tracklists);
-		$tracklists = pg_fetch_all($mbresult);
-		pg_free_result($mbresult);
 		$trackliststonames = false;
 		$trackliststocredits = false;
 		foreach($tracklists as $tr) {
-		  $trartistcredits = false;
-		  $tracknames = false;
-		  phpCTDB::pg_array_parse($tr['artist_credit'], $trartistcredits);
-		  phpCTDB::pg_array_parse($tr['tracknames'], $tracknames);
-		  $trackliststonames[$tr['tracklistno']] = $tracknames;
-		  $trackliststocredits[$tr['tracklistno']] = $trartistcredits;
+                  $mbresult = pg_query_params('
+                    SELECT t.artist_credit, tn.name 
+                    FROM track t 
+                    INNER JOIN track_name tn ON tn.id = t.name 
+                    WHERE t.tracklist = $1
+                    ORDER BY t.position', array($tr));
+		  $trartistcredits = pg_fetch_all_columns($mbresult, 0);
+		  $tracknames = pg_fetch_all_columns($mbresult, 1);
+		  pg_free_result($mbresult);
+		  $trackliststonames[$tr] = $tracknames;
+		  $trackliststocredits[$tr] = $trartistcredits;
 		  foreach($trartistcredits as $trcr)
 		    $artistcredits[] = $trcr;
 		}
@@ -383,11 +377,11 @@ class phpCTDB{
 		$tltl = false;
 		foreach($tracklists as $tr) {
 		  $tl = false;
-		  $tlnames = $trackliststonames[$tr['tracklistno']];
-		  $tlart = $trackliststocredits[$tr['tracklistno']];
+		  $tlnames = $trackliststonames[$tr];
+		  $tlart = $trackliststocredits[$tr];
 		  for ($trno = 0; $trno < count($tlnames); $trno++)
 		    $tl[] = array('name' => $tlnames[$trno], 'artist' => $artistcreditstonames[$tlart[$trno]]);
-		  $tltl[$tr['tracklistno']] = $tl;
+		  $tltl[$tr] = $tl;
 		}
 
 		foreach($mbmeta as &$r) {
