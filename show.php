@@ -173,7 +173,7 @@ if ($isadmin)
 {
   printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
   printf('<input type=hidden name=id value=%s>', $id);
-  printf('<tr><td class=td_album>Parity file</td><td class=td_album><a href="repair.php?id=%s">%s</a></td></tr>' . "\n", $record['id'], $record['parfile']);
+  printf('<tr><td class=td_album>Parity file</td><td class=td_album><a href="http://p.cuetools.net/%s%08x">%s</a></td></tr>' . "\n", urlencode(str_replace('.','+',$record['tocid'])), $record['crc32'], $record['parfile']);
   printf('<tr><td colspan=2 align=center></td></tr>');
   printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
   printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" id="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
