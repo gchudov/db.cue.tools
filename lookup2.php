@@ -61,7 +61,7 @@ foreach($records as $record)
     'confidence' => $record['confidence'], 
     'npar' => 8, 
     'stride' => 5880,
-    'hasparity' => ($record['parfile'] ? "/" . $record['parfile'] : false),
+    'hasparity' => ($record['s3'] == 't' ? sprintf("http://p.cuetools.net/%s%08x", str_replace('.','%2B',$record['tocid']), $record['crc32']) :  ($record['parfile'] ? "/" . $record['parfile'] : false)),
     'parity' => $record['parity'],
     'toc' => phpCTDB::toc_toc2s($record)
   );
