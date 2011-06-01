@@ -5,7 +5,7 @@ mb_internal_encoding("UTF-8");
 $bucket = 'p.cuetools.net';
 
 require_once 'AWSSDKforPHP/sdk.class.php';
-require_once '../phpctdb/ctdb.php';
+require_once '/var/www/ctdbweb/phpctdb/ctdb.php';
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
