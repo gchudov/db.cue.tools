@@ -39,6 +39,14 @@
 #  border-color-right: #D0D0D0
 #  border-color-left: #D0D0D0
 }
+
+.google-visualization-table-td-consolas {
+   font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
+   width: 0;
+   text-align: right;
+   white-space: nowrap;
+}
+
 #nav {
 	float: left;
 	width: 100%;
