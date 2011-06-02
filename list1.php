@@ -27,10 +27,10 @@ function ctdbEntryData(json)
     var toc = data.getValue(row, 2);
     data.setFormattedValue(row, 2, '<a href="?tocid=' + toc + '">' + toc + '</a>');
     data.setFormattedValue(row, 4, '<a href="show.php?id=' + data.getValue(row, 4).toString(10) + '">' + decimalToHexString(data.getValue(row, 6)) + '</a>');
-    data.setProperty(row, 2, 'style', 'font-family:courier; text-align:right;');
-    data.setProperty(row, 3, 'style', 'font-family:courier; text-align:right;');
-    data.setProperty(row, 4, 'style', 'font-family:courier; text-align:right;');
-    data.setProperty(row, 5, 'style', 'font-family:courier; text-align:right;');
+    data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    data.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    data.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    data.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
   }
   return data;  
 }
@@ -91,8 +91,12 @@ function drawTable()
         }
         var mbdata = new google.visualization.DataTable(xmlhttp.responseText);
         xmlhttp = null;
-        for (var row = 0; row < mbdata.getNumberOfRows(); row++)
-          mbdata.setProperty(row, 7, 'style', 'font-family:courier; text-align:right;');
+        for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
+          mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
+          mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+        }
         var formatter = new google.visualization.TablePatternFormat('<a target=_blank href="http://musicbrainz.org/release/{1}">{0}</a>');
         formatter.format(mbdata, [2, 8], 2); 
         var mbview = new google.visualization.DataView(mbdata);

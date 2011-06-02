@@ -128,7 +128,7 @@ class phpCTDB{
             array('v' => $mbr['totaldiscs'] != 1 ? $mbr['discnumber'] . '/' . $mbr['totaldiscs'] . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
             array('v' => $mbr['country']),
             array('v' => $mbr['releasedate']),
-            array('v' => mb_strlen($label) > 20 ? mb_substr($label,0,18) . '...' : $label),
+            array('v' => $label),
             array('v' => $mbr['barcode']),
             array('v' => $mbr['gid']),
             ));
