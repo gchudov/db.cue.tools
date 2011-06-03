@@ -152,12 +152,13 @@ class phpCTDB{
 	static function toc2mbtoc($record)
 	{
 		$ids = explode(' ', $record['trackoffsets']);
-		$mbtoc = sprintf('%d %d', 1, $record['audiotracks']);
-		if ($record['audiotracks'] == $record['trackcount']) // Audio CD
-			$mbtoc = sprintf('%s %d', $mbtoc, $ids[$record['audiotracks']] + 150);
+                $lastaudio = $record['firstaudio'] + $record['audiotracks'] - 1;
+		$mbtoc = sprintf('%d %d', 1, $lastaudio);
+		if ($lastaudio == $record['trackcount']) // Audio CD
+			$mbtoc = sprintf('%s %d', $mbtoc, $ids[$lastaudio] + 150);
 		else // Enhanced CD
-			$mbtoc = sprintf('%s %d', $mbtoc, $ids[$record['audiotracks']] + 150 - 11400);
-		for ($tr = 0; $tr < $record['audiotracks']; $tr++)
+			$mbtoc = sprintf('%s %d', $mbtoc, $ids[$lastaudio] + 150 - 11400);
+		for ($tr = 0; $tr < $lastaudio; $tr++)
 			$mbtoc = sprintf('%s %d', $mbtoc, $ids[$tr] + 150);
 		return $mbtoc;
 	}
@@ -182,13 +183,14 @@ class phpCTDB{
 	static function toc2mbid($record)
 	{
 		$ids = explode(' ', $record['trackoffsets']);
-		$mbtoc = sprintf('%02X%02X', 1, $record['audiotracks']);
-		if ($record['audiotracks'] + $record['firstaudio'] - 1 == $record['trackcount']) // Audio CD
-			$mbtoc = sprintf('%s%08X', $mbtoc, $ids[$record['trackcount']] + 150);
+                $lastaudio = $record['firstaudio'] + $record['audiotracks'] - 1;
+		$mbtoc = sprintf('%02X%02X', 1, $lastaudio);
+		if ($lastaudio == $record['trackcount']) // Audio CD
+			$mbtoc = sprintf('%s%08X', $mbtoc, $ids[$lastaudio] + 150);
 		else // Enhanced CD
-			$mbtoc = sprintf('%s%08X', $mbtoc, $ids[$record['audiotracks']] + 150 - 11400);
-		for ($tr = 0; $tr < $record['audiotracks']; $tr++)
-			$mbtoc = sprintf('%s%08X', $mbtoc, $ids[$tr + $record['firstaudio'] - 1] + 150);
+			$mbtoc = sprintf('%s%08X', $mbtoc, $ids[$lastaudio] + 150 - 11400);
+		for ($tr = 0; $tr < $lastaudio; $tr++)
+			$mbtoc = sprintf('%s%08X', $mbtoc, $ids[$tr] + 150);
 //		echo $fulltoc . ':' . $mbtoc . '<br>';
 		$mbtoc = str_pad($mbtoc,804,'0');
 		$mbid = str_replace('+', '.', str_replace('/', '_', str_replace('=', '-', base64_encode(pack("H*" , sha1($mbtoc))))));
