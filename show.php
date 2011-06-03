@@ -71,7 +71,7 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
   $trmod = $tr + 1 - $record['firstaudio'];
   $trcrc = $trmod >= 0 && $trmod < count($crcs) ? $crcs[$trmod] : "";
   //print_r($mbmeta[0]);
-  $trname = $tracklist ? ($trmod >= 0 && $trmod < count($tracklist) ? $tracklist[$trmod]['name'] : "[data track]") : "";
+  $trname = $tracklist ? ($tr < count($tracklist) ? $tracklist[$tr]['name'] : "[data track]") : "";
   $json_tracks[] = array('c' => array(
     array('v' => $trname), 
     array('v' => $trstartmsf, 'p' => $timefmt), 
