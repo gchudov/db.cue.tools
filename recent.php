@@ -67,7 +67,7 @@ $json_submissions = null;
 foreach($submissions as $record)
 {
   $trcnt = ($record['firstaudio'] > 1) ?
-    ('1+' . $record['audiotracks']) :
+    (($record['firstaudio'] - 1) . '+' . $record['audiotracks']) :
     (($record['audiotracks'] < $record['trackcount'])
      ? ($record['audiotracks'] . '+1')
      : $record['audiotracks']);

@@ -25,16 +25,16 @@ $tocid = phpCTDB::toc2tocid($toc);
 $paritysample = @$_POST['parity'];
 if (!$paritysample) die('parity not specified');
 
-$crc32 = @$_POST['crc32'];
+$crc32 = $_POST['crc32'];
 if (!$crc32) die('crc32 not specified');
 
-$trackcrcs = @$_POST['trackcrcs'];
+$trackcrcs = $_POST['trackcrcs'];
 if (!$trackcrcs) die('trackcrcs not specified');
 
-$confidence = @$_POST['confidence'];
+$confidence = $_POST['confidence'];
 if (!$confidence) die('confidence not specified');
 
-$quality = @$_POST['quality'] or die('quality not specified');
+$quality = $_POST['quality'];
 
 if (@$_POST['parityfile'])
 {
