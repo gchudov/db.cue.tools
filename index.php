@@ -31,11 +31,13 @@ if (@$_GET['json']) die($json_entries);
 if ($json_entries == '') die('nothing found');
 
 include 'list1.php';
-include 'logo_start2.php'; 
-printf("<center><h3>CUETools Database: recent additions</h3>");
-printf("<div id='entries_div'></div>\n");
-printf("<br>\n");
-printf("<div id='musicbrainz_div'></div>\n");
+include 'logo_start2.php';
+?>
+<center><h3>CUETools Database: recent additions</h3>
+<div id='entries_div'></div>
+<br>
+<div id='musicbrainz_div'></div>
+<?php
 if ($where_discid != '' && $isadmin) {
   printf('<br>');
   include 'table_start.php';
@@ -55,7 +57,7 @@ if ($where_discid != '' && $isadmin) {
   printf("</table>");
   include 'table_end.php';
 }
-printf("</center>");
 ?>
+</center>
 </body>
 </html>
