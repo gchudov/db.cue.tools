@@ -13,7 +13,7 @@ $s3 = new AmazonS3();
 $s3->set_region(AmazonS3::REGION_US_E1);
 //$s3->enable_path_style();
 $s3->disable_ssl();
-$s3->adjust_offset(60*60);
+//$s3->adjust_offset(60*60);
 while (true)
 {
 pg_query("BEGIN");
