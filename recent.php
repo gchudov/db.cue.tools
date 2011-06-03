@@ -163,12 +163,10 @@ function drawTable()
   table.draw(view, opts);
 }
 </script>
-
-<?php
-include 'logo_start2.php';
-printf("<center><h3>Recent additions:</h3>");
-printf("<div id='entries_div'></div>\n");
-printf("</center>");
-?>
+<?php include 'logo_start2.php'; ?>
+<center>
+<h3>Recent additions:</h3>
+<div id='entries_div'></div>
+</center>
 </body>
 </html>
