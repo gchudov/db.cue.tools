@@ -57,8 +57,6 @@ $ids = explode(' ', $record['trackoffsets']);
 $crcs = explode(' ', $record['trackcrcs']);
 $tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;
 
-$timefmt = array('style' => 'font-family:courier; text-align:right;');
-//$timefmt = array('className' => 'td_ar');
 $json_tracks = false;
 for ($tr = 0; $tr < count($ids) - 1; $tr++)
 {
@@ -70,12 +68,11 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
   $trlenmsf = TimeToString($trend + 1 - $trstart);
   $trmod = $tr + 1 - $record['firstaudio'];
   $trcrc = $trmod >= 0 && $trmod < count($crcs) ? $crcs[$trmod] : "";
-  //print_r($mbmeta[0]);
   $trname = $tracklist ? ($tr < count($tracklist) ? $tracklist[$tr]['name'] : "[data track]") : "";
   $json_tracks[] = array('c' => array(
     array('v' => $trname), 
-    array('v' => $trstartmsf, 'p' => $timefmt), 
-    array('v' => $trlenmsf, 'p' => $timefmt), 
+    array('v' => $trstartmsf), 
+    array('v' => $trlenmsf), 
     array('v' => $trstart), 
     array('v' => $trend),
     array('v' => $trcrc),
@@ -102,12 +99,25 @@ if ($mbmeta)
       function drawTable() {
         var data = new google.visualization.DataTable(<?php echo json_encode($json_tracks_table) ?>, 0.6);
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
+        for (var row = 0; row < data.getNumberOfRows(); row++)
+        {
+          data.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          data.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          data.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          data.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+        }
         table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
         <?php if ($mbmeta) { ?>
         var mbdata = new google.visualization.DataTable(<?php echo $json_releases ?>);
         var mbdiv = document.getElementById('releases_div');
         for (var row = 0; row < mbdata.getNumberOfRows(); row++)
-          mbdata.setProperty(row, 7, 'style', 'font-family:courier; text-align:right;');
+        {
+          mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
+          mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+        }
         var formatter = new google.visualization.TablePatternFormat('<a target=_blank href="http://musicbrainz.org/release/{1}">{0}</a>');
         formatter.format(mbdata, [2, 8], 2); 
         var mbview = new google.visualization.DataView(mbdata);
