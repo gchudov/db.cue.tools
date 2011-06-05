@@ -5,60 +5,68 @@ require_once( 'phpctdb/ctdb.php' );
 if (!$isadmin) makeAuth1($realm, 'Admin priveleges required');
 
 $query = "";
-$params = false;
+$params = array();
 
 $where_discid=@$_GET['tocid'];
 if ($where_discid != '')
 {
-	$params[] = $where_discid;
-  $query = 'e.tocid=$' . count($params);
+  $params[] = $where_discid;
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 'e.tocid=$' . count($params);
 }
 
 $where_artist=@$_GET['artist'];
 if ($where_artist != '')
 {
-	$params[] = '%' . $where_artist . '%';
-  $query = 'e.artist ilike $' . count($params);
+  $params[] = '%' . $where_artist . '%';
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 'e.artist ilike $' . count($params);
 }
 
 $where_agent=@$_GET['agent'];
 if ($where_agent != '')
 {
-	$params[] = $where_agent . '%';
-  $query = 's.agent ilike $' . count($params);
+  $params[] = $where_agent . '%';
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 's.agent ilike $' . count($params);
 }
 
 $where_drivename=@$_GET['drivename'];
 if ($where_drivename!= '')
 {
-	$params[] = $where_drivename . '%';
-  $query = 's.drivename ilike $' . count($params);
+  $params[] = $where_drivename . '%';
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 's.drivename ilike $' . count($params);
 }
 
 $where_uid=@$_GET['uid'];
 if ($where_uid != '')
 {
-	$params[] = $where_uid;
-  $query = 's.userid=$' . count($params);
+  $params[] = $where_uid;
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 's.userid=$' . count($params);
 }
 
 $where_ip=@$_GET['ip'];
 if ($where_ip != '')
 {
-	$params[] = $where_ip;
-  $query = 's.ip=$' . count($params);
+  $params[] = $where_ip;
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 's.ip=$' . count($params);
 }
 
+/*
 $show_date = true;
 if ($query == '')
 //if ($query == '' || $query == 'ip=$1')
 {
-	$params[] ='24:00';
-	$query = ($query == '' ? '' : $query . ' AND ') . 'now() - s.time < $' . (count($params));
-	$show_date = false;
+  $params[] ='24:00';
+  $query = $query == '' ? ' WHERE ' : $query . ' AND ';
+  $query = $query . 'now() - s.time < $' . (count($params));
+  $show_date = false;
 }
-
-$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, s.entryid as entryid, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid WHERE " . $query . " ORDER by s.subid DESC LIMIT 100", $params)
+*/
+$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, s.entryid as entryid, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
   or die('Query failed: ' . pg_last_error());
 $submissions = pg_fetch_all($result);
 pg_free_result($result);
@@ -73,7 +81,7 @@ foreach($submissions as $record)
      : $record['audiotracks']);
   $json_submissions[] = array(
     'c' => array(
-      array('v' => $show_date ? $record['time'] : substr($record['time'],11)),
+      array('v' => strtotime($record['time'])),
       array('v' => $record['agent'] ? $record['agent'] : ''),
       array('v' => $record['drivename'] ? $record['drivename'] : ''),
       array('v' => $record['userid'] ? $record['userid'] : ''),
@@ -90,7 +98,7 @@ foreach($submissions as $record)
 }
 $json_submissions_table = array(
   'cols' => array(
-    array('label' => 'Date', 'type' => 'string'),
+    array('label' => 'Date', 'type' => 'number'),
     array('label' => 'Agent', 'type' => 'string'),
     array('label' => 'Drive', 'type' => 'string'),
     array('label' => 'User', 'type' => 'string'),
@@ -125,8 +133,22 @@ function ctdbEntryData(json)
     return "00000000".substr(0, 8 - hex.length) + hex;
   }
 
+  function pad2(n)
+  {
+    return (n < 10 ? '0' : '') + n;
+  }
+
   var data = new google.visualization.DataTable(json);
   for (var row = 0; row < data.getNumberOfRows(); row++) {
+    var dt = new Date(data.getValue(row, 0)*1000);
+    var dtnow = new Date();
+    var dtstring = (dtnow - dt > 1000*60*60*24 ? dt.getFullYear()
+      + '-' + pad2(dt.getMonth()+1)
+      + '-' + pad2(dt.getDate())
+      + ' ' : '') + pad2(dt.getHours())
+      + ':' + pad2(dt.getMinutes())
+      + ':' + pad2(dt.getSeconds());
+    data.setFormattedValue(row, 0, dtstring);
     data.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     var matches = data.getValue(row, 1).match(/(CUETools|CUERipper|EACv.* CTDB) ([\d\.]*)/);
