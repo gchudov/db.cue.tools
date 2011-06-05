@@ -68,7 +68,7 @@ else
 {
   if ($quality < 50)
     die('insufficient quality');
-  if ($confidence > 1) 
+//  if ($confidence > 1) 
     $needparfile = true;
 }
 
