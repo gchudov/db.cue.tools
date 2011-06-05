@@ -2,38 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
+<script type='text/javascript' src="ctdb10.js"></script>
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
-function ctdbEntryData(json)
-{
-  function decimalToHexString(number)
-  {
-    if (number < 0)
-    {
-        number = 0xFFFFFFFF + number + 1;
-    }
-    var hex = number.toString(16).toUpperCase();
-    return "00000000".substr(0, 8 - hex.length) + hex; 
-  }
-
-  var data = new google.visualization.DataTable(json);
-  for (var row = 0; row < data.getNumberOfRows(); row++) {
-    var artist = data.getValue(row, 0);
-    if (!artist) artist = "Unknown Artist";
-    data.setFormattedValue(row, 0, '<a href="?artist=' + encodeURIComponent(artist) + '">' + artist.substring(0,50) + '</a>');
-    var title = data.getValue(row, 1);
-    if (!title) title = "Unknown Title";
-    data.setFormattedValue(row, 1, title.substring(0,60));
-    var toc = data.getValue(row, 2);
-    data.setFormattedValue(row, 2, '<a href="?tocid=' + toc + '">' + toc + '</a>');
-    data.setFormattedValue(row, 4, '<a href="show.php?id=' + data.getValue(row, 4).toString(10) + '">' + decimalToHexString(data.getValue(row, 6)) + '</a>');
-    data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-  }
-  return data;  
-}
 function drawTable() 
 {
   var data = ctdbEntryData(<?php echo $json_entries?>);

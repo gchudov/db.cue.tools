@@ -119,65 +119,12 @@ $json_submissions = json_encode($json_submissions_table);
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
+<script type='text/javascript' src="ctdb10.js"></script>
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
-function ctdbEntryData(json)
-{
-  function decimalToHexString(number)
-  {
-    if (number < 0)
-    {
-        number = 0xFFFFFFFF + number + 1;
-    }
-    var hex = number.toString(16).toUpperCase();
-    return "00000000".substr(0, 8 - hex.length) + hex;
-  }
-
-  function pad2(n)
-  {
-    return (n < 10 ? '0' : '') + n;
-  }
-
-  var data = new google.visualization.DataTable(json);
-  for (var row = 0; row < data.getNumberOfRows(); row++) {
-    var dt = new Date(data.getValue(row, 0)*1000);
-    var dtnow = new Date();
-    var dtstring = (dtnow - dt > 1000*60*60*24 ? dt.getFullYear()
-      + '-' + pad2(dt.getMonth()+1)
-      + '-' + pad2(dt.getDate())
-      + ' ' : '') + pad2(dt.getHours())
-      + ':' + pad2(dt.getMinutes())
-      + ':' + pad2(dt.getSeconds());
-    data.setFormattedValue(row, 0, dtstring);
-    data.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    var matches = data.getValue(row, 1).match(/(CUETools|CUERipper|EACv.* CTDB) ([\d\.]*)/);
-    var img = matches[1] == 'CUETools' ? 'cuetools.png' :  matches[1] == 'CUERipper' ? 'cueripper.png' : matches[1] == 'EACv1.0b2 CTDB' ? 'eac.png' : ''; 
-    data.setFormattedValue(row, 1, (img != '' ? '<img height=12 src="' + img + '">' : '') + '<a href="?agent=' + data.getValue(row, 1) + '">' + matches[2] + '</a>');
-    data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setFormattedValue(row, 2, '<a href="?drive=' + data.getValue(row, 2) + '">' + data.getValue(row, 2).substring(0,20) + '</a>');
-    data.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setFormattedValue(row, 3, '<a href="?uid=' + data.getValue(row, 3) + '">' + data.getValue(row, 3).substring(0,6) + '</a>');
-    data.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    var artist = data.getValue(row, 5);
-    if (!artist) artist = "Unknown Artist";
-    data.setFormattedValue(row, 5, '<a href="?artist=' + encodeURIComponent(artist) + '">' + artist.substring(0,30) + '</a>');
-    var title = data.getValue(row, 6);
-    if (!title) title = "Unknown Title";
-    data.setFormattedValue(row, 6, title.substring(0,30));
-    data.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    var toc = data.getValue(row, 7);
-    data.setFormattedValue(row, 7, '<a href="?tocid=' + toc + '">' + toc.substring(0,7) + '</a>');
-    data.setProperty(row, 8, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setProperty(row, 9, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setFormattedValue(row, 9, '<a href="show.php?id=' + data.getValue(row, 9).toString(10) + '">' + decimalToHexString(data.getValue(row, 11)) + '</a>');
-    data.setProperty(row, 10, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-  }
-  return data;
-}
 function drawTable()
 {
-  var data = ctdbEntryData(<?php echo $json_submissions;?>);
+  var data = ctdbSubmissionData(<?php echo $json_submissions;?>);
   var table = new google.visualization.Table(document.getElementById('entries_div'));
   var opts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 20};
   var view = new google.visualization.DataView(data);
