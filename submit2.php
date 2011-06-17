@@ -85,6 +85,7 @@ $record3['drivename'] = @$_POST['drivename'];
 $record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
 $record3['time'] = gmdate ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
+if (isset($_POST['barcode'])) $record3['barcode'] = $_POST['barcode'];
 
 if ($confirmid) {
   if ($parfile)

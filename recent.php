@@ -4,6 +4,7 @@ require_once( 'phpctdb/ctdb.php' );
 
 if (!$isadmin) makeAuth1($realm, 'Admin priveleges required');
 
+if (@$_GET['json']) {
 $query = "";
 $params = array();
 
@@ -114,6 +115,17 @@ $json_submissions_table = array(
     ),
   'rows' => $json_submissions);
 $json_submissions = json_encode($json_submissions_table);
+  $body = $json_submissions;
+  $etag = crc32($body);
+  if (@$_SERVER['HTTP_IF_NONE_MATCH'] == $etag) {
+    header($_SERVER["SERVER_PROTOCOL"]." 304 Not Modified");
+    exit;
+  }
+  //header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60*24) . ' GMT');
+  header("ETag:  " . $etag);
+  die($body);
+} else
+  header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60*24) . ' GMT');
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -124,18 +136,37 @@ $json_submissions = json_encode($json_submissions_table);
 google.setOnLoadCallback(drawTable);
 function drawTable()
 {
-  var data = ctdbSubmissionData(<?php echo $json_submissions;?>);
-  var table = new google.visualization.Table(document.getElementById('entries_div'));
-  var opts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 20};
-  var view = new google.visualization.DataView(data);
-  view.hideColumns([11,12]);
-  table.draw(view, opts);
+  var sbdiv = document.getElementById('submissions_div');
+  var sbtable = new google.visualization.Table(sbdiv);
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.open("GET", window.location.search + (window.location.search != '' ? '&' : '?') + 'json=1', true);
+  sbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Loading submissions log...">';
+  xmlhttp.onreadystatechange=function() {
+    if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
+    if (xmlhttp.status != 200) {
+      sbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
+      xmlhttp = null;
+      return;
+    }
+    if (xmlhttp.responseText == 'null') {
+      sbdiv.innerHTML = '<img src="http://s3.cuetools.net/face-sad.png" alt="No submissions found">';
+      xmlhttp = null;
+      return;
+    }
+    var sbdata = ctdbSubmissionData(xmlhttp.responseText);
+    xmlhttp = null;
+    var sbopts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 20};
+    var sbview = new google.visualization.DataView(sbdata);
+    sbview.hideColumns([11,12]);
+    sbtable.draw(sbview, sbopts);
+  };
+  xmlhttp.send(null);
 }
 </script>
 <?php include 'logo_start2.php'; ?>
 <center>
 <h3>Recent additions:</h3>
-<div id='entries_div'></div>
+<div id='submissions_div'></div>
 </center>
 </body>
 </html>
