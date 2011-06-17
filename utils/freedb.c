@@ -8,8 +8,12 @@ int offsets[100];
 int n_offsets = 0;
 char *dtitle = 0;
 char *dyear = 0;
+char *dgenre = 0;
+char *dext = 0;
 char* ttitle[100];
-int tracks = 0;
+char* t_ext[100];
+int c_title = 0;
+int c_ext = 0;
 int freedbid = 0;
 int category = -1;
 
@@ -172,7 +176,7 @@ void pgquote(char**s)
 {
     char * res;
     int i, j = 0;
-    if (!*s)
+    if (!*s || !**s)
     {
         *s = strdup("NULL");
         return;
@@ -220,8 +224,12 @@ void output()
         dalbum = strdup(dtitle);
     pgquote(&dartist);
     pgquote(&dalbum);
-    for (i = 0; i < tracks; i++)
+    pgquote(&dgenre);
+    pgquote(&dext);
+    for (i = 0; i < c_title; i++)
       pgquote(ttitle + i);
+    for (i = 0; i < c_ext; i++)
+      pgquote(t_ext + i);
     needlatin = !isascii7 && !isutf8 && islatin1;
     if (!waslatin && needlatin)
       printf("set client_encoding TO latin1;\n");
@@ -231,13 +239,21 @@ void output()
     printf("INSERT INTO entries VALUES (%d, %d, %d, ARRAY[%d", freedbid, category, disc_length, offsets[0]);
     for (i = 1; i < n_offsets; i++)
       printf(",%d", offsets[i]);
-    printf("], %s, %s, %s, ",dyear && strcmp(dyear,"0") ? dyear : "NULL", dartist, dalbum);
-    if (!tracks)
-      printf("NULL");
+    printf("], %s, %s, %s, %s, %s, ",dyear && strcmp(dyear,"0") ? dyear : "NULL", dartist, dalbum, dgenre, dext);
+    if (!c_title)
+      printf("NULL, ");
     else {
       printf("ARRAY[%s", ttitle[0]);
-      for (i = 1; i < tracks; i++)
+      for (i = 1; i < c_title; i++)
         printf(",%s", ttitle[i]);
+      printf("], ");
+    }
+    if (!c_ext)
+      printf("NULL");
+    else {
+      printf("ARRAY[%s", t_ext[0]);
+      for (i = 1; i < c_ext; i++)
+        printf(",%s", t_ext[i]);
       printf("]");
     }
     printf(");\n");
@@ -261,7 +277,7 @@ void append(char**var, char *name, char *buf, regmatch_t* match)
     }
 }
 
-void append1(char**var, char *name, char *buf, regmatch_t* match)
+void append1(char**var, int*count, char *name, char *buf, regmatch_t* match)
 {
     if (match[1].rm_eo - match[1].rm_so == strlen(name) && !strncmp(buf + match[1].rm_so, name, match[1].rm_eo - match[1].rm_so))
     {
@@ -270,8 +286,8 @@ void append1(char**var, char *name, char *buf, regmatch_t* match)
             fprintf(stderr, "Invalid track no\n");
             exit(1);
         }
-        if (tracks <= n)
-          tracks = n+1;
+        if (*count <= n)
+          *count = n+1;
         if (!var[n])
             var[n] = strdup(buf + match[3].rm_so);
         else {
@@ -330,14 +346,18 @@ int main(void)
         if (0 == regexec(&regex_id, buf, 3, res, 0)) {
           int i;
 	  if (category >= 0) output();
-	  free(dtitle); free(dyear);
-          for (i = 0; i < tracks; i++) {
+	  free(dtitle); free(dyear); free(dgenre); free(dext);
+          for (i = 0; i < c_title; i++) {
               free(ttitle[i]);
               ttitle[i] = 0;
           }
-          tracks = 0;
+          for (i = 0; i < c_ext; i++) {
+              free(t_ext[i]);
+              t_ext[i] = 0;
+          }
+          c_title = c_ext = 0;
           isascii7 = islatin1 = isutf8 = 1;
-          dtitle = dyear = 0;
+          dtitle = dyear = dgenre = dext = 0;
           freedbid = (int)strtoul(buf + res[2].rm_so, NULL, 16);
           for (i = 0; validcategories[i]; i++)
 	    if (strlen(validcategories[i]) == res[1].rm_eo - res[1].rm_so && !strncmp(validcategories[i], buf + res[1].rm_so, res[1].rm_eo - res[1].rm_so)) {
@@ -369,10 +389,13 @@ int main(void)
         if (2 == state && 0 == regexec(&regex_entry, buf, 3, res, 0) && res[1].rm_so >= 0 && res[2].rm_so >= 0) {
 	  append(&dtitle, "DTITLE", buf, res);
 	  append(&dyear, "DYEAR", buf, res);
+	  append(&dgenre, "DGENRE", buf, res);
+	  append(&dext, "EXTD", buf, res);
           continue;
         }
         if (2 == state && 0 == regexec(&regex_entry1, buf, 4, res, 0) && res[1].rm_so >= 0 && res[2].rm_so >= 0 && res[3].rm_so >= 0) {
-	  append1(ttitle, "TTITLE", buf, res);
+	  append1(ttitle, &c_title, "TTITLE", buf, res);
+	  append1(t_ext, &c_ext, "EXTT", buf, res);
           continue;
         }
     }
