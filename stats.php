@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-    <title>CTDB Daily Submissions by Client</title>
+    <title>CTDB Statistics</title>
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
     <script type="text/javascript">
       google.load('visualization', '1', {packages: ['corechart']});
@@ -38,7 +38,7 @@
           vAxis: {title: "Submissions"},
           hAxis: {title: "Day"}
         });
-      }
+      };
       function drawDrives() {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", '/statsjson.php?type=drives', false);
@@ -46,7 +46,7 @@
         var data = new google.visualization.DataTable(xmlhttp.responseText);
         new google.visualization.PieChart(document.getElementById('drives')).
           draw(data, {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
-      }
+      };
       function drawAgents() {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", '/statsjson.php?type=agents', false);
@@ -54,11 +54,20 @@
         var data = new google.visualization.DataTable(xmlhttp.responseText);
         new google.visualization.PieChart(document.getElementById('agents')).
           draw(data, {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
-      }
+      };
+      function drawPregaps() {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", '/statsjson.php?type=pregaps', false);
+        xmlhttp.send();
+        var data = new google.visualization.DataTable(xmlhttp.responseText);
+        new google.visualization.PieChart(document.getElementById('pregaps')).
+          draw(data, {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
+      };
       google.setOnLoadCallback(drawSubmissions);
       google.setOnLoadCallback(drawSubmissionsStacked);
       google.setOnLoadCallback(drawDrives);
       google.setOnLoadCallback(drawAgents);
+      google.setOnLoadCallback(drawPregaps);
     </script>
   </head>
   <?php include 'logo_start2.php'; ?>
@@ -67,6 +76,7 @@
     <div id="submissions_stacked"></div>
     <div id="drives"></div>
     <div id="agents"></div>
+    <div id="pregaps"></div>
     </center>
   </body>
 </html>
