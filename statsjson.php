@@ -29,6 +29,9 @@ if ($stattype == 'drives')
 else if ($stattype == 'agents')
   $json_entries_table = simpleQuery($dbconn,
     "select substring(agent from '([^:(]*)( [(]|:|$)') as label, count(*) as cnt FROM submissions WHERE agent IS NOT NULL GROUP BY label ORDER BY cnt DESC LIMIT 100");
+else if ($stattype == 'pregaps')
+  $json_entries_table = simpleQuery($dbconn,
+    "select substring(trackoffsets from '([^ ]*) ') as label, count(*) as cnt FROM submissions2 WHERE int4(substring(trackoffsets from '([^ ]*) ')) < 450  AND int4(substring(trackoffsets from '([^ ]*) ')) != 0 GROUP BY label ORDER BY cnt DESC LIMIT 100");
 else if ($stattype == 'submissions')
 {
   $since = isset($_GET['since']) ? $_GET['since'] : gmdate('Y-m-d', time() - 60*60*24*30);
