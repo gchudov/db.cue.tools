@@ -3,25 +3,16 @@ require_once( 'phpctdb/ctdb.php' );
 require_once( 'xml.php' );
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543") or die('Could not connect: ' . pg_last_error());
-if (@$_GET['toc'])
-{
-  $toc_s = $_GET['toc'] or die('Invalid arguments');
-  $dometa = @$_GET['musicbrainz'];
-  $fuzzy = @$_GET['fuzzy'];
-  $toc = phpCTDB::toc_s2toc($toc_s);
-  $tocid = phpCTDB::toc2tocid($toc); 
-  $query = "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "'";
-  if (!$fuzzy) $query = $query . " AND trackoffsets='" . pg_escape_string($toc['trackoffsets']) . "'";
-  $result = pg_query($dbconn, $query) 
-    or die('Query failed: ' . pg_last_error());
-} else
-{
-  $tocid = @$_GET['tocid'] or die('No id');
-  $dometa = true;
-  $fuzzy = true;
-  $result = pg_query($dbconn, "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "';") 
-    or die('Query failed: ' . pg_last_error());
-}
+$toc_s = $_GET['toc'] or die('Invalid arguments');
+$dometa = @$_GET['musicbrainz'];
+$dofreedb = @$_GET['freedb'];
+$fuzzy = @$_GET['fuzzy'];
+$toc = phpCTDB::toc_s2toc($toc_s);
+$tocid = phpCTDB::toc2tocid($toc); 
+$query = "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "'";
+if (!$fuzzy) $query = $query . " AND trackoffsets='" . pg_escape_string($toc['trackoffsets']) . "'";
+$result = pg_query($dbconn, $query) 
+  or die('Query failed: ' . pg_last_error());
 
 $records = pg_fetch_all($result);
 pg_free_result($result);
@@ -37,6 +28,13 @@ if ($dometa)
 foreach (array_unique($mbids) as $mbid)
 {
   $mbmeta_t = phpCTDB::mblookup($mbid);
+  if ($mbmeta_t)
+    foreach ($mbmeta_t as $im)
+      $mbmetas[] = $im;
+}
+if ($dofreedb)
+{
+  $mbmeta_t = phpCTDB::freedblookup($toc_s);
   if ($mbmeta_t)
     foreach ($mbmeta_t as $im)
       $mbmetas[] = $im;

@@ -288,6 +288,50 @@ class phpCTDB{
 	  return $output;
 	}
 
+	static function freedblookup($toc)
+        {
+		$freedbconn = pg_connect("dbname=freedb user=freedb_user port=6543");
+		if (!$freedbconn)
+			return false;
+		$ids = explode(':', $toc);
+		$tocid = '';
+		$offsets = '';
+		for ($tr = 0; $tr < count($ids) - 1; $tr++) {
+			$offsets .= ',' . (abs($ids[$tr]) + 150);
+			$tocid = $tocid . (floor(abs($ids[$tr]) / 75) + 2);
+		}
+		$id0 = 0;
+    		for ($i = 0; $i < strlen($tocid); $i++)
+			$id0 += ord($tocid{$i}) - ord('0');
+		$length = floor(abs($ids[count($ids) - 1]) / 75) - floor(abs($ids[0]) / 75);
+    		$hexid =
+			sprintf('%02X', $id0 % 255) . 
+			sprintf('%04X', $length) .
+			sprintf('%02X', count($ids) - 1);
+		$offsets = '{' . substr($offsets,1) . '}';
+		$result = pg_query_params($freedbconn,
+		  'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, $offsets)); 
+		$meta = pg_fetch_all($result);
+		pg_free_result($result);
+		$res = null;
+		foreach($meta as $r)
+		{
+		  $tracklist = null;
+		  $track_title = null;
+		  phpCTDB::pg_array_parse($r['track_title'], $track_title);
+		  foreach($track_title as $tt)
+		    $tracklist[] = array('title' => $tt);
+		  $res[] = array(
+		    'artistname' => $r['artist'],
+		    'albumname' => $r['title'],
+		    'first_release_date_year' => $r['year'],
+		    'genre' => $r['genre'],
+		    'tracklist' => $tracklist,
+		  );
+		}
+		return $res;
+        }
+
 	static function mblookup($mbid)
 	{
 		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
