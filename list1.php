@@ -14,6 +14,9 @@ function drawTable()
   var prev = start != 0;
   var next = data.getNumberOfRows() >= <?php echo $count?>;
   var mbdiv = document.getElementById('musicbrainz_div');
+  var mbtable = mbdiv == null ? null : new google.visualization.Table(mbdiv);
+  var sbdiv = document.getElementById('submissions_div');
+  var sbtable = sbdiv == null ? null :  new google.visualization.Table(sbdiv);
   opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
   google.visualization.events.addListener(table, 'page', function(e) {
     var xmlhttp = new XMLHttpRequest();
@@ -30,13 +33,14 @@ function drawTable()
     }
     data = ctdbEntryData(xmlhttp.responseText);
     start += shift;
-  prev = start != 0;
-  next = data.getNumberOfRows() >= <?php echo $count?>;
-  opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
+    prev = start != 0;
+    next = data.getNumberOfRows() >= <?php echo $count?>;
+    opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
     var view = new google.visualization.DataView(data);
     view.hideColumns([6,7]);
     table.draw(view, opts);
     if (mbdiv != null) mbdiv.innerHTML = '';
+    if (sbdiv != null) sbdiv.innerHTML = '';
   });
   if (mbdiv != null)
     google.visualization.events.addListener(table, 'select', function() {
@@ -72,14 +76,64 @@ function drawTable()
         formatter.format(mbdata, [2, 8], 2); 
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8]); 
-        var mbtable = new google.visualization.Table(mbdiv);
         mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 5, sort: 'disable', showRowNumber: false});
       }
       xmlhttp.send(null);
     });
+  if (mbdiv != null)
+    google.visualization.events.addListener(mbtable, 'select', function() {
+      var admdiv = document.getElementById('admin_div');
+      admdiv.innerHTML = '';
+      if (mbtable.getSelection().length == 0)
+        return;
+      var srow = mbtable.getSelection()[0].row;
+      //var set = new Image();
+      //set.src = "http://s3.cuetools.net/face-sad.png";
+      //set.id = "set_metadata";
+      //admdiv.appendChild(set);
+      //admdiv.setAttribute("onClick", "setMetadata()");
+      admargs = { "entry" : table.getSelection(), "release" : mbtable.getSelection() };
+      admdiv.innerHTML = '<a onClick="setMetadata(&quot;' + encodeURIComponent(JSON.stringify(admargs)) +  '&quot;)">set</a>';
+    });
 
+  if (sbdiv != null)
+     google.visualization.events.addListener(table, 'select', function() {
+      if (table.getSelection().length == 0) {
+        sbdiv.innerHTML = '';
+        return;
+      }
+      var srow = table.getSelection()[0].row;
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.open("GET", '/recent.php?json=1&tocid=' + data.getValue(srow, 2), true);
+      sbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Loading submissions log...">';
+      xmlhttp.onreadystatechange=function() {
+        if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
+        if (xmlhttp.status != 200) {
+          sbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
+          xmlhttp = null;
+          return;
+        }
+        if (xmlhttp.responseText == 'null') {
+          sbdiv.innerHTML = '<img src="http://s3.cuetools.net/face-sad.png" alt="No submissions found">';
+          xmlhttp = null;
+          return;
+        }
+        var sbdata = ctdbSubmissionData(xmlhttp.responseText);
+        xmlhttp = null;
+        var sbopts = {allowHtml: true, width: 700, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 5};
+        var sbview = new google.visualization.DataView(sbdata);
+        sbview.hideColumns([5,6,7,8,11,12]);
+        sbtable.draw(sbview, sbopts);
+      }
+      xmlhttp.send(null);
+    });
   var view = new google.visualization.DataView(data);
   view.hideColumns([6,7]);
   table.draw(view, opts);
-}
+};
+function setMetadata(strargs) {
+  var admdiv = document.getElementById('admin_div');
+  var args = JSON.parse(decodeURIComponent(strargs));
+  admdiv.innerHTML = JSON.stringify(args);
+};
 </script>

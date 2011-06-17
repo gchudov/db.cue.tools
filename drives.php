@@ -40,8 +40,6 @@ function dograph($dbconn, $dbname, $label, $where, $limit, $width, $height, $tit
   printf('<img align=middle src="http://chart.apis.google.com/chart?cht=p3&chs=%sx%s&chco=%s&chl=%s&chd=t:%s&chtt=%s"><br>', $width, $height, $colors_str, $agents_str, $counts_str, $title);
 }
 //dograph($dbconn,"drivename","WHERE drivename IS NOT NULL", 20, 800, 240);
-dograph($dbconn,"submissions","substring(drivename from '([^ ]*) ')","WHERE drivename IS NOT NULL", 17, 800, 240, "Drives", 0);
-dograph($dbconn,"submissions","substring(agent from '([^:(]*)( [(]|:|$)')", "WHERE agent IS NOT NULL", 10, 800, 240, "Clients", 0);
 dograph($dbconn,"submissions2","substring(trackoffsets from '([^ ]*) ')", "WHERE substring(trackoffsets from '([^ ]*) ') != '0' AND int4(substring(trackoffsets from '([^ ]*) ')) < 450", 8, 800, 240, "Pregap values", 0);
 dograph($dbconn,"submissions2","substring(trackoffsets from '([^ ]*) ')", "WHERE substring(trackoffsets from '([^ ]*) ') != '0' AND int4(substring(trackoffsets from '([^ ]*) ')) < 450", 32, 800, 240, "Pregap values except 32, 33, 37, 75, 30, 50, 1", 7);
 ?>

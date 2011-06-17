@@ -73,7 +73,6 @@ class phpCTDB{
 
   static function records2json($records)
   {
-    $nfmt = array('style' => 'font-family:courier; text-align:right;');
     $json_entries = false;
     foreach($records as $record)
     {
