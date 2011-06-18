@@ -319,6 +319,7 @@ int main(void)
     int state = 0;
     regex_t regex_id, regex_offsets, regex_offset, regex_length, regex_entry, regex_entry1;
     regmatch_t res[10];
+    int empty = 1;
 
     compile(&regex_id, "^([a-z]{1,12})/([0-9a-f]{8})$", REG_EXTENDED);
     compile(&regex_offsets, "^#[ \t]*Track frame offsets:[ \t]*$", REG_EXTENDED);
@@ -345,7 +346,8 @@ int main(void)
         buf[strlen(buf) - 1] = 0;
         if (0 == regexec(&regex_id, buf, 3, res, 0)) {
           int i;
-	  if (category >= 0) output();
+	  if (category >= 0 && !empty) output();
+	  //if (category >= 0 && empty) fprintf(stderr,"skip symlink\n");
 	  free(dtitle); free(dyear); free(dgenre); free(dext);
           for (i = 0; i < c_title; i++) {
               free(ttitle[i]);
@@ -356,6 +358,7 @@ int main(void)
               t_ext[i] = 0;
           }
           c_title = c_ext = 0;
+	  empty = 1;
           isascii7 = islatin1 = isutf8 = 1;
           dtitle = dyear = dgenre = dext = 0;
           freedbid = (int)strtoul(buf + res[2].rm_so, NULL, 16);
@@ -373,6 +376,7 @@ int main(void)
           state = 0;
 	  continue;
         }
+	empty = 0;
         if (0 == state && 0 == regexec(&regex_offsets, buf, 1, res, 0)) {
           state = 1;
           continue;

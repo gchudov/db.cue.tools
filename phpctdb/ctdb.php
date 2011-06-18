@@ -314,6 +314,7 @@ class phpCTDB{
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		$res = null;
+		if ($meta)
 		foreach($meta as $r)
 		{
 		  $tracklist = null;
