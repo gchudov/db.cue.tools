@@ -89,7 +89,7 @@ class phpCTDB{
             array('v' => (int)$record['id']),
             array('v' => (int)$record['confidence']),
             array('v' => (int)$record['crc32']),
-            array('v' => phpCTDB::toc2mbid($record)),
+            array('v' => phpCTDB::toc_toc2s($record)),
             ));
     }
     $json_entries_table = array('cols' => array(
@@ -309,25 +309,36 @@ class phpCTDB{
 			sprintf('%04X', $length) .
 			sprintf('%02X', count($ids) - 1);
 		$offsets = '{' . substr($offsets,1) . '}';
+		//if ((int)phpCTDB::Hex2Int($hexid, false) == 2097810953)
+		  //print_r(array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, $offsets));
 		$result = pg_query_params($freedbconn,
 		  'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, $offsets)); 
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
-		$res = null;
-		if ($meta)
+		if (!$meta) return array();
+		$res = array();
 		foreach($meta as $r)
 		{
 		  $tracklist = null;
 		  $track_title = null;
 		  phpCTDB::pg_array_parse($r['track_title'], $track_title);
 		  foreach($track_title as $tt)
-		    $tracklist[] = array('title' => $tt);
+		    $tracklist[] = array('name' => $tt, 'artist' => null);
 		  $res[] = array(
 		    'artistname' => $r['artist'],
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => $r['year'],
 		    'genre' => $r['genre'],
 		    'tracklist' => $tracklist,
+		    'discnumber' => 1,
+		    'totaldiscs' => 1,
+		    'discname' => null,
+		    'gid' => null,
+		    'barcode' => null,
+		    'coverarturl' => null,
+		    'info_url' => null,
+		    'releasedate' => null,
+		    'country' => null,
 		  );
 		}
 		return $res;
@@ -377,7 +388,7 @@ class phpCTDB{
 		pg_free_result($mbresult);
 
 		if (!$mbmeta)
-		  return false;
+		  return array();
 
 		$tracklists = false;
 		$artistcredits = false;

@@ -50,7 +50,7 @@ function drawTable()
       }
       var srow = table.getSelection()[0].row;
       var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open("GET", '/mbjson.php?mbid=' + data.getValue(srow, 7), true);
+      xmlhttp.open("GET", '/lookupmeta.php?mbz=1&fdb=1&toc=' + data.getValue(srow, 7), true);
       mbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
@@ -68,12 +68,12 @@ function drawTable()
         xmlhttp = null;
         for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
           mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          if (mbdata.getValue(row, 8))
+          mbdata.setFormattedValue(row, 2, '<a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a>');
           mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
           mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
           mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
         }
-        var formatter = new google.visualization.TablePatternFormat('<a target=_blank href="http://musicbrainz.org/release/{1}">{0}</a>');
-        formatter.format(mbdata, [2, 8], 2); 
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8]); 
         mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 5, sort: 'disable', showRowNumber: false});
