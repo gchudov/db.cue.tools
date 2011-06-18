@@ -53,6 +53,7 @@ pg_free_result($result);
 
 $mbid = phpCTDB::toc2mbid($record);
 $mbmeta = phpCTDB::mblookup($mbid);
+if (!$mbmeta) $mbmeta = phpCTDB::freedblookup(phpCTDB::toc_toc2s($record));
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = explode(' ', $record['trackcrcs']);
 $tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;
@@ -114,12 +115,12 @@ if ($mbmeta)
         for (var row = 0; row < mbdata.getNumberOfRows(); row++)
         {
           mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+          if (mbdata.getValue(row, 8))
+          mbdata.setFormattedValue(row, 2, '<a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a>');
           mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
           mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
           mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
         }
-        var formatter = new google.visualization.TablePatternFormat('<a target=_blank href="http://musicbrainz.org/release/{1}">{0}</a>');
-        formatter.format(mbdata, [2, 8], 2); 
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8]); 
         var mbtable = new google.visualization.Table(mbdiv);
