@@ -2,8 +2,10 @@ CREATE LANGUAGE plpgsql;
 CREATE TABLE entries (id integer not null, category integer not null, length integer, 
     offsets integer array, year integer, artist text, title text, genre text, 
     extra text, track_title text array, track_extra text array);
+CREATE TABLE toc_index (id integer not null, category integer not null, toc CUBE);
 CREATE INDEX entries_id on entries(id);
 CREATE UNIQUE INDEX entries_id_category on entries(id, category);
+CREATE INDEX toc_index_idx ON toc_index USING gist (toc);
 CREATE OR REPLACE FUNCTION entries_insert_before_F()
 RETURNS TRIGGER
  AS $BODY$
