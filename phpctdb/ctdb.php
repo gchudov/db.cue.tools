@@ -288,7 +288,7 @@ class phpCTDB{
 	  return $output;
 	}
 
-	static function freedblookup($toc)
+	static function freedblookup($toc, $fuzzy = 0)
         {
 		$freedbconn = pg_connect("dbname=freedb user=freedb_user port=6543");
 		if (!$freedbconn)
@@ -308,13 +308,20 @@ class phpCTDB{
 			sprintf('%02X', $id0 % 255) . 
 			sprintf('%04X', $length) .
 			sprintf('%02X', count($ids) - 1);
-		$offsets = '{' . substr($offsets,1) . '}';
-		//if ((int)phpCTDB::Hex2Int($hexid, false) == 2097810953)
-		  //print_r(array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, $offsets));
 		$result = pg_query_params($freedbconn,
-		  'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, $offsets)); 
+		  'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, '{' . substr($offsets,1) . '}')); 
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
+		if (!$meta && $fuzzy > 0) 
+                {
+                  $result = pg_query_params($freedbconn,
+                    'SELECT en.* FROM toc_index ti INNER JOIN entries en ON en.id = ti.id AND en.category = ti.category ' .
+                    'WHERE ti.toc <@ create_bounding_cube($1, $2) AND array_upper(en.offsets, 1)=$3 ' . 
+                    'ORDER BY cube_distance(toc, create_cube_from_toc($1)) LIMIT 5',
+                    array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids) - 1));
+		  $meta = pg_fetch_all($result);
+		  pg_free_result($result);
+		}
 		if (!$meta) return array();
 		$res = array();
 		foreach($meta as $r)

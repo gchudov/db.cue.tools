@@ -40,6 +40,7 @@ else if ($stattype == 'submissions')
     or die('Query failed: ' . pg_last_error());
   $records = pg_fetch_all($result);
   pg_free_result($result);
+  $i=$j=$k=0;
   foreach($records as $record)
   {
     if (!$stacked) $i=$j=$k=0;
