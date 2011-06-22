@@ -30,6 +30,22 @@ function ctdbEntryData(json)
   return data;
 };
 
+function ctdbMetaData(json)
+{
+  var mbdata = new google.visualization.DataTable(json);
+  for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
+    mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    if (mbdata.getValue(row, 9) == 'musicbrainz')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
+    if (mbdata.getValue(row, 9) == 'freedb')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
+    mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
+    mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+  }
+  return mbdata;
+};
+
 function ctdbSubmissionData(json)
 {
   var data = new google.visualization.DataTable(json);
