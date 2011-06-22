@@ -121,7 +121,7 @@ class phpCTDB{
 
       $json_releases[] = array(
           'c' => array(
-            array('v' => (int)$mbr['first_release_date_year']),
+            array('v' => $mbr['first_release_date_year'] == 0 ? null : (int)$mbr['first_release_date_year']),
             array('v' => $mbr['artistname']),
             array('v' => $mbr['albumname']),
             array('v' => ($mbr['totaldiscs'] ?: 1) != 1 || ($mbr['discnumber'] ?: 1) != 1 ? ($mbr['discnumber'] ?: '?') . '/' . ($mbr['totaldiscs'] ?: '?') . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
