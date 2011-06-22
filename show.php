@@ -115,14 +115,16 @@ if ($mbmeta)
         for (var row = 0; row < mbdata.getNumberOfRows(); row++)
         {
           mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-          if (mbdata.getValue(row, 8))
+          if (mbdata.getValue(row, 9) == 'musicbrainz')
           mbdata.setFormattedValue(row, 2, '<a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a>');
+          if (mbdata.getValue(row, 9) == 'freedb')
+          mbdata.setFormattedValue(row, 2, '<a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a>');
           mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
           mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
           mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
         }
         var mbview = new google.visualization.DataView(mbdata);
-        mbview.hideColumns([8]); 
+        mbview.hideColumns([8,9]); 
         var mbtable = new google.visualization.Table(mbdiv);
         mbtable.draw(mbview, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: false});
         google.visualization.events.addListener(mbtable, 'select', function() {
@@ -166,7 +168,7 @@ printf('<br>');
 include 'table_start.php';
 printf('<table border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album>CTDB ID</td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&fuzzy=0">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+printf('<tr><td class=td_album>CTDB ID</td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&freedb=1&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album>Musicbrainz ID</td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
 printf('<tr><td class=td_album>CDDB/Freedb ID</td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm>%s <input type=hidden name=page value=1><input type=hidden name=discid value="%s"><input type="submit" value="Lookup"></form></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);

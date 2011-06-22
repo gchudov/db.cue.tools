@@ -73,7 +73,8 @@ else if ($type == 'xml')
       $tracks[] = $track;
     }
     $xmlmbmeta[] = array(
-      'release_gid' => $mbmeta['gid'],
+      'source' => $mbmeta['source'],
+      'id' => $mbmeta['id'],
       'artist' => $mbmeta['artistname'],
       'album' => $mbmeta['albumname'],
       'year' => $mbmeta['first_release_date_year'], 

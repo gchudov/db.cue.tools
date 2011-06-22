@@ -94,7 +94,7 @@ foreach($submissions as $record)
       array('v' => (int)$record['entryid']),
       array('v' => $record['confidence'] == $record['confidence2'] ? $record['confidence'] : sprintf('%d/%d', $record['confidence'], $record['confidence2'])),
       array('v' => (int)$record['crc32']),
-      array('v' => phpCTDB::toc2mbid($record)),
+      array('v' => phpCTDB::toc_toc2s($record)),
     ));
 }
 $json_submissions_table = array(
@@ -111,7 +111,7 @@ $json_submissions_table = array(
     array('label' => 'CTDB Id', 'type' => 'number'),
     array('label' => 'AR', 'type' => 'string'),
     array('label' => 'CRC32', 'type' => 'number'),
-    array('label' => 'MB Id', 'type' => 'string'),
+    array('label' => 'TOC', 'type' => 'string'),
     ),
   'rows' => $json_submissions);
 $json_submissions = json_encode($json_submissions_table);
