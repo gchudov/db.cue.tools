@@ -47,6 +47,21 @@
    white-space: nowrap;
 }
 
+.ctdb-entry-eac {
+    padding: 0 0 0 18px;
+    background: url("http://s3.cuetools.net/icons/eac.png") no-repeat scroll 0 0 transparent;
+}
+
+.ctdb-entry-cuetools {
+    padding: 0 0 0 18px;
+    background: url("http://s3.cuetools.net/icons/cuetools.png") no-repeat scroll 0 0 transparent;
+}
+
+.ctdb-entry-cueripper {
+    padding: 0 0 0 18px;
+    background: url("http://s3.cuetools.net/icons/cueripper.png") no-repeat scroll 0 0 transparent;
+}
+
 #nav {
 	float: left;
 	width: 100%;

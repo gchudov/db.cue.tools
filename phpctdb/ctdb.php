@@ -100,7 +100,7 @@ class phpCTDB{
           array('label' => 'CTDB Id', 'type' => 'number'),
           array('label' => 'AR', 'type' => 'number'),
           array('label' => 'CRC32', 'type' => 'number'),
-          array('label' => 'MB Id', 'type' => 'string'),
+          array('label' => 'TOC', 'type' => 'string'),
           ), 'rows' => $json_entries);
 
     return json_encode($json_entries_table);
@@ -129,7 +129,8 @@ class phpCTDB{
             array('v' => $mbr['releasedate']),
             array('v' => $label),
             array('v' => $mbr['barcode']),
-            array('v' => $mbr['gid']),
+            array('v' => $mbr['id']),
+            array('v' => $mbr['source']),
             ));
     }
     $json_releases_table = array(
@@ -142,7 +143,8 @@ class phpCTDB{
           array('label' => 'Release', 'type' => 'string'),
           array('label' => 'Label', 'type' => 'string'),
           array('label' => 'Barcode', 'type' => 'string'),
-          array('label' => 'Gid', 'type' => 'string'),
+          array('label' => 'Id', 'type' => 'string'),
+          array('label' => 'Source', 'type' => 'string'),
           ), 
         'rows' => $json_releases);
     return json_encode($json_releases_table);
@@ -323,6 +325,9 @@ class phpCTDB{
 		  pg_free_result($result);
 		}
 		if (!$meta) return array();
+		$validcategories = array("blues","classical","country",
+        	  "data","folk","jazz","misc",
+        	  "newage","reggae","rock","soundtrack");
 		$res = array();
 		foreach($meta as $r)
 		{
@@ -332,6 +337,8 @@ class phpCTDB{
 		  foreach($track_title as $tt)
 		    $tracklist[] = array('name' => $tt, 'artist' => null);
 		  $res[] = array(
+		    'source' => 'freedb',
+		    'id' => sprintf('%s/%08x', $validcategories[$r['category']], $r['id']),
 		    'artistname' => $r['artist'],
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => $r['year'],
@@ -340,7 +347,6 @@ class phpCTDB{
 		    'discnumber' => null,
 		    'totaldiscs' => null,
 		    'discname' => null,
-		    'gid' => null,
 		    'barcode' => null,
 		    'coverarturl' => null,
 		    'info_url' => null,
@@ -367,7 +373,7 @@ class phpCTDB{
 //                  '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' . 
                   'rca.cover_art_url as coverarturl, ' . 
                   'rm.info_url, ' . 
-                  'r.gid, ' .
+                  'r.gid as id, ' .
 		  'r.artist_credit, ' .
 //                  'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
                   'rn.name as albumname, ' .
@@ -451,6 +457,7 @@ class phpCTDB{
 		foreach($mbmeta as &$r) {
 		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
 		  $r['tracklist'] = $tltl[$r['tracklistno']];
+		  $r['source'] = 'musicbrainz';
 		  $catno = false;
 		  $label = false;
 		  $labelcat = false;

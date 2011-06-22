@@ -47,8 +47,8 @@ function ctdbSubmissionData(json)
     data.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     var matches = data.getValue(row, 1).match(/(CUETools|CUERipper|EACv.* CTDB) ([\d\.]*)/);
-    var img = matches == null ? '' : matches[1] == 'CUETools' ? 'cuetools.png' :  matches[1] == 'CUERipper' ? 'cueripper.png' : matches[1] == 'EACv1.0b2 CTDB' ? 'eac.png' : ''; 
-    data.setFormattedValue(row, 1, (img != '' ? '<img height=12 src="' + img + '">' : '') + '<a href="?agent=' + data.getValue(row, 1) + '">' + (matches == null ? '?' : matches[2]) + '</a>');
+    var imgstyle = 'ctdb-entry-' + (matches == null ? 'unknown' : matches[1] == 'CUETools' ? 'cuetools' :  matches[1] == 'CUERipper' ? 'cueripper' : matches[1] == 'EACv1.0b2 CTDB' ? 'eac' : 'unknown'); 
+    data.setFormattedValue(row, 1, '<div class="' + imgstyle + '"><a href="?agent=' + data.getValue(row, 1) + '">' + (matches == null ? '?' : matches[2]) + '</a></div>');
     data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setFormattedValue(row, 2, '<a href="?drivename=' + encodeURIComponent(data.getValue(row, 2)) + '">' + data.getValue(row, 2).substring(0,20) + '</a>');
     data.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
