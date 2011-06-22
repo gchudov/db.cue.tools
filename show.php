@@ -95,6 +95,7 @@ if ($mbmeta)
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
+    <script type='text/javascript' src="ctdb10.js"></script>
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
       function drawTable() {
@@ -110,19 +111,8 @@ if ($mbmeta)
         }
         table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
         <?php if ($mbmeta) { ?>
-        var mbdata = new google.visualization.DataTable(<?php echo $json_releases ?>);
+        var mbdata = ctdbMetaData(<?php echo $json_releases ?>);
         var mbdiv = document.getElementById('releases_div');
-        for (var row = 0; row < mbdata.getNumberOfRows(); row++)
-        {
-          mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-          if (mbdata.getValue(row, 9) == 'musicbrainz')
-          mbdata.setFormattedValue(row, 2, '<a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a>');
-          if (mbdata.getValue(row, 9) == 'freedb')
-          mbdata.setFormattedValue(row, 2, '<a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a>');
-          mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-          mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
-          mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-        }
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8,9]); 
         var mbtable = new google.visualization.Table(mbdiv);
