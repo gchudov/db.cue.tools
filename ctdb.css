@@ -47,6 +47,16 @@
    white-space: nowrap;
 }
 
+.ctdb-meta-musicbrainz {
+    padding: 0 0 0 18px;
+    background: url("http://s3.cuetools.net/icons/musicbrainz.png") no-repeat scroll 0 0 transparent;
+}
+
+.ctdb-meta-freedb {
+    padding: 0 0 0 18px;
+    background: url("http://s3.cuetools.net/icons/freedb.png") no-repeat scroll 0 0 transparent;
+}
+
 .ctdb-entry-eac {
     padding: 0 0 0 18px;
     background: url("http://s3.cuetools.net/icons/eac.png") no-repeat scroll 0 0 transparent;
