@@ -68,7 +68,7 @@ else
 {
   if ($quality < 50)
     die('insufficient quality');
-//  if ($confidence > 1) 
+  if ($quality > 95 || $confidence > 1) 
     $needparfile = true;
 }
 
@@ -80,6 +80,7 @@ if (!$parfile && $needparfile)
 $record3 = false;
 $record3['entryid'] = $sub2_id;
 $record3['confidence'] = $confidence;
+$record3['quality'] = $quality;
 $record3['userid'] = @$_POST['userid'];
 $record3['drivename'] = @$_POST['drivename'];
 $record3['agent'] = $_SERVER['HTTP_USER_AGENT'];

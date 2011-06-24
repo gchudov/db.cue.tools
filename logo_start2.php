@@ -5,7 +5,7 @@ $cntunique = $rec[0];
 pg_free_result($dbresult);
 ?>
 <title>CUETools DB</title>
-<link rel="stylesheet" type="text/css" href="/ctdb.css" />
+<link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb10.css" />
 </head>
 <body>
 <ul id="nav">

@@ -40,7 +40,7 @@ function ctdbMetaData(json)
     if (mbdata.getValue(row, 9) == 'freedb')
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
     if (mbdata.getValue(row, 4) != null)
-    mbdata.setFormattedValue(row, 4, '<img width=16 height=11 src="http://s3.cuetools.net/flags/' + mbdata.getValue(row, 4).toLowerCase() + '.png" alt="' +  mbdata.getValue(row, 4) + '">');
+    mbdata.setFormattedValue(row, 4, '<img width=16 height=11 border=0 src="http://s3.cuetools.net/flags/' + mbdata.getValue(row, 4).toLowerCase() + '.png" alt="' +  mbdata.getValue(row, 4) + '">');
     mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
     mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
@@ -52,7 +52,6 @@ function ctdbSubmissionData(json)
 {
   var data = new google.visualization.DataTable(json);
   for (var row = 0; row < data.getNumberOfRows(); row++) {
-    if (row == 75) document.getElementById('submissions_div').innerHTML += '.' + row;
     var dt = new Date(data.getValue(row, 0)*1000);
     var dtnow = new Date();
     var dtstring = (dtnow - dt > 1000*60*60*24 ? dt.getFullYear()
@@ -85,7 +84,7 @@ function ctdbSubmissionData(json)
     data.setProperty(row, 9, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setFormattedValue(row, 9, '<a href="show.php?id=' + data.getValue(row, 9).toString(10) + '">' + decimalToHexString(data.getValue(row, 11)) + '</a>');
     data.setProperty(row, 10, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    document.getElementById('submissions_div').innerHTML += '.';
+    data.setProperty(row, 13, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
   }
   return data;
 };
