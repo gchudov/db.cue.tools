@@ -61,8 +61,8 @@ $tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;
 $json_tracks = false;
 for ($tr = 0; $tr < count($ids) - 1; $tr++)
 {
-  $trstart = (int)$ids[$tr];
-  $trend = $ids[$tr + 1] - 1;
+  $trstart = 150 + (int)$ids[$tr];
+  $trend = 150 + $ids[$tr + 1] - 1;
   if ($record['firstaudio'] == 1 && $record['audiotracks'] < $record['trackcount'] && $tr == $record['audiotracks'] - 1)
     $trend -= 11400;
   $trstartmsf = TimeToString($trstart);
@@ -95,7 +95,7 @@ if ($mbmeta)
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-    <script type='text/javascript' src="ctdb10.js"></script>
+    <script type='text/javascript' src="http://s3.cuetools.net/ctdb10.js"></script>
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
       function drawTable() {
@@ -165,7 +165,7 @@ printf('<tr><td class=td_album>CDDB/Freedb ID</td><td class=td_discid><form alig
 if ($isadmin)
 {
   sscanf(phpCTDB::toc2arid($record),"%04x%04x", $arId0h, $arId0);
-  printf('<tr><td class=td_album>AccurateRip ID</td><td class=td_discid><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['trackcount'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
+  printf('<tr><td class=td_album>AccurateRip ID</td><td class=td_discid><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['audiotracks'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
 } else
 {
   printf('<tr><td class=td_album>AccurateRip ID</td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
