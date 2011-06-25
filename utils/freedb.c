@@ -3,6 +3,10 @@
 #include <string.h>
 #include <regex.h> /* Provides regular expression matching */
 
+
+// TODO: handle \\ and \n somewhere here!
+// TODO: keep track of revisions
+
 long disc_length = 0;
 int offsets[100];
 int n_offsets = 0;

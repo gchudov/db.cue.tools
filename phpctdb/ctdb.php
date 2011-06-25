@@ -310,20 +310,19 @@ class phpCTDB{
 			sprintf('%02X', $id0 % 255) . 
 			sprintf('%04X', $length) .
 			sprintf('%02X', count($ids) - 1);
-		$result = pg_query_params($freedbconn,
-		  'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), $length + 2, '{' . substr($offsets,1) . '}')); 
-		$meta = pg_fetch_all($result);
-		pg_free_result($result);
-		if (!$meta && $fuzzy > 0) 
-                {
+		if ($fuzzy == 0)
+		  $result = pg_query_params($freedbconn,
+		    'SELECT * FROM entries ' .
+                    'WHERE id = $1 AND offsets = $2;', array((int)phpCTDB::Hex2Int($hexid, false), '{' . substr($offsets,1) . '}')); 
+//		    'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), floor(abs($ids[count($ids) - 1]) / 75) + 2, '{' . substr($offsets,1) . '}')); 
+		else
                   $result = pg_query_params($freedbconn,
                     'SELECT en.* FROM toc_index ti INNER JOIN entries en ON en.id = ti.id AND en.category = ti.category ' .
                     'WHERE ti.toc <@ create_bounding_cube($1, $2) AND array_upper(en.offsets, 1)=$3 ' . 
                     'ORDER BY cube_distance(toc, create_cube_from_toc($1)) LIMIT 5',
                     array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids) - 1));
-		  $meta = pg_fetch_all($result);
-		  pg_free_result($result);
-		}
+		$meta = pg_fetch_all($result);
+		pg_free_result($result);
 		if (!$meta) return array();
 		$validcategories = array("blues","classical","country",
         	  "data","folk","jazz","misc",
@@ -333,9 +332,11 @@ class phpCTDB{
 		{
 		  $tracklist = null;
 		  $track_title = null;
-		  phpCTDB::pg_array_parse($r['track_title'], $track_title);
-		  foreach($track_title as $tt)
-		    $tracklist[] = array('name' => $tt, 'artist' => null);
+		  $track_extra = null;
+		  if ($r['track_title']) phpCTDB::pg_array_parse($r['track_title'], $track_title);
+		  if ($r['track_extra']) phpCTDB::pg_array_parse($r['track_extra'], $track_extra);
+		  for ($i = 0; $i < count($track_title) || $i < count($track_extra); $i++)
+		    $tracklist[] = array('name' => @$track_title[$i], 'artist' => null, 'extra' => @$track_extra[$i]);
 		  $res[] = array(
 		    'source' => 'freedb',
 		    'id' => sprintf('%s/%08x', $validcategories[$r['category']], $r['id']),
@@ -343,6 +344,7 @@ class phpCTDB{
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => $r['year'],
 		    'genre' => $r['genre'],
+		    'extra' => $r['extra'],
 		    'tracklist' => $tracklist,
 		    'discnumber' => null,
 		    'totaldiscs' => null,
