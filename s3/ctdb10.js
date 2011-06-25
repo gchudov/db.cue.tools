@@ -85,6 +85,7 @@ function ctdbSubmissionData(json)
     data.setFormattedValue(row, 9, '<a href="show.php?id=' + data.getValue(row, 9).toString(10) + '">' + decimalToHexString(data.getValue(row, 11)) + '</a>');
     data.setProperty(row, 10, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setProperty(row, 13, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    data.setProperty(row, 14, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
   }
   return data;
 };

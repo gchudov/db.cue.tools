@@ -67,7 +67,7 @@ if ($query == '')
   $show_date = false;
 }
 */
-$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, quality, s.entryid as entryid, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
+$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, quality, barcode, s.entryid as entryid, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
   or die('Query failed: ' . pg_last_error());
 $submissions = pg_fetch_all($result);
 pg_free_result($result);
@@ -96,6 +96,7 @@ foreach($submissions as $record)
       array('v' => (int)$record['crc32']),
       array('v' => phpCTDB::toc_toc2s($record)),
       array('v' => $record['quality']),
+      array('v' => $record['barcode']),
     ));
 }
 $json_submissions_table = array(
@@ -114,6 +115,7 @@ $json_submissions_table = array(
     array('label' => 'CRC32', 'type' => 'number'),
     array('label' => 'TOC', 'type' => 'string'),
     array('label' => 'Q', 'type' => 'number'),
+    array('label' => 'Barcode', 'type' => 'string'),
     ),
   'rows' => $json_submissions);
 $json_submissions = json_encode($json_submissions_table);
@@ -157,7 +159,7 @@ function drawTable()
     }
     var sbdata = ctdbSubmissionData(xmlhttp.responseText);
     xmlhttp = null;
-    var sbopts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 20};
+    var sbopts = {allowHtml: true, width: 1300, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 20};
     var sbview = new google.visualization.DataView(sbdata);
     sbview.hideColumns([11,12]);
     sbtable.draw(sbview, sbopts);

@@ -28,11 +28,17 @@ if ($records && $fuzzy)
     $mbids[] = phpCTDB::toc2mbid($record);
 
 $mbmetas = array();
-if ($dometa)
-  foreach (array_unique($mbids) as $mbid)
-    $mbmetas = array_merge($mbmetas, phpCTDB::mblookup($mbid)); 
-if ($dofreedb > 1 || ($dofreedb == 1 && !$mbmetas))
-  $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, $fuzzy ? 300 : 0)); 
+for ($priority=1; $priority <= 7; $priority++)
+{
+  if (($dometa & 7) == $priority)
+    foreach (array_unique($mbids) as $mbid)
+      $mbmetas = array_merge($mbmetas, phpCTDB::mblookup($mbid)); 
+  if ((($dofreedb >> 3) & 7) == $priority)
+    $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 300)); 
+  else if (($dofreedb & 7) == $priority)
+    $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 0)); 
+  if ($mbmetas) break;
+}
 
 if ($type == 'json')
 {
@@ -50,6 +56,7 @@ else if ($type == 'xml')
   }
 
   $xmlentry = null;
+  if ($records)
   foreach($records as $record)
   {
     $xmlentry[] = array(
@@ -88,6 +95,8 @@ else if ($type == 'xml')
       'barcode' => $mbmeta['barcode'],
       'track' => $tracks,
       'label' => @$mbmeta['label'],
+      'genre' => @$mbmeta['genre'],
+      'extra' => @$mbmeta['extra'],
     );
   }
   $ctdbdata = array('entry' => $xmlentry, 'musicbrainz' => $xmlmbmeta);

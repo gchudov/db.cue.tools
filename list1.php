@@ -50,7 +50,7 @@ function drawTable()
       }
       var srow = table.getSelection()[0].row;
       var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&musicbrainz=1&freedb=1&fuzzy=1&toc=' + data.getValue(srow, 7), true);
+      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&musicbrainz=1&freedb=26&fuzzy=1&toc=' + data.getValue(srow, 7), true);
       mbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
@@ -112,7 +112,7 @@ function drawTable()
         }
         var sbdata = ctdbSubmissionData(xmlhttp.responseText);
         xmlhttp = null;
-        var sbopts = {allowHtml: true, width: 700, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 5};
+        var sbopts = {allowHtml: true, width: 800, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 5};
         var sbview = new google.visualization.DataView(sbdata);
         sbview.hideColumns([5,6,7,8,11,12]);
         sbtable.draw(sbview, sbopts);
