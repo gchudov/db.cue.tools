@@ -34,7 +34,7 @@ for ($priority=1; $priority <= 7; $priority++)
     foreach (array_unique($mbids) as $mbid)
       $mbmetas = array_merge($mbmetas, phpCTDB::mblookup($mbid)); 
   if ((($dofreedb >> 3) & 7) == $priority)
-    $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 300)); 
+    $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 150)); 
   else if (($dofreedb & 7) == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 0)); 
   if ($mbmetas) break;

@@ -6,6 +6,7 @@
 
 // TODO: handle \\ and \n somewhere here!
 // TODO: keep track of revisions
+// TODO: reindex db with correct cubes (length calcs)
 
 long disc_length = 0;
 int offsets[100];
