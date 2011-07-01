@@ -40,6 +40,19 @@
 #  border-color-left: #D0D0D0
 }
 
+.ctdbbox {
+    background-color: #F7F7F7;
+    border-color: #CFCFCF;
+    border-radius: 8px 8px 8px 8px;
+    border-style: solid;
+    border-width: 1px;
+    color: black;
+    margin: 2ex 0 2ex 2ex;
+    overflow: auto;
+    padding: 2ex;
+    box-shadow: 3px 3px 5px #DFDFDF;
+}
+
 .google-visualization-table-td-consolas {
    font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
    width: 0;

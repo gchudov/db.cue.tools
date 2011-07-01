@@ -53,7 +53,7 @@ pg_free_result($result);
 
 $mbid = phpCTDB::toc2mbid($record);
 $mbmeta = phpCTDB::mblookup($mbid);
-if (!$mbmeta) $mbmeta = phpCTDB::freedblookup(phpCTDB::toc_toc2s($record));
+$mbmeta = array_merge($mbmeta, phpCTDB::freedblookup(phpCTDB::toc_toc2s($record)));
 if (!$mbmeta) $mbmeta = phpCTDB::freedblookup(phpCTDB::toc_toc2s($record), 300);
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = explode(' ', $record['trackcrcs']);
@@ -117,7 +117,7 @@ if ($mbmeta)
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8,9]); 
         var mbtable = new google.visualization.Table(mbdiv);
-        mbtable.draw(mbview, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: false});
+        mbtable.draw(mbview, {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false});
         google.visualization.events.addListener(mbtable, 'select', function() {
           if (mbtable.getSelection().length > 0 && document.getElementById('set_artist') != null) {
             var srow = mbtable.getSelection()[0].row;
@@ -138,12 +138,12 @@ if ($mbmeta)
 	foreach ($mbmeta as $mbr)
 		if ($mbr['coverarturl'] && $mbr['coverarturl'] != '')
 		{
-			if (!$imgfound) include 'table_start.php';
+			if (!$imgfound) printf('<table class="ctdbbox"><tr><td>');
 			printf('<img src="%s">', $mbr['coverarturl']);
 			$imgfound = true;
 		}
 if ($imgfound) {
-	include 'table_end.php';
+	printf('</td></tr></table>');
 	printf('<br>');
 }
 
@@ -156,20 +156,19 @@ else
 printf("<div id='tracks_div'></div>\n");
 printf('<br>');
 
-include 'table_start.php';
-printf('<table border=0 cellspacing=0 cellpadding=6>');
+printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album>CTDB ID</td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&freedb=26&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
-printf('<tr><td class=td_album>Musicbrainz ID</td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
-printf('<tr><td class=td_album>CDDB/Freedb ID</td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm>%s <input type=hidden name=page value=1><input type=hidden name=discid value="%s"><input type="submit" value="Lookup"></form></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&freedb=26&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
 if ($isadmin)
 {
   sscanf(phpCTDB::toc2arid($record),"%04x%04x", $arId0h, $arId0);
-  printf('<tr><td class=td_album>AccurateRip ID</td><td class=td_discid><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['audiotracks'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
+  printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="http://s3.cuetools.net/icons/ar.png"></td><td class=td_discid><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['audiotracks'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
 } else
 {
-  printf('<tr><td class=td_album>AccurateRip ID</td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
+  printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="http://s3.cuetools.net/icons/ar.png"></td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
 }
 printf('<tr><td class=td_album>CRC32</td><td class=td_discid>%08X</td></tr>', $record['crc32']);
 printf('<tr><td class=td_album>Confidence</td><td class=td_discid>%d</td></tr>' . "\n", $record['confidence']);
@@ -186,10 +185,9 @@ if ($isadmin)
 ?>
 </table>
 <?php 
-include 'table_end.php';
 if ($isadmin) {
 	printf('<br>');
-	include 'table_start.php';
+	printf('<table class="ctdbbox"><tr><td>');
   printf('<table width=100%% class=classy_table cellpadding=3 cellspacing=0><tr bgcolor=#D0D0D0><th>Date</th><th>Agent</th><th>User</th><th>Ip</th><th>Conf</th></tr>');
 	$result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1", array($record['id']))
   	or die('Query failed: ' . pg_last_error());
@@ -202,7 +200,7 @@ if ($isadmin) {
       @$record3['confidence']);
 	pg_free_result($result);
   printf("</table>");
-	include 'table_end.php';
+	printf('</td></tr></table>');
 }
 ?>
 </center>
