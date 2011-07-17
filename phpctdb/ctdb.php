@@ -296,31 +296,20 @@ class phpCTDB{
 		if (!$freedbconn)
 			return false;
 		$ids = explode(':', $toc);
-		$tocid = '';
 		$offsets = '';
 		for ($tr = 0; $tr < count($ids) - 1; $tr++) {
 			$offsets .= ',' . (abs($ids[$tr]) + 150);
-			$tocid = $tocid . (floor(abs($ids[$tr]) / 75) + 2);
 		}
-		$id0 = 0;
-    		for ($i = 0; $i < strlen($tocid); $i++)
-			$id0 += ord($tocid{$i}) - ord('0');
-		$length = floor(abs($ids[count($ids) - 1]) / 75) - floor(abs($ids[0]) / 75);
-    		$hexid =
-			sprintf('%02X', $id0 % 255) . 
-			sprintf('%04X', $length) .
-			sprintf('%02X', count($ids) - 1);
 		if ($fuzzy == 0)
 		  $result = pg_query_params($freedbconn,
 		    'SELECT * FROM entries ' .
-                    'WHERE id = $1 AND offsets = $2;', array((int)phpCTDB::Hex2Int($hexid, false), '{' . substr($offsets,1) . '}')); 
-//		    'SELECT * FROM entries WHERE id = $1 AND length = $2 AND offsets = $3;', array((int)phpCTDB::Hex2Int($hexid, false), floor(abs($ids[count($ids) - 1]) / 75) + 2, '{' . substr($offsets,1) . '}')); 
+                    'WHERE offsets = $1;', array('{' . substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75) . '}')); 
 		else
                   $result = pg_query_params($freedbconn,
-                    'SELECT en.* FROM toc_index ti INNER JOIN entries en ON en.id = ti.id AND en.category = ti.category ' .
-                    'WHERE ti.toc <@ create_bounding_cube($1, $2) AND array_upper(en.offsets, 1)=$3 ' . 
+                    'SELECT * FROM entries ' .
+                    'WHERE toc <@ create_bounding_cube($1, $2) AND array_upper(offsets, 1)=$3 ' . 
                     'ORDER BY cube_distance(toc, create_cube_from_toc($1)) LIMIT 5',
-                    array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids) - 1));
+                    array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids)));
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		if (!$meta) return array();

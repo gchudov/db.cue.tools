@@ -47,9 +47,9 @@
     border-style: solid;
     border-width: 1px;
     color: black;
-    margin: 2ex 0 2ex 2ex;
+    margin: 1ex 1ex 0 0;
     overflow: auto;
-    padding: 2ex;
+    padding: 1ex;
     box-shadow: 3px 3px 5px #DFDFDF;
 }
 
