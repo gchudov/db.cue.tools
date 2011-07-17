@@ -4,9 +4,7 @@
 #include <regex.h> /* Provides regular expression matching */
 
 
-// TODO: handle \\ and \n somewhere here!
 // TODO: keep track of revisions
-// TODO: reindex db with correct cubes (length calcs)
 
 long disc_length = 0;
 int offsets[100];
@@ -89,22 +87,6 @@ int parse_utf8(const char **ps)
 	return wc;
 }
 
-void charset_latin1_utf8(const char *s, char **ps)
-{
-	char *buf, *p;
-
-	p = buf = xrealloc(0, strlen(s) * 2 + 1);
-	for (; *s; s++)
-		if ((*s & 0x80) == 0)
-			*p++ = *s;
-		else {
-			*p++ = 0xc0 | ((*s >> 6) & 0x03);
-			*p++ = 0x80 | (*s & 0x3f);
-		}
-	*p++ = '\0';
-	*ps = xrealloc(buf, p - buf);
-}
-				
 int charset_is_utf8(const char *s)
 {
 	const char *t = s;
@@ -189,21 +171,30 @@ void pgquote(char**s)
     islatin1 &= charset_is_valid_latin1(*s);
     isascii7 &= charset_is_valid_ascii(*s);
     isutf8 &= charset_is_valid_utf8(*s);
-    //if (!charset_is_valid_ascii(*s) && !charset_is_valid_utf8(*s) && charset_is_valid_latin1(*s)) {
-	//char *u = 0;
-	//charset_latin1_utf8(*s, &u);
-	//free(*s);
-	//*s = u;
-    //}
     res = malloc(strlen(*s) * 2 + 10);
     res[j++] = 'E';
     res[j++] = '\'';
+    int fquote = 0;
     for (i = 0; i < strlen(*s); i++)
     {
       char c = (*s)[i];
-      if (c == '\'' || c == '\\')
+      if (fquote && c != 't' && c != 'r' && c != 'n' && c!= '\\') {
+        //fprintf(stderr, "%s/%08x: Invalid escape sequence \\%u\n", validcategories[category], freedbid, (unsigned char)c);
         res[j++] = '\\';
-      res[j++] = c;
+	fquote = 0;
+	i--;
+      } else if (fquote || c == '\\') {
+        res[j++] = c;
+	fquote = !fquote;
+      } else if (c == '\'') {
+        res[j++] = '\\';
+        res[j++] = c;
+      } else
+        res[j++] = c;
+    }
+    if (fquote) {
+      fprintf(stderr, "%s/%08x: Invalid escape sequence\n", validcategories[category], freedbid);
+      res[j++] = '\\';
     }
     res[j++] = '\'';
     res[j++] = 0;
@@ -211,7 +202,23 @@ void pgquote(char**s)
     *s = res;
 }
 
-int waslatin = 0;
+void charset_latin1_utf8(char **ps)
+{
+	char *s = *ps;
+	char *buf, *p;
+
+	p = buf = xrealloc(0, strlen(s) * 2 + 1);
+	for (; *s; s++)
+		if ((*s & 0x80) == 0)
+			*p++ = *s;
+		else {
+			*p++ = 0xc0 | ((*s >> 6) & 0x03);
+			*p++ = 0x80 | (*s & 0x3f);
+		}
+	*p++ = '\0';
+	free(*ps);
+	*ps = xrealloc(buf, p - buf);
+}
 
 void output()
 {
@@ -219,7 +226,6 @@ void output()
     char *dalbum = 0;
     char *dartist = 0;
     int i;
-    int needlatin;
     if (dtitle && 0 == regexec(&regex_dtitle, dtitle, 3, res, 0) && res[1].rm_so >= 0 && res[2].rm_so >= 0)
     {
         dartist = strndup(dtitle, res[1].rm_eo);
@@ -235,16 +241,21 @@ void output()
       pgquote(ttitle + i);
     for (i = 0; i < c_ext; i++)
       pgquote(t_ext + i);
-    needlatin = !isascii7 && !isutf8 && islatin1;
-    if (!waslatin && needlatin)
-      printf("set client_encoding TO latin1;\n");
-    if (waslatin && !needlatin)
-      printf("set client_encoding TO utf8;\n");
-    waslatin = needlatin;
-    printf("INSERT INTO entries VALUES (%d, %d, %d, ARRAY[%d", freedbid, category, disc_length, offsets[0]);
+    if (!isascii7 && !isutf8 && islatin1)
+    {
+        charset_latin1_utf8(&dartist);
+        charset_latin1_utf8(&dalbum);
+        charset_latin1_utf8(&dgenre);
+        charset_latin1_utf8(&dext);
+        for (i = 0; i < c_title; i++)
+          charset_latin1_utf8(ttitle + i);
+        for (i = 0; i < c_ext; i++)
+          charset_latin1_utf8(t_ext + i);
+    }
+    printf("INSERT INTO entries VALUES (%d, %d, ARRAY[%d", freedbid, category, offsets[0]);
     for (i = 1; i < n_offsets; i++)
       printf(",%d", offsets[i]);
-    printf("], %s, %s, %s, %s, %s, ",dyear && strcmp(dyear,"0") ? dyear : "NULL", dartist, dalbum, dgenre, dext);
+    printf(",%d], %s, %s, %s, %s, %s, ", disc_length * 75, dyear && strcmp(dyear,"0") ? dyear : "NULL", dartist, dalbum, dgenre, dext);
     if (!c_title)
       printf("NULL, ");
     else {

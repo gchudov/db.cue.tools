@@ -1,11 +1,10 @@
 CREATE LANGUAGE plpgsql;
-CREATE TABLE entries (id integer not null, category integer not null, length integer, 
-    offsets integer array, year integer, artist text, title text, genre text, 
-    extra text, track_title text array, track_extra text array);
-CREATE TABLE toc_index (id integer not null, category integer not null, toc CUBE);
-CREATE INDEX entries_id on entries(id);
+CREATE TABLE entries (id integer not null, category integer not null,
+    offsets integer array not null, year integer, artist text, title text, genre text, 
+    extra text, track_title text array, track_extra text array, toc CUBE not null);
 CREATE UNIQUE INDEX entries_id_category on entries(id, category);
-CREATE INDEX toc_index_idx ON toc_index USING gist (toc);
+CREATE INDEX entries_offsets on entries(offsets);
+CREATE INDEX entries_toc ON entries USING gist (toc);
 CREATE OR REPLACE FUNCTION entries_insert_before_F()
 RETURNS TRIGGER
  AS $BODY$
@@ -14,6 +13,8 @@ DECLARE
 BEGIN
     SET SEARCH_PATH TO PUBLIC;
     
+    new.toc := create_cube_from_toc(new.offsets);
+
     -- Find out if there is a row
     result = (select count(*) from entries
                 where id = new.id
@@ -25,11 +26,11 @@ BEGIN
     -- original insert from occurring
     IF result = 1 THEN
         UPDATE entries 
-           SET length = new.length, offsets = new.offsets,
+           SET offsets = new.offsets,
                year = new.year, artist = new.artist,
                title = new.title, genre = new.genre,
                extra = new.extra, track_title = new.track_title,
-               track_extra = new.track_extra
+               track_extra = new.track_extra, toc = new.toc
          WHERE id = new.id
            AND category = new.category;
            
@@ -50,3 +51,96 @@ CREATE TRIGGER entries_insert_before_T
    ON entries
    FOR EACH ROW
    EXECUTE PROCEDURE entries_insert_before_F();
+
+CREATE OR REPLACE FUNCTION create_cube_from_toc(offsets INTEGER[]) RETURNS cube AS $$
+DECLARE
+    point    cube;
+    str      VARCHAR;
+    i        INTEGER;
+    count    INTEGER;
+    dest     INTEGER;
+    dim      CONSTANT INTEGER = 6;
+    selected INTEGER[];
+BEGIN
+    count = array_upper(offsets, 1) - 1;
+    FOR i IN 0..dim LOOP
+        selected[i] = 0;
+    END LOOP;
+
+    IF count < dim THEN
+        FOR i IN 1..count LOOP
+            selected[i] = offsets[i + 1] - offsets[i];
+        END LOOP;
+    ELSE
+        FOR i IN 1..count LOOP
+            dest = (dim * (i-1) / count) + 1;
+            selected[dest] = selected[dest] + offsets[i + 1] - offsets[i];
+        END LOOP;
+    END IF;
+
+    str = '(';
+    FOR i IN 1..dim LOOP
+        IF i > 1 THEN
+            str = str || ',';
+        END IF;
+        str = str || cast(selected[i] as text);
+    END LOOP;
+    str = str || ')';
+
+    RETURN str::cube;
+END;
+$$ LANGUAGE 'plpgsql' IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION create_bounding_cube(durations INTEGER[], fuzzy INTEGER) RETURNS cube AS $$
+DECLARE
+    point    cube;
+    str      VARCHAR;
+    i        INTEGER;
+    dest     INTEGER;
+    count    INTEGER;
+    dim      CONSTANT INTEGER = 6;
+    selected INTEGER[];
+    scalers  INTEGER[];
+BEGIN
+
+    count = array_upper(durations, 1) - 1;
+    IF count < dim THEN
+        FOR i IN 1..dim LOOP
+            selected[i] = 0;
+            scalers[i] = 0;
+        END LOOP;
+        FOR i IN 1..count LOOP
+            selected[i] = durations[i + 1] - durations[i];
+            scalers[i] = 1;
+        END LOOP;
+    ELSE
+        FOR i IN 1..dim LOOP
+            selected[i] = 0;
+            scalers[i] = 0;
+        END LOOP;
+        FOR i IN 1..count LOOP
+            dest = (dim * (i-1) / count) + 1;
+            selected[dest] = selected[dest] + durations[i + 1] - durations[i];
+            scalers[dest] = scalers[dest] + 1;
+        END LOOP;
+    END IF;
+
+    str = '(';
+    FOR i IN 1..dim LOOP
+        IF i > 1 THEN
+            str = str || ',';
+        END IF;
+        str = str || cast((selected[i] - (fuzzy * scalers[i])) as text);
+    END LOOP;
+    str = str || '),(';
+    FOR i IN 1..dim LOOP
+        IF i > 1 THEN
+            str = str || ',';
+        END IF;
+        str = str || cast((selected[i] + (fuzzy * scalers[i])) as text);
+    END LOOP;
+    str = str || ')';
+
+    RETURN str::cube;
+END;
+$$ LANGUAGE 'plpgsql' IMMUTABLE;

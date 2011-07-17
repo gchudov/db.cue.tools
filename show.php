@@ -133,21 +133,37 @@ include 'logo_start2.php';
 
 printf('<center>');
 
-$imgfound = false;
+$imgfound = array();
+$imgfoundlinks = array();
+/*
 if ($mbmeta)
 	foreach ($mbmeta as $mbr)
-		if ($mbr['coverarturl'] && $mbr['coverarturl'] != '')
+		if ($mbr['info_url'] && $mbr['info_url'] != '')
+		if (0 < preg_match("/(http\:\/\/www\.amazon\.)([^\/]*)\/gp\/product\/(.*)/", $mbr['info_url'], $match))
 		{
-			if (!$imgfound) printf('<table class="ctdbbox"><tr><td>');
-			printf('<img src="%s">', $mbr['coverarturl']);
-			$imgfound = true;
+			switch($match[2])
+			{
+			  case 'com' : $cc = 1; break;
+			  case 'co.uk' : $cc = 2; break;
+			  case 'de' : $cc = 3; break;
+			  case 'fr' : $cc = 8; break;
+			  case 'jp' : $cc = 9; break;
+			}
+			$img = sprintf('http://images.amazon.com/images/P/%s.0%d._SL160_.jpg', $match[3], $cc);
+			//$img = sprintf('http://images.amazon.com/images/P/%s.0%d._SS160_.jpg', $match[3], $cc);
+			//$img = sprintf('http://images.amazon.com/images/P/%s.0%d.LZZZZZZZ.jpg', $match[3], $cc);
+			$imgfound[] = $img;
+			$imgfoundlinks[$img] = $mbr['info_url'];
 		}
+*/
 if ($imgfound) {
-	printf('</td></tr></table>');
-	printf('<br>');
+  printf('<table class="ctdbbox"><tr><td>' . "\n");
+  foreach(array_unique($imgfound) as $img)
+    printf('<a target=_blank href="%s"><img border=0 src="%s"></a>' . "\n", $imgfoundlinks[$img], $img);
+    //printf('<a target=_blank href="%s"><img height=160 width=160 border=0 src="%s">' . "\n", $imgfoundlinks[$img], $img);
+  printf('</td></tr></table>');
 }
 
-printf('<br>');
 printf("<div id='releases_div'></div>\n");
 if (!$mbmeta && ($record['artist'] != '' || $record['title'] != ''))
   printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
@@ -158,7 +174,7 @@ printf('<br>');
 
 printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&freedb=26&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&freedb=2&freedbfuzzy=3&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);

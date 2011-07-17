@@ -5,6 +5,7 @@ require_once 'XML/Serializer.php';
 $toc_s = $_GET['toc'] or die('Invalid arguments');
 $dometa = @$_GET['musicbrainz'];
 $dofreedb = isset($_GET['freedb']) ? $_GET['freedb'] : false; // $dometa;
+$dofreedbfuzzy = isset($_GET['freedbfuzzy']) ? $_GET['freedbfuzzy'] : false; // $dometa;
 $doctdb = isset($_GET['ctdb']) ? $_GET['ctdb'] : 1;
 $type = isset($_GET['type']) ? $_GET['type'] : 'xml';
 $fuzzy = @$_GET['fuzzy'];
@@ -33,7 +34,7 @@ for ($priority=1; $priority <= 7; $priority++)
   if (($dometa & 7) == $priority)
     foreach (array_unique($mbids) as $mbid)
       $mbmetas = array_merge($mbmetas, phpCTDB::mblookup($mbid)); 
-  if ((($dofreedb >> 3) & 7) == $priority)
+  if (($dofreedbfuzzy & 7) == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 150)); 
   else if (($dofreedb & 7) == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 0)); 
