@@ -2,7 +2,7 @@
 function parseDuration($dur)
 {
   if (!$dur || $dur == "") return "NULL";
-  if (!preg_match( "/([0-9]+)[:']([0-9]+)/", $dur, $match))
+  if (!preg_match( "/([0-9]+)[:'\.]([0-9]+)/", $dur, $match))
     die("Invalid duration $dur");
   return ($match[1] * 60 + $match[2]);
 }
