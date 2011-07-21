@@ -3,7 +3,7 @@ function parseDuration($dur)
 {
   if (!$dur || $dur == "") return "NULL";
   if (!preg_match( "/([0-9]*)[:'\.]([0-9]+)/", $dur, $match))
-    return NULL;
+    return "NULL";
 //    die("Invalid duration $dur");
   return ($match[1] == '' ? $match[2] : $match[1] * 60 + $match[2]);
 }
@@ -61,7 +61,7 @@ function printInsert($table, $record)
 function escapeNode($node, $t = 'text')
 {
   if (!$node || $node == '') return "NULL";
-  if ($t == 'text') return "'" . pg_escape_string($node) . "'";
+  if ($t == 'text') return "E'" . pg_escape_string($node) . "'";
   return "'" . pg_escape_string($node) . "'::$t";
 }
 
