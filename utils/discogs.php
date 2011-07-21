@@ -3,7 +3,8 @@ function parseDuration($dur)
 {
   if (!$dur || $dur == "") return "NULL";
   if (!preg_match( "/([0-9]*)[:'\.]([0-9]+)/", $dur, $match))
-    die("Invalid duration $dur");
+    return NULL;
+//    die("Invalid duration $dur");
   return ($match[1] == '' ? $match[2] : $match[1] * 60 + $match[2]);
 }
 
@@ -16,22 +17,22 @@ function parsePosition($pos)
     return 'NULL';
   if (preg_match( "/[0-9]+/", $pos, $match))
     return $match[0];
-  return '';
+  return 'NULL';
   //die("Invalid position $pos");
 }
 
 function parseDiscno($pos)
 {
-  if (!$pos || $pos == "") return "";
+  if (!$pos || $pos == "") return "NULL";
   if (preg_match( "/([A-Za-z]+)([0-9]+)/", $pos, $match))
-    return $match[1];
+    return "NULL";
   if (preg_match( "/([0-9]+)\-([0-9]+)/", $pos, $match))
     return $match[1];
   if (preg_match( "/[A-Za-z]+/", $pos, $match))
-    return $match[0];
+    return "NULL";
   if (preg_match( "/[0-9]+/", $pos, $match))
-    return '';
-  return $pos;
+    return '1';
+  return 'NULL';
   //die("Invalid position $pos");
 }
 
@@ -223,7 +224,6 @@ function parseRelease($rel)
     $pos = parsePosition($trk->position);
     $dis = parseDiscno($trk->position);
     $dur = parseDuration($trk->duration);
-    $dis = ((int)$dis > 0) ? $dis : (($dis == '') ? '1' : 'NULL');
     if ($dis != 'NULL') // && !Vinyl?
       $toc[$dis][$pos] = $dur;
     printInsert('track', array(
