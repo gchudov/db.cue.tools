@@ -16,7 +16,8 @@ function parsePosition($pos)
     return 'NULL';
   if (preg_match( "/[0-9]+/", $pos, $match))
     return $match[0];
-  die("Invalid position $pos");
+  return '';
+  //die("Invalid position $pos");
 }
 
 function parseDiscno($pos)
@@ -30,7 +31,8 @@ function parseDiscno($pos)
     return $match[0];
   if (preg_match( "/[0-9]+/", $pos, $match))
     return '';
-  die("Invalid position $pos");
+  return $pos;
+  //die("Invalid position $pos");
 }
 
 function printArray($items)
