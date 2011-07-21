@@ -10,7 +10,7 @@ while($xml->read())
   if ($xml->nodeType == XMLReader::ELEMENT) {
     //echo '------' . $xml->readString() . "\n";
     if ($xml->name == 'genre') $known_genres[$xml->readString()] = true;
-    if ($xml->name == 'format') $known_formats[$xml->readString()] = true;
+    if ($xml->name == 'format') $known_formats[$xml->getAttribute('name')] = true;
   } 
 }
 $xml->close();
