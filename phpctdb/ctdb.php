@@ -423,12 +423,12 @@ class phpCTDB{
 		$artistcredits = array_unique($artistcredits);
 		$mbresult = pg_query_params($mbconn,
 		  'SELECT ' .
-		  'acn.artist_credit, ' .
-		  'array_to_string(array_agg(an.name || COALESCE(acn.join_phrase,\'\')),\'\') as artistname ' .
-		  'FROM artist_credit_name acn ' .
-		  'INNER JOIN artist_name an ON an.id = acn.name ' .
-		  'WHERE acn.artist_credit IN ' . phpCTDB::pg_array_indexes($artistcredits) . ' ' .
-		  'GROUP BY acn.artist_credit', $artistcredits);
+		  'ac.id as artist_credit, ' .
+		  'an.name as artistname ' .
+		  'FROM artist_credit ac ' .
+		  'INNER JOIN artist_name an ON an.id = ac.name ' .
+		  'WHERE ac.id IN ' . phpCTDB::pg_array_indexes($artistcredits),
+		  $artistcredits);
 		$artistcredits = pg_fetch_all($mbresult);
 		pg_free_result($mbresult);
 		$artistcreditstonames = false;

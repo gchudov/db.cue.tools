@@ -1,4 +1,4 @@
-<?
+<?php
 function parseDuration($dur)
 {
   if (!$dur || $dur == "") return "NULL";
@@ -10,9 +10,9 @@ function parseDuration($dur)
 function parsePosition($pos)
 {
   if (!$pos || $pos == "") return "NULL";
-  if (preg_match( "/([A-Z]+|[0-9]+\-)([0-9]+)/", $pos, $match))
+  if (preg_match( "/([A-Za-z]+|[0-9]+\-)([0-9]+)/", $pos, $match))
     return $match[2];
-  if (preg_match( "/[A-Z]+/", $pos, $match))
+  if (preg_match( "/[A-Za-z]+/", $pos, $match))
     return 'NULL';
   if (preg_match( "/[0-9]+/", $pos, $match))
     return $match[0];
@@ -22,11 +22,11 @@ function parsePosition($pos)
 function parseDiscno($pos)
 {
   if (!$pos || $pos == "") return "";
-  if (preg_match( "/([A-Z]+)([0-9]+)/", $pos, $match))
+  if (preg_match( "/([A-Za-z]+)([0-9]+)/", $pos, $match))
     return $match[1];
   if (preg_match( "/([0-9]+)\-([0-9]+)/", $pos, $match))
     return $match[1];
-  if (preg_match( "/[A-Z]+/", $pos, $match))
+  if (preg_match( "/[A-Za-z]+/", $pos, $match))
     return $match[0];
   if (preg_match( "/[0-9]+/", $pos, $match))
     return '';
