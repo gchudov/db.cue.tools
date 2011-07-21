@@ -274,6 +274,6 @@ while(1)
 }
 $xml->close();
 
-echo 'CREATE TYPE genre AS ENUM (' . implode(',',array_keys($known_genres)) . ");\n";
-echo 'CREATE TYPE format AS ENUM (' . implode(',',array_keys($known_formats)) . ");\n";
+echo '-- CREATE TYPE genre_t AS ENUM (' . implode(',',array_keys($known_genres)) . ");\n";
+echo '-- CREATE TYPE format_t AS ENUM (' . implode(',',array_keys($known_formats)) . ");\n";
 
