@@ -1,5 +1,6 @@
 CREATE LANGUAGE plpgsql;
-CREATE TABLE entries (id integer not null, category integer not null,
+CREATE TYPE freedb_category_t AS ENUM ('blues','classical','country','data','folk','jazz','misc','newage','reggae','rock','soundtrack');
+CREATE TABLE entries (id integer not null, category freedb_category_t not null,
     offsets integer array not null, year integer, artist text, title text, genre text, 
     extra text, track_title text array, track_extra text array, toc CUBE not null);
 CREATE UNIQUE INDEX entries_id_category on entries(id, category);

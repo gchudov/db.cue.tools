@@ -252,7 +252,7 @@ void output()
         for (i = 0; i < c_ext; i++)
           charset_latin1_utf8(t_ext + i);
     }
-    printf("INSERT INTO entries VALUES (%d, %d, ARRAY[%d", freedbid, category, offsets[0]);
+    printf("INSERT INTO entries VALUES (%d, '%s', ARRAY[%d", freedbid, validcategories[category], offsets[0]);
     for (i = 1; i < n_offsets; i++)
       printf(",%d", offsets[i]);
     printf(",%d], %s, %s, %s, %s, %s, ", disc_length * 75, dyear && strcmp(dyear,"0") ? dyear : "NULL", dartist, dalbum, dgenre, dext);
