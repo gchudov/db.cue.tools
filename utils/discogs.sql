@@ -20,7 +20,7 @@ SET default_with_oids = false;
 
 CREATE TYPE release_status_t AS ENUM ('Accepted', 'Hmm');
 CREATE TYPE image_type_t AS ENUM ('primary', 'secondary');
-CREATE TYPE genre_t AS ENUM ('Electronic','Hip Hop','Non-Music','Jazz','Rock','Latin','Funk / Soul','Reggae','Pop','Folk', 'World & Country','Stage & Screen','Classical','Blues','Brass & Military','Children''s');
+CREATE TYPE genre_t AS ENUM ('Electronic','Hip Hop','Non-Music','Jazz','Rock','Latin','Funk / Soul','Reggae','Pop','Folk, World & Country','Stage & Screen','Classical','Blues','Brass & Military','Children''s');
 CREATE TYPE format_t AS ENUM ('Vinyl','CD','Cassette','Box Set','All Media','CDr','File','Floppy Disk','Flexi-disc','DAT','Minidisc','Lathe Cut','DVD','CDV','Hybrid','VHS','Acetate','DVDr','Shellac','8-Track Cartridge','MVD','Laserdisc','Reel-To-Reel','Memory Stick','Betamax','DCC','UMD','Microcassette','HD DVD','Blu-ray','Cylinder','DualDisc','4-Track Cartridge','Book','Edison Disc','Datassette','SelectaVision','Blu-ray-R','Video 2000');
 
 -- CREATE TABLE artist (
