@@ -2,9 +2,9 @@
 function parseDuration($dur)
 {
   if (!$dur || $dur == "") return "NULL";
-  if (!preg_match( "/([0-9]+)[:'\.]([0-9]+)/", $dur, $match))
+  if (!preg_match( "/([0-9]*)[:'\.]([0-9]+)/", $dur, $match))
     die("Invalid duration $dur");
-  return ($match[1] * 60 + $match[2]);
+  return ($match[1] == '' ? $match[2] : $match[1] * 60 + $match[2]);
 }
 
 function parsePosition($pos)
