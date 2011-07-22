@@ -8,30 +8,21 @@ function parseDuration($dur)
   return ($match[1] == '' ? $match[2] : $match[1] * 60 + $match[2]);
 }
 
-function parsePosition($pos)
-{
-  if (!$pos || $pos == "") return "NULL";
-  if (preg_match( "/([A-Za-z]+|[0-9]+\-)([0-9]+)/", $pos, $match))
-    return $match[2];
-  if (preg_match( "/[A-Za-z]+/", $pos, $match))
-    return 'NULL';
-  if (preg_match( "/[0-9]+/", $pos, $match))
-    return $match[0];
-  return 'NULL';
-  //die("Invalid position $pos");
-}
-
-function parseDiscno($pos)
+function parseDiscno($pos, &$tr)
 {
   if (!$pos || $pos == "") return "NULL";
   if (preg_match( "/([A-Za-z]+)([0-9]+)/", $pos, $match))
     return "NULL";
-  if (preg_match( "/([0-9]+)\-([0-9]+)/", $pos, $match))
-    return $match[1];
+  if (preg_match( "/([0-9]+)\-([0-9]+)/", $pos, $match)) {
+    $tr = $match[2];
+    return $match[1]; 
+  }
   if (preg_match( "/[A-Za-z]+/", $pos, $match))
     return "NULL";
-  if (preg_match( "/[0-9]+/", $pos, $match))
+  if (preg_match( "/[0-9]+/", $pos, $match)) {
+    $tr = $match[0];
     return '1';
+  }
   return 'NULL';
   //die("Invalid position $pos");
 }
@@ -81,6 +72,7 @@ $seqid_label = 1;
 $known_names = array();
 $known_images = array();
 $known_labels = array();
+$known_credits = array();
 $known_styles = array();
 $known_genres = array();
 $known_formats = array();
@@ -141,28 +133,38 @@ function parseCredits($artists)
 {
   if (!$artists)
     return 'NULL';
-  global $seqid_credit;
-  $artist_credit = $seqid_credit++;
-  $artist_count = 0;
   $artist_name = '';
 //  global $known_names;
 //  $known_names = array();
+  $ac = array();
   foreach($artists->children() as $art) {
-    printInsert('artist_credit_name', array(
-      'artist_credit' => $artist_credit,
-      'position' => $artist_count,
+    $ac[] = array(
       'name' => parseArtistName($art->name),
       'anv' => parseArtistName($art->anv),
       'join_verb' => escapeNode($art->join),
       'role' => escapeNode($art->role),
-      'tracks' => escapeNode($art->tracks)));
+      'tracks' => escapeNode($art->tracks));
     $artist_name .= ($art->anv != '' ? $art->anv : $art->name) . ($art->join != '' ? ' ' . $art->join . ' ' : '');
-    $artist_count++;
   }
+  global $seqid_credit;
+  global $known_credits;
+  $key = '';
+  foreach($ac as $acn)
+    $key .= $acn['name'] . ',' . $acn['anv'] . ',' . $acn['join_verb'] . ',' . $acn['role'] . ',' . $acn['tracks'] . ',';
+  $key = str_replace("NULL,",",",$key);
+  if (@$known_credits[$key]) return $known_credits[$key];
+  $artist_count = 0;
+  $artist_credit = $seqid_credit++;
   printInsert('artist_credit', array(
     'id' => $artist_credit,
     'name' => parseArtistName($artist_name),
-    'count' => $artist_count));
+    'count' => count($ac)));
+  foreach($ac as $acn) {
+    $acn['artist_credit'] = $artist_credit;
+    $acn['position'] = $artist_count++;
+    printInsert('artist_credit_name', $acn);
+  }
+  $known_credits[$key] = $artist_credit;
   return $artist_credit; 
 }
 
@@ -192,6 +194,7 @@ function parseRelease($rel)
     'discogs_id' => $rel['id'],
     'master_id' => $rel->master_id == '' ? 'NULL' : $rel->master_id,
     'artist_credit' => parseCredits($rel->artists),
+//    'extra_artists' => parseCredits($rel->extraartists),
     'title' => escapeNode($rel->title),
     'status' => escapeNode($rel['status']),
     'country' => escapeNode($rel->country),
@@ -223,15 +226,15 @@ function parseRelease($rel)
   $toc = array();
   if ($rel->tracklist)
   foreach($rel->tracklist->children() as $trk) {
-    $pos = parsePosition($trk->position);
-    $dis = parseDiscno($trk->position);
+    $pos = "NULL";
+    $dis = parseDiscno($trk->position, $pos);
     $dur = parseDuration($trk->duration);
     if ($dis != 'NULL') // && !Vinyl?
       $toc[$dis][$pos] = $dur;
     printInsert('track', array(
       'release_id' => $rel['id'],
       'artist_credit' => parseCredits($trk->artists),
-      'extra_artists' => parseCredits($trk->extraartists),
+//      'extra_artists' => parseCredits($trk->extraartists),
       'title' => escapeNode($trk->title),
       'duration' => $dur,
       'position' => escapeNode($trk->position),

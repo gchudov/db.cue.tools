@@ -259,6 +259,10 @@ ALTER TABLE ONLY release
 
 ALTER TABLE ONLY artist_credit
     ADD CONSTRAINT artist_credit_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY artist_name
+    ADD CONSTRAINT artist_name_pkey PRIMARY KEY (id);
+
 --
 -- Name: artists_images_artist_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -284,6 +288,15 @@ ALTER TABLE ONLY releases_labels
 
 ALTER TABLE ONLY releases_labels
     ADD CONSTRAINT releases_labels_label_id_fkey FOREIGN KEY (label_id) REFERENCES label(id);
+
+ALTER TABLE ONLY artist_credit_name
+    ADD CONSTRAINT artist_credit_name_artist_credit_fkey FOREIGN KEY (artist_credit) REFERENCES artist_credit(id);
+
+ALTER TABLE ONLY artist_credit_name
+    ADD CONSTRAINT artist_credit_name_name_fkey FOREIGN KEY (name) REFERENCES artist_name(id);
+
+ALTER TABLE ONLY artist_credit_name
+    ADD CONSTRAINT artist_credit_name_anv_fkey FOREIGN KEY (anv) REFERENCES artist_name(id);
 
 
 --
