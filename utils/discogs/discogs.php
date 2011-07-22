@@ -1,29 +1,29 @@
 <?php
 function parseDuration($dur)
 {
-  if (!$dur || $dur == "") return "NULL";
+  if (!$dur || $dur == "") return "\\N";
   if (!preg_match( "/([0-9]*)[:'\.]([0-9]+)/", $dur, $match))
-    return "NULL";
+    return "\\N";
 //    die("Invalid duration $dur");
   return ($match[1] == '' ? $match[2] : $match[1] * 60 + $match[2]);
 }
 
 function parseDiscno($pos, &$tr)
 {
-  if (!$pos || $pos == "") return "NULL";
+  if (!$pos || $pos == "") return "\\N";
   if (preg_match( "/([A-Za-z]+)([0-9]+)/", $pos, $match))
-    return "NULL";
+    return "\\N";
   if (preg_match( "/([0-9]+)\-([0-9]+)/", $pos, $match)) {
     $tr = $match[2];
     return $match[1]; 
   }
   if (preg_match( "/[A-Za-z]+/", $pos, $match))
-    return "NULL";
+    return "\\N";
   if (preg_match( "/[0-9]+/", $pos, $match)) {
     $tr = $match[0];
     return '1';
   }
-  return 'NULL';
+  return '\\N';
   //die("Invalid position $pos");
 }
 
@@ -33,32 +33,32 @@ function printArray($items)
   $res = "";
   foreach($items as $item)
     $res .= "," . $item;
-  return "ARRAY[" . substr($res,1) . "]";
+  return "{" . substr($res,1) . "}";
 }
 
+$fps = array();
 function printInsert($table, $record)
 {
-  $keys = '';
-  $vals = '';
-  foreach ($record as $key => $val) {
-    $keys .= ",$key";
-    $vals .= ",$val";
+  global $fps;
+  $fp = @$fps[$table];
+  if (!$fp) {
+    $fp = gzopen("discogs_" . $table . "_sql.gz", "wb2");
+    $keys = implode(', ',array_keys($record));
+    gzwrite($fp, "COPY $table ($keys) FROM stdin;\n");
+    $fps[$table] = $fp;
   }
-  $keys = substr($keys,1);
-  $vals = substr($vals,1);
-  echo "INSERT INTO $table($keys) VALUES($vals);\n";
+  gzwrite($fp, implode("\t", $record) . "\n");
 }
 
 function escapeNode($node, $t = 'text')
 {
-  if (!$node || $node == '') return "NULL";
-  if ($t == 'text') return "E'" . pg_escape_string($node) . "'";
-  return "'" . pg_escape_string($node) . "'::$t";
+  if (!$node || $node == '') return "\\N";
+  return addcslashes($node, "\\\t\r\n,{");
 }
 
 function escapeNodes($nodes, $t = 'text')
 {
-  if (!$nodes) return "NULL";
+  if (!$nodes) return "\\N";
   $res = array();
   foreach($nodes->children() as $node)
     $res[] = escapeNode($node, $t);
@@ -81,7 +81,7 @@ $known_descriptions = array();
 function parseArtistName($name)
 {
   if (!$name || $name=='')
-    return 'NULL';
+    return '\\N';
   global $seqid_artistname;
   global $known_names;
   if (@$known_names[(string)$name]) return $known_names[(string)$name];
@@ -96,7 +96,7 @@ function parseArtistName($name)
 function parseLabel($name)
 {
   if (!$name || $name=='')
-    return 'NULL';
+    return '\\N';
   global $seqid_label;
   global $known_labels;
   $key = (string)$name;
@@ -132,7 +132,7 @@ function parseImage($img)
 function parseCredits($artists)
 {
   if (!$artists)
-    return 'NULL';
+    return '\\N';
   $artist_name = '';
 //  global $known_names;
 //  $known_names = array();
@@ -150,8 +150,7 @@ function parseCredits($artists)
   global $known_credits;
   $key = '';
   foreach($ac as $acn)
-    $key .= $acn['name'] . ',' . $acn['anv'] . ',' . $acn['join_verb'] . ',' . $acn['role'] . ',' . $acn['tracks'] . ',';
-  $key = str_replace("NULL,",",",$key);
+    $key .= $acn['name'] . '\t' . $acn['anv'] . '\t' . $acn['join_verb'] . '\t' . $acn['role'] . '\t' . $acn['tracks'] . '\t';
   if (@$known_credits[$key]) return $known_credits[$key];
   $artist_count = 0;
   $artist_credit = $seqid_credit++;
@@ -192,7 +191,7 @@ function parseRelease($rel)
   //print_r( $rel);
   printInsert('release', array(
     'discogs_id' => $rel['id'],
-    'master_id' => $rel->master_id == '' ? 'NULL' : $rel->master_id,
+    'master_id' => $rel->master_id == '' ? '\t' : $rel->master_id,
     'artist_credit' => parseCredits($rel->artists),
 //    'extra_artists' => parseCredits($rel->extraartists),
     'title' => escapeNode($rel->title),
@@ -226,10 +225,10 @@ function parseRelease($rel)
   $toc = array();
   if ($rel->tracklist)
   foreach($rel->tracklist->children() as $trk) {
-    $pos = "NULL";
+    $pos = "\\N";
     $dis = parseDiscno($trk->position, $pos);
     $dur = parseDuration($trk->duration);
-    if ($dis != 'NULL') // && !Vinyl?
+    if ($dis != '\\N') // && !Vinyl?
       $toc[$dis][$pos] = $dur;
     printInsert('track', array(
       'release_id' => $rel['id'],
@@ -290,4 +289,7 @@ echo '-- CREATE TYPE genre_t AS ENUM (' . implode(',',$known_genres) . ");\n";
 echo '-- CREATE TYPE description_t AS ENUM (' . implode(',',$known_descriptions) . ");\n";
 
 echo '-- CREATE TYPE format_t AS ENUM (' . implode(',',array_keys($known_formats)) . ");\n";
-
+foreach($fps as $fp) {
+  gzwrite($fp, "\\.\n");
+  gzclose($fp);
+}
