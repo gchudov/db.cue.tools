@@ -32,7 +32,7 @@ function printArray($items)
   if (!$items) return "";
   $res = "";
   foreach($items as $item)
-    $res .= "," . $item;
+    $res .= "," . (preg_match("/[\"{, ]/", $item) ? '"' . str_replace("\"", "\\\\\"", str_replace("\\\\", "\\\\\\\\", $item)) . '"' : $item);
   return "{" . substr($res,1) . "}";
 }
 
@@ -53,7 +53,7 @@ function printInsert($table, $record)
 function escapeNode($node, $t = 'text')
 {
   if (!$node || $node == '') return "\\N";
-  return addcslashes($node, "\\\t\r\n,{");
+  return addcslashes($node, "\\\t\r\n");
 }
 
 function escapeNodes($nodes, $t = 'text')
@@ -191,7 +191,7 @@ function parseRelease($rel)
   //print_r( $rel);
   printInsert('release', array(
     'discogs_id' => $rel['id'],
-    'master_id' => $rel->master_id == '' ? '\t' : $rel->master_id,
+    'master_id' => $rel->master_id == '' ? '\N' : $rel->master_id,
     'artist_credit' => parseCredits($rel->artists),
 //    'extra_artists' => parseCredits($rel->extraartists),
     'title' => escapeNode($rel->title),
