@@ -23,7 +23,7 @@ function parseDiscno($pos, &$tr)
     $tr = $match[0];
     return '1';
   }
-  return '\\N';
+  return "\\N";
   //die("Invalid position $pos");
 }
 
@@ -32,7 +32,7 @@ function printArray($items)
   if (!$items) return "";
   $res = "";
   foreach($items as $item)
-    $res .= "," . (preg_match("/[\"{, ]/", $item) ? '"' . str_replace("\"", "\\\\\"", str_replace("\\\\", "\\\\\\\\", $item)) . '"' : $item);
+    $res .= "," . (preg_match("/[\"\\{, ]/", $item) ? '"' . str_replace("\"", "\\\\\"", str_replace("\\\\", "\\\\\\\\", $item)) . '"' : $item);
   return "{" . substr($res,1) . "}";
 }
 
@@ -80,8 +80,8 @@ $known_descriptions = array();
 
 function parseArtistName($name)
 {
-  if (!$name || $name=='')
-    return '\\N';
+  if ($name == null || $name=='')
+    return "\\N";
   global $seqid_artistname;
   global $known_names;
   if (@$known_names[(string)$name]) return $known_names[(string)$name];
@@ -95,8 +95,8 @@ function parseArtistName($name)
 
 function parseLabel($name)
 {
-  if (!$name || $name=='')
-    return '\\N';
+  if ($name == null || $name=='')
+    return "\\N";
   global $seqid_label;
   global $known_labels;
   $key = (string)$name;
@@ -111,8 +111,8 @@ function parseLabel($name)
 
 function parseImage($img)
 {
-  if (!$img)
-    return '';
+  if ($img == null || $img=='')
+    return "\\N";
   global $seqid_image;
   global $known_images;
   $key = (string)$img['uri'];
@@ -132,7 +132,7 @@ function parseImage($img)
 function parseCredits($artists)
 {
   if (!$artists)
-    return '\\N';
+    return "\\N";
   $artist_name = '';
 //  global $known_names;
 //  $known_names = array();
@@ -150,7 +150,7 @@ function parseCredits($artists)
   global $known_credits;
   $key = '';
   foreach($ac as $acn)
-    $key .= $acn['name'] . '\t' . $acn['anv'] . '\t' . $acn['join_verb'] . '\t' . $acn['role'] . '\t' . $acn['tracks'] . '\t';
+    $key .= $acn['name'] . "\t" . $acn['anv'] . "\t" . $acn['join_verb'] . "\t" . $acn['role'] . "\t" . $acn['tracks'] . "\t";
   if (@$known_credits[$key]) return $known_credits[$key];
   $artist_count = 0;
   $artist_credit = $seqid_credit++;
@@ -222,14 +222,14 @@ function parseRelease($rel)
       'tracks' => escapeNode($art->tracks)));
   }
 */
-  $toc = array();
+//  $toc = array();
   if ($rel->tracklist)
   foreach($rel->tracklist->children() as $trk) {
     $pos = "\\N";
     $dis = parseDiscno($trk->position, $pos);
     $dur = parseDuration($trk->duration);
-    if ($dis != '\\N') // && !Vinyl?
-      $toc[$dis][$pos] = $dur;
+//    if ($dis != "\\N") // && !Vinyl?
+//      $toc[$dis][$pos] = $dur;
     printInsert('track', array(
       'release_id' => $rel['id'],
       'artist_credit' => parseCredits($trk->artists),
