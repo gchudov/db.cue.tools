@@ -77,12 +77,14 @@ function escapeNodes($nodes, $t = 'text')
 $seqid_artistname = 1;
 $seqid_image = 1;
 $seqid_credit = 1;
-$seqid_style = 1;
+$seqid_label = 1;
 $known_names = array();
 $known_images = array();
+$known_labels = array();
 $known_styles = array();
 $known_genres = array();
 $known_formats = array();
+$known_descriptions = array();
 
 function parseArtistName($name)
 {
@@ -99,29 +101,20 @@ function parseArtistName($name)
   return $name_id;
 }
 
-function parseStyleName($name)
+function parseLabel($name)
 {
   if (!$name || $name=='')
-    return '';
-  global $seqid_style;
-  global $known_styles;
+    return 'NULL';
+  global $seqid_label;
+  global $known_labels;
   $key = (string)$name;
-  if (@$known_styles[$key]) return $known_styles[$key];
-  $name_id = $seqid_style++;
-  printInsert('style', array(
+  if (@$known_labels[$key]) return $known_labels[$key];
+  $name_id = $seqid_label++;
+  printInsert('label', array(
     'id' => $name_id,
     'name' => escapeNode($name)));
-  $known_styles[$key] = $name_id;
+  $known_labels[$key] = $name_id;
   return $name_id;
-}
-
-function parseStyles($styles)
-{
-  if (!$styles) return 'NULL';
-  $res = array();
-  foreach($styles->children() as $stl)
-    $res[] = parseStyleName($stl);
-  return printArray($res);
 }
 
 function parseImage($img)
@@ -176,14 +169,23 @@ function parseCredits($artists)
 function parseRelease($rel)
 {
   global $known_genres;
+  global $known_styles;
   global $known_formats;
+  global $known_descriptions;
 
   if ($rel->genres)
     foreach ($rel->genres->children() as $key)
-      $known_genres[escapeNode($key)] = true;
+      $known_genres[(string)$key] = true;
+  if ($rel->styles)
+    foreach ($rel->styles->children() as $key)
+      $known_styles[(string)$key] = true;
   if ($rel->formats)
-    foreach ($rel->formats->children() as $key)
-      $known_formats[escapeNode($key['name'])] = true;
+    foreach ($rel->formats->children() as $fmt) {
+      $known_formats[escapeNode($fmt['name'])] = true;
+      if ($fmt->descriptions)
+        foreach ($fmt->descriptions->children() as $des)
+          $known_descriptions[(string)$des] = true;
+    }
 
   //print_r( $rel);
   printInsert('release', array(
@@ -196,12 +198,12 @@ function parseRelease($rel)
     'released' => escapeNode($rel->released),
     'notes' => escapeNode($rel->notes),
     'genres' => escapeNodes($rel->genres,'genre_t'),
-    'styles' => parseStyles($rel->styles)));
+    'styles' => escapeNodes($rel->styles,'style_t')));
   if ($rel->labels)
   foreach($rel->labels->children() as $lbl) {
     printInsert('releases_labels', array(
-      'discogs_id' => $rel['id'],
-      'label' => escapeNode($lbl['name']),
+      'release_id' => $rel['id'],
+      'label_id' => parseLabel($lbl['name']),
       'catno' => escapeNode($lbl['catno'])));
   }
 /*
@@ -227,8 +229,9 @@ function parseRelease($rel)
     if ($dis != 'NULL') // && !Vinyl?
       $toc[$dis][$pos] = $dur;
     printInsert('track', array(
-      'discogs_id' => $rel['id'],
+      'release_id' => $rel['id'],
       'artist_credit' => parseCredits($trk->artists),
+      'extra_artists' => parseCredits($trk->extraartists),
       'title' => escapeNode($trk->title),
       'duration' => $dur,
       'position' => escapeNode($trk->position),
@@ -248,10 +251,10 @@ function parseRelease($rel)
   if ($rel->formats)
   foreach($rel->formats->children() as $fmt) {
     printInsert('releases_formats', array(
-      'discogs_id' => $rel['id'],
+      'release_id' => $rel['id'],
       'format_name' => escapeNode($fmt['name']),
       'qty' => $fmt['qty'],
-      'descriptions' => escapeNodes($fmt->descriptions)));
+      'descriptions' => escapeNodes($fmt->descriptions, 'description_t')));
   }
   if ($rel->images)
   foreach($rel->images->children() as $img) {
@@ -276,6 +279,12 @@ while(1)
 }
 $xml->close();
 
-echo '-- CREATE TYPE genre_t AS ENUM (' . implode(',',array_keys($known_genres)) . ");\n";
+array_walk($known_styles, function(&$val, $key) { $val = escapeNode($key); }); 
+array_walk($known_genres, function(&$val, $key) { $val = escapeNode($key); }); 
+array_walk($known_descriptions, function(&$val, $key) { $val = escapeNode($key); }); 
+echo '-- CREATE TYPE style_t AS ENUM (' . implode(',',$known_styles) . ");\n";
+echo '-- CREATE TYPE genre_t AS ENUM (' . implode(',',$known_genres) . ");\n";
+echo '-- CREATE TYPE description_t AS ENUM (' . implode(',',$known_descriptions) . ");\n";
+
 echo '-- CREATE TYPE format_t AS ENUM (' . implode(',',array_keys($known_formats)) . ");\n";
 
