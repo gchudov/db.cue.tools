@@ -181,7 +181,7 @@ CREATE TABLE releases_images (
 --
 
 CREATE TABLE releases_labels (
-    label integer,
+    label_id integer,
     release_id integer NOT NULL,
     catno text
 );
