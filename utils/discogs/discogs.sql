@@ -75,11 +75,6 @@ CREATE TYPE format_t AS ENUM ('Vinyl','CD','Cassette','Box Set','All Media','CDr
 --     sub_genre integer
 -- );
 
-CREATE TABLE style (
-    id integer NOT NULL,
-    name text NOT NULL
-);
-
 --
 -- Name: image; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
@@ -98,14 +93,15 @@ CREATE TABLE image (
 -- Name: label; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
--- CREATE TABLE label (
---     name text NOT NULL,
+CREATE TABLE label (
+    id integer NOT NULL,
+    name text NOT NULL
 --     contactinfo text,
 --     profile text,
 --     parent_label text,
 --     sublabels text[],
 --     urls text[]
--- );
+);
 
 
 --
@@ -133,7 +129,7 @@ CREATE TABLE release (
     released text,
     notes text,
     genres genre_t[],
-    styles integer[]
+    styles style_t[]
 );
 
 CREATE TABLE artist_credit (
@@ -162,10 +158,10 @@ CREATE TABLE artist_name (
 --
 
 CREATE TABLE releases_formats (
-    discogs_id integer NOT NULL,
+    release_id integer NOT NULL,
     format_name format_t NOT NULL,
     qty integer,
-    descriptions text[]
+    descriptions description_t[]
 );
 
 --
@@ -183,8 +179,8 @@ CREATE TABLE releases_images (
 --
 
 CREATE TABLE releases_labels (
-    label text,
-    discogs_id integer NOT NULL,
+    label integer,
+    release_id integer NOT NULL,
     catno text
 );
 
@@ -203,7 +199,7 @@ CREATE TABLE releases_labels (
 --
 
 CREATE TABLE track (
-    discogs_id integer NOT NULL,
+    release_id integer NOT NULL,
     artist_credit integer,
     extra_artists integer,
     title text,
@@ -244,13 +240,12 @@ CREATE TABLE track (
 ALTER TABLE ONLY image
     ADD CONSTRAINT image_pkey PRIMARY KEY (id);
 
-
 --
 -- Name: label_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
--- ALTER TABLE ONLY label
---     ADD CONSTRAINT label_pkey PRIMARY KEY (name);
+ALTER TABLE ONLY label
+    ADD CONSTRAINT label_pkey PRIMARY KEY (id);
 
 
 --
@@ -260,7 +255,8 @@ ALTER TABLE ONLY image
 ALTER TABLE ONLY release
     ADD CONSTRAINT release_pkey PRIMARY KEY (discogs_id);
 
-
+ALTER TABLE ONLY artist_credit
+    ADD CONSTRAINT artist_credit_pkey PRIMARY KEY (id);
 --
 -- Name: artists_images_artist_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -282,7 +278,10 @@ ALTER TABLE ONLY release
 --
 
 ALTER TABLE ONLY releases_labels
-    ADD CONSTRAINT foreign_did FOREIGN KEY (discogs_id) REFERENCES release(discogs_id);
+    ADD CONSTRAINT releases_labels_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
+
+ALTER TABLE ONLY releases_labels
+    ADD CONSTRAINT releases_labels_label_id_fkey FOREIGN KEY (label_id) REFERENCES label(id);
 
 
 --
@@ -305,8 +304,8 @@ ALTER TABLE ONLY releases_labels
 -- Name: releases_formats_discogs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
--- ALTER TABLE ONLY releases_formats
---     ADD CONSTRAINT releases_formats_discogs_id_fkey FOREIGN KEY (discogs_id) REFERENCES release(discogs_id);
+ALTER TABLE ONLY releases_formats
+    ADD CONSTRAINT releases_formats_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
 
 
 --
@@ -321,9 +320,19 @@ ALTER TABLE ONLY releases_labels
 -- Name: releases_images_discogs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
+CREATE INDEX releases_images_release_id_index ON releases_images(release_id);
+
+ALTER TABLE ONLY release
+    ADD CONSTRAINT release_artist_credit_fkey FOREIGN KEY (artist_credit) REFERENCES artist_credit(id);
+
+ALTER TABLE ONLY track
+    ADD CONSTRAINT track_artist_credit_fkey FOREIGN KEY (artist_credit) REFERENCES artist_credit(id);
+
+ALTER TABLE ONLY track
+    ADD CONSTRAINT track_extra_artists_fkey FOREIGN KEY (extra_artists) REFERENCES artist_credit(id);
+
 ALTER TABLE ONLY releases_images
     ADD CONSTRAINT releases_images_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
-
 
 --
 -- Name: releases_images_image_uri_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -333,6 +342,8 @@ ALTER TABLE ONLY releases_images
     ADD CONSTRAINT releases_images_image_id_fkey FOREIGN KEY (image_id) REFERENCES image(id);
 
 
+ALTER TABLE ONLY track
+    ADD CONSTRAINT track_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
 --
 -- PostgreSQL database dump complete
 --
