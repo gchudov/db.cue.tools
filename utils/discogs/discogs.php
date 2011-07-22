@@ -111,7 +111,7 @@ function parseLabel($name)
 
 function parseImage($img)
 {
-  if ($img == null || $img=='')
+  if ($img == null || $img['uri'] == '')
     return "\\N";
   global $seqid_image;
   global $known_images;
