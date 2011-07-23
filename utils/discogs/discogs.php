@@ -32,7 +32,7 @@ function printArray($items)
   if (!$items) return "";
   $res = "";
   foreach($items as $item)
-    $res .= "," . (preg_match("/[\"\\{, ]/", $item) ? '"' . str_replace("\"", "\\\\\"", str_replace("\\\\", "\\\\\\\\", $item)) . '"' : $item);
+    $res .= "," . (preg_match("/[\"\\\\{, ]/", $item) ? '"' . str_replace("\"", "\\\\\"", str_replace("\\\\", "\\\\\\\\", $item)) . '"' : $item);
   return "{" . substr($res,1) . "}";
 }
 
@@ -116,7 +116,7 @@ function parseImage($img)
   global $seqid_image;
   global $known_images;
   $key = (string)$img['uri'];
-  if (@$known_images[$key]) return $known_images[$key];
+  //if (@$known_images[$key]) return $known_images[$key];
   $image_id = $seqid_image++;
   printInsert('image', array(
     'id' => $image_id,
@@ -125,7 +125,7 @@ function parseImage($img)
     'width' => $img['width'],
     'image_type' => escapeNode($img['type']),
     'uri150' => escapeNode($img['uri150'])));
-  $known_images[$key] = $image_id;
+  //$known_images[$key] = $image_id;
   return $image_id;
 }
 
