@@ -411,6 +411,7 @@ class phpCTDB{
 		  'r.title, ' . 
 		  'r.country, ' . 
 		  'r.released, ' .
+		  '(SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id) as year, ' .
 		  'an.name ' . 
 		  'FROM release r ' .
 		  'INNER JOIN artist_credit ac ON ac.id = r.artist_credit ' .
@@ -442,7 +443,7 @@ class phpCTDB{
 		    'id' => $r['discogs_id'],
 		    'artistname' => $r['name'],
 		    'albumname' => $r['title'],
-		    'first_release_date_year' => null, //$r['year'],
+		    'first_release_date_year' => $r['year'],
 		    'genre' => null, //$r['genre'],
 		    'extra' => null, //$r['extra'],
 		    'tracklist' => $tracklist,
