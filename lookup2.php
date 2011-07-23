@@ -6,6 +6,7 @@ $toc_s = $_GET['toc'] or die('Invalid arguments');
 $dometa = @$_GET['musicbrainz'];
 $dofreedb = isset($_GET['freedb']) ? $_GET['freedb'] : false; // $dometa;
 $dofreedbfuzzy = isset($_GET['freedbfuzzy']) ? $_GET['freedbfuzzy'] : false; // $dometa;
+$dodiscogs = isset($_GET['discogs']) ? $_GET['discogs'] : false; // $dometa;
 $doctdb = isset($_GET['ctdb']) ? $_GET['ctdb'] : 1;
 $type = isset($_GET['type']) ? $_GET['type'] : 'xml';
 $fuzzy = @$_GET['fuzzy'];
@@ -38,6 +39,8 @@ for ($priority=1; $priority <= 7; $priority++)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 150)); 
   else if (($dofreedb & 7) == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 0)); 
+  if (($dodiscogs & 7) == $priority)
+    $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas))); 
   if ($mbmetas) break;
 }
 
@@ -96,6 +99,7 @@ else if ($type == 'xml')
       'barcode' => $mbmeta['barcode'],
       'track' => $tracks,
       'label' => @$mbmeta['label'],
+      'discogs_id' => @$mbmeta['discogs_id'],
       'genre' => @$mbmeta['genre'],
       'extra' => @$mbmeta['extra'],
     );

@@ -348,11 +348,68 @@ class phpCTDB{
 		return $res;
         }
 
+	static function discogsids($mbmetas)
+        {
+	    $dids = null;
+	    foreach($mbmetas as $m) {
+	      $d = @$m['discogs_id'];
+	      if ($d != null) $dids[] = $d;
+	    }
+	    return $dids;
+	}
+
+	static function discogslookup($ids)
+	{
+		if (!$ids)
+		  return array();
+		$conn = pg_connect("dbname=discogs user=discogs port=6543");
+		if (!$conn)
+		  return array();
+		$result = pg_query_params($conn,
+		  'SELECT ' . 
+		  'r.discogs_id, ' . 
+		  'r.title, ' . 
+		  'r.country, ' . 
+		  'r.released, ' .
+		  'an.name ' . 
+		  'FROM release r ' .
+		  'INNER JOIN artist_credit ac ON ac.id = r.artist_credit ' .
+		  'INNER JOIN artist_name an ON an.id = ac.name ' .
+		  'WHERE r.discogs_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
+		$meta = pg_fetch_all($result);
+		pg_free_result($result);
+		if (!$meta) return array();
+		$res = array();
+		foreach($meta as $r)
+		{
+		  $tracklist = array();
+		  $res[] = array(
+		    'source' => 'discogs',
+		    'id' => $r['discogs_id'],
+		    'artistname' => $r['name'],
+		    'albumname' => $r['title'],
+		    'first_release_date_year' => null, //$r['year'],
+		    'genre' => null, //$r['genre'],
+		    'extra' => null, //$r['extra'],
+		    'tracklist' => $tracklist,
+		    'discnumber' => null,
+		    'totaldiscs' => null,
+		    'discname' => null,
+		    'barcode' => null,
+		    'coverarturl' => null,
+		    'info_url' => null,
+		    'releasedate' => $r['released'],
+		    'country' => null,
+		  );
+		}
+		return $res;
+	}
+
 	static function mblookup($mbid)
 	{
 		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
 		if (!$mbconn)
-			return false;
+		  return array();
 		// first get cttoc ids; then select where WHERE mc.cdtoc IN $1;
 		$mbresult = pg_query_params($mbconn,
 		  'SELECT ' . 
@@ -371,6 +428,7 @@ class phpCTDB{
                   'm.position as discnumber, ' .
                   'm.name as discname, ' .
                   '(select count(*) from medium where release = r.id) as totaldiscs, ' .
+                  '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
                   '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
                   '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
 //                  'r.date_year as year, ' .

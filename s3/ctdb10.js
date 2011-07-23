@@ -37,6 +37,8 @@ function ctdbMetaData(json)
     mbdata.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     if (mbdata.getValue(row, 9) == 'musicbrainz')
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
+    if (mbdata.getValue(row, 9) == 'discogs')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
     if (mbdata.getValue(row, 9) == 'freedb')
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
     if (mbdata.getValue(row, 4) != null)
