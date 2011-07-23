@@ -365,6 +365,46 @@ class phpCTDB{
 		$conn = pg_connect("dbname=discogs user=discogs port=6543");
 		if (!$conn)
 		  return array();
+		$discogs_countries = array(
+'Afghanistan' => 'AF','Africa' => '','Albania' => 'AL','Algeria' => 'DZ','American Samoa' => 'AS','Andorra' => 'AD',
+'Angola' => 'AO','Antarctica' => 'AQ','Antigua & Barbuda' => 'AG','Argentina' => 'AR','Armenia' => 'AM','Aruba' => 'AW',
+'Asia' => '','Australasia' => '','Australia' => 'AU','Australia & New Zealand' => '','Austria' => 'AT','Azerbaijan' => 'AZ',
+'Bahamas, The' => 'BS','Bahrain' => 'BH','Bangladesh' => 'BD','Barbados' => 'BB','Belarus' => 'BY','Belgium' => 'BE',
+'Belize' => 'BZ','Benelux' => '','Benin' => 'BJ','Bermuda' => 'BM','Bhutan' => 'BT','Bolivia' => 'BO','Bosnia & Herzegovina' => 'BA',
+'Botswana' => 'BW','Brazil' => 'BR','Bulgaria' => 'BG','Burkina Faso' => 'BF','Burma' => '','Cambodia' => 'KH','Cameroon' => 'CM',
+'Canada' => 'CA','Cape Verde' => 'CV','Cayman Islands' => 'KY','Central America' => '','Chile' => 'CL','China' => 'CN',
+'Cocos (Keeling) Islands' => '','Colombia' => 'CO','Congo, Democratic Republic of the' => 'CD','Congo, Republic of the' => 'CG',
+'Cook Islands' => 'CK','Costa Rica' => 'CR','Croatia' => 'HR','Cuba' => 'CU','Cyprus' => 'CY','Czechoslovakia' => 'XC',
+'Czech Republic' => 'CZ','Denmark' => 'DK','Dominica' => 'DM','Dominican Republic' => 'DO','East Timor' => '','Ecuador' => 'EC',
+'Egypt' => 'EG','El Salvador' => 'SV','Estonia' => 'EE','Ethiopia' => 'ET','Europa Island' => '','Europe' => 'XE',
+'Faroe Islands' => 'FO','Fiji' => 'FJ','Finland' => 'FI','France' => 'FR','France & Benelux' => '','French Guiana' => 'GF',
+'French Polynesia' => 'PF','French Southern & Antarctic Lands' => 'TF','Gabon' => 'GA','Georgia' => 'GE',
+'German Democratic Republic (GDR)' => 'XG','Germany' => 'DE','Germany, Austria, & Switzerland' => '','Germany & Switzerland' => '',
+'Ghana' => 'GH','Greece' => 'GR','Greenland' => 'GL','Grenada' => 'GD','Guadeloupe' => 'GP','Guam' => 'GU','Guatemala' => 'GT',
+'Guinea' => 'GN','Gulf Cooperation Council' => '','Guyana' => 'GY','Haiti' => 'HT','Honduras' => 'HN','Hong Kong' => 'HK',
+'Hungary' => 'HU','Iceland' => 'IS','India' => 'IN','Indonesia' => 'ID','Iran' => 'IR','Iraq' => 'IQ','Ireland' => 'IE',
+'Israel' => 'IL','Italy' => 'IT','Ivory Coast' => '','Jamaica' => 'JM','Japan' => 'JP','Jordan' => 'JO','Kazakhstan' => 'KZ',
+'Kenya' => 'KE','Korea' => 'KR','Korea, North' => 'KP','Kuwait' => 'KW','Kyrgyzstan' => 'KG','Latvia' => 'LV','Lebanon' => 'LB',
+'Lesotho' => 'LS','Liechtenstein' => 'LI','Lithuania' => 'LT','Luxembourg' => 'LU','Macedonia' => 'MK','Madagascar' => 'MG',
+'Malawi' => 'MW','Malaysia' => 'MY','Maldives' => 'MV','Mali' => 'ML','Malta' => 'MT','Marshall Islands' => 'MH',
+'Martinique' => 'MQ','Mauritius' => 'MU','Mexico' => 'MX','Moldova' => 'MD','Monaco' => 'MC','Mongolia' => 'MN',
+'Montenegro' => 'ME','Morocco' => 'MA','Mozambique' => 'MZ','Namibia' => 'NA','Nepal' => 'NP','Netherlands' => 'NL',
+'Netherlands Antilles' => 'AN','New Caledonia' => 'NC','New Zealand' => 'NZ','Nicaragua' => 'NI','Nigeria' => 'NG',
+'North America (inc Mexico)' => '','Northern Mariana Islands' => 'MP','North Korea' => 'KP','Norway' => 'NO','Oman' => 'OM',
+'Pakistan' => 'PK','Panama' => 'PA','Papua New Guinea' => 'PG','Paraguay' => 'PY','Peru' => 'PE','Philippines' => 'PH',
+'Pitcairn Islands' => 'PN','Poland' => 'PL','Portugal' => 'PT','Puerto Rico' => 'PR','Reunion' => 'RE','Romania' => 'RO',
+'Russia' => 'RU','Saint Kitts and Nevis' => 'KN','Saint Vincent and the Grenadines' => 'VC','San Marino' => 'SM',
+'Saudi Arabia' => 'SA','Scandinavia' => '','Senegal' => 'SN','Serbia' => 'RS','Serbia and Montenegro' => 'CS',
+'Seychelles' => 'SC','Sierra Leone' => 'SL','Singapore' => 'SG','Slovakia' => 'SK','Slovenia' => 'SI','South Africa' => 'ZA',
+'South America' => '','South Korea' => 'KR','Spain' => 'ES','Sri Lanka' => 'LK','Sudan' => 'SD','Suriname' => 'SR',
+'Svalbard' => 'SJ','Swaziland' => 'SZ','Sweden' => 'SE','Switzerland' => 'CH','Syria' => 'SY','Taiwan' => 'TW',
+'Tajikistan' => 'TJ','Tanzania' => 'TZ','Thailand' => 'TH','Togo' => 'TG','Trinidad & Tobago' => 'TT','Tunisia' => 'TN',
+'Turkey' => 'TR','Turks and Caicos Islands' => 'TC','Tuvalu' => 'TV','Uganda' => 'UG','UK' => 'GB','UK & Europe' => 'XE',
+'UK, Europe & US' => 'XW','UK & Ireland' => '','Ukraine' => 'UA','UK & US' => '','United Arab Emirates' => 'AE',
+'Uruguay' => 'UY','US' => 'US','USA & Canada' => '','USA, Canada & UK' => '','USSR' => 'SU','Uzbekistan' => 'UZ',
+'Vatican City' => 'VA','Venezuela' => 'VE','Vietnam' => 'VN','Virgin Islands' => 'VI','Wake Island' => '',
+'Wallis and Futuna' => 'WF','Yugoslavia' => 'YU','Zambia' => 'ZM','Zimbabwe' => 'ZW'
+);
 		$result = pg_query_params($conn,
 		  'SELECT ' . 
 		  'r.discogs_id, ' . 
@@ -379,10 +419,24 @@ class phpCTDB{
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		if (!$meta) return array();
+		$result = pg_query_params($conn,
+		  'SELECT rl.release_id, rl.catno, l.name ' . 
+		  'FROM releases_labels rl ' .
+		  'INNER JOIN label l ON l.id = rl.label_id ' .
+		  'WHERE rl.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
+		$labelmeta = pg_fetch_all($result);
+		pg_free_result($result);
 		$res = array();
 		foreach($meta as $r)
 		{
 		  $tracklist = array();
+		  $label = null;
+		  $country_iso = @$discogs_countries[$r['country']];
+		  if ($country_iso == '')
+		    $country_iso = null;
+		  foreach($labelmeta as $l)
+		    if ($l['release_id'] == $r['discogs_id'])
+		      $label[] = array('catno' => $l['catno'], 'name' => $l['name']);
 		  $res[] = array(
 		    'source' => 'discogs',
 		    'id' => $r['discogs_id'],
@@ -392,6 +446,7 @@ class phpCTDB{
 		    'genre' => null, //$r['genre'],
 		    'extra' => null, //$r['extra'],
 		    'tracklist' => $tracklist,
+		    'label' => $label,
 		    'discnumber' => null,
 		    'totaldiscs' => null,
 		    'discname' => null,
@@ -399,7 +454,7 @@ class phpCTDB{
 		    'coverarturl' => null,
 		    'info_url' => null,
 		    'releasedate' => $r['released'],
-		    'country' => null,
+		    'country' => $country_iso,
 		  );
 		}
 		return $res;
