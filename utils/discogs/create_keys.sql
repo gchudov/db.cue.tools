@@ -49,6 +49,8 @@ CREATE INDEX track_release_id_index ON track(release_id);
 
 CREATE INDEX releases_labels_release_id_index ON releases_labels(release_id);
 
+CREATE INDEX release_master_id_index ON release(master_id);
+
 --
 -- Name: artist_credit_name_anv_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
