@@ -1,7 +1,7 @@
 <?php
 function parseDuration($dur)
 {
-  if (!$dur || $dur == "") return "\\N";
+  if ($dur == null || $dur == "") return "\\N";
   if (!preg_match( "/([0-9]*)[:'\.]([0-9]+)/", $dur, $match))
     return "\\N";
 //    die("Invalid duration $dur");
@@ -10,17 +10,13 @@ function parseDuration($dur)
 
 function parseDiscno($pos, &$tr)
 {
-  if (!$pos || $pos == "") return "\\N";
-  if (preg_match( "/([A-Za-z]+)([0-9]+)/", $pos, $match))
-    return "\\N";
-  if (preg_match( "/([0-9]+)\-([0-9]+)/", $pos, $match)) {
-    $tr = $match[2];
-    return $match[1]; 
+  if ($pos == null || $pos == "") return "\\N";
+  if (preg_match( "/^([0-9]+)[\-\.]([0-9]+)$/", $pos, $match)) {
+    $tr = (int)$match[2];
+    return (int)$match[1]; 
   }
-  if (preg_match( "/[A-Za-z]+/", $pos, $match))
-    return "\\N";
-  if (preg_match( "/[0-9]+/", $pos, $match)) {
-    $tr = $match[0];
+  if (preg_match( "/^[0-9]+$/", $pos, $match)) {
+    $tr = (int)$match[0];
     return '1';
   }
   return "\\N";
@@ -232,13 +228,13 @@ function parseRelease($rel)
 //      $toc[$dis][$pos] = $dur;
     printInsert('track', array(
       'release_id' => $rel['id'],
+      'position' => escapeNode($trk->position),
+      'duration' => $dur,
+      'discno' => $dis,
+      'trno' => $pos,
       'artist_credit' => parseCredits($trk->artists),
 //      'extra_artists' => parseCredits($trk->extraartists),
-      'title' => escapeNode($trk->title),
-      'duration' => $dur,
-      'position' => escapeNode($trk->position),
-      'trno' => $pos,
-      'discno' => $dis));
+      'title' => escapeNode($trk->title)));
   }
 /*
   foreach($toc as $dis => $trk) {
