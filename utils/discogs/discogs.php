@@ -65,9 +65,11 @@ $seqid_artistname = 1;
 $seqid_image = 1;
 $seqid_credit = 1;
 $seqid_label = 1;
+$seqid_title = 1;
 $known_names = array();
 $known_images = array();
 $known_labels = array();
+$known_titles = array();
 $known_credits = array();
 $known_styles = array();
 $known_genres = array();
@@ -102,6 +104,22 @@ function parseLabel($name)
     'id' => $name_id,
     'name' => escapeNode($name)));
   $known_labels[$key] = $name_id;
+  return $name_id;
+}
+
+function parseTitle($name)
+{
+  if ($name == null || $name=='')
+    return "\\N";
+  global $seqid_title;
+  global $known_titles;
+  $key = (string)$name;
+  if (@$known_titles[$key]) return $known_titles[$key];
+  $name_id = $seqid_title++;
+  printInsert('track_title', array(
+    'id' => $name_id,
+    'name' => escapeNode($name)));
+  $known_titles[$key] = $name_id;
   return $name_id;
 }
 
@@ -219,6 +237,7 @@ function parseRelease($rel)
   }
 */
 //  $toc = array();
+  $seq = 0;
   if ($rel->tracklist)
   foreach($rel->tracklist->children() as $trk) {
     $pos = "\\N";
@@ -228,13 +247,14 @@ function parseRelease($rel)
 //      $toc[$dis][$pos] = $dur;
     printInsert('track', array(
       'release_id' => $rel['id'],
-      'position' => escapeNode($trk->position),
-      'duration' => $dur,
+      'index' => ++$seq,
       'discno' => $dis,
       'trno' => $pos,
+      'position' => escapeNode($trk->position),
+      'duration' => $dur,
       'artist_credit' => parseCredits($trk->artists),
 //      'extra_artists' => parseCredits($trk->extraartists),
-      'title' => escapeNode($trk->title)));
+      'title' => parseTitle($trk->title)));
   }
 /*
   foreach($toc as $dis => $trk) {
