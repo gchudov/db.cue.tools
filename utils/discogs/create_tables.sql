@@ -647,6 +647,12 @@ CREATE TABLE artist_name (
 );
 
 
+CREATE TABLE track_title (
+    id integer NOT NULL,
+    name text NOT NULL
+);
+
+
 --
 -- Name: image; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
@@ -731,9 +737,10 @@ CREATE TABLE track (
     release_id integer NOT NULL,
     artist_credit integer,
     extra_artists integer,
-    title text,
+    title integer,
     duration integer,
     "position" text,
+    "index" integer,
     trno integer,
     discno integer
 );
