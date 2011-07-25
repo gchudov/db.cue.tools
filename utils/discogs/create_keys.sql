@@ -38,6 +38,9 @@ ALTER TABLE ONLY label
 ALTER TABLE ONLY release
     ADD CONSTRAINT release_pkey PRIMARY KEY (discogs_id);
 
+ALTER TABLE ONLY track_title
+    ADD CONSTRAINT track_title_pkey PRIMARY KEY (id);
+
 
 --
 -- Name: releases_images_release_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
@@ -146,6 +149,8 @@ ALTER TABLE ONLY track
 ALTER TABLE ONLY track
     ADD CONSTRAINT track_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
 
+ALTER TABLE ONLY track
+    ADD CONSTRAINT track_title_fkey FOREIGN KEY (title) REFERENCES track_title(id);
 
 --
 -- PostgreSQL database dump complete
