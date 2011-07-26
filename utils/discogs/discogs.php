@@ -236,15 +236,15 @@ function parseRelease($rel)
       'tracks' => escapeNode($art->tracks)));
   }
 */
-//  $toc = array();
+  $toc = array();
   $seq = 0;
   if ($rel->tracklist)
   foreach($rel->tracklist->children() as $trk) {
     $pos = "\\N";
     $dis = parseDiscno($trk->position, $pos);
     $dur = parseDuration($trk->duration);
-//    if ($dis != "\\N") // && !Vinyl?
-//      $toc[$dis][$pos] = $dur;
+    if ($dis != "\\N" && $pos != "\\N" && $dur != "\\N") // && !Vinyl?
+      $toc[$dis][$pos] = $dur;
     printInsert('track', array(
       'release_id' => $rel['id'],
       'index' => ++$seq,
@@ -256,16 +256,15 @@ function parseRelease($rel)
 //      'extra_artists' => parseCredits($trk->extraartists),
       'title' => parseTitle($trk->title)));
   }
-/*
+  if (end(array_keys($toc)) == count($toc))
   foreach($toc as $dis => $trk) {
-    if (!in_array('', $trk))
+    if (end(array_keys($trk)) == count($trk))
       printInsert('toc', array(
         'discogs_id' => $rel['id'],
         'disc' => $dis,
-        'toc' => 'create_cube_from_toc(' . printArray($trk) . ')',
+        //'toc' => 'create_cube_from_toc(' . printArray($trk) . ')',
         'duration' => printArray($trk)));
   }
-*/
   if ($rel->formats)
   foreach($rel->formats->children() as $fmt) {
     printInsert('releases_formats', array(
