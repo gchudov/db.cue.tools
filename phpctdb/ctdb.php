@@ -353,14 +353,14 @@ class phpCTDB{
 	    $dids = null;
 	    foreach($mbmetas as $m) {
 	      $d = @$m['discogs_id'];
-	      if ($d != null) $dids[] = $d;
+	      if ($d != null) $dids[] = $d . '/' . @$m['discnumber'];
 	    }
 	    return $dids;
 	}
 
-	static function discogslookup($ids)
+	static function discogslookup($dids)
 	{
-		if (!$ids)
+		if (!$dids)
 		  return array();
 		$conn = pg_connect("dbname=discogs user=discogs port=6543");
 		if (!$conn)
@@ -405,17 +405,23 @@ class phpCTDB{
 'Vatican City' => 'VA','Venezuela' => 'VE','Vietnam' => 'VN','Virgin Islands' => 'VI','Wake Island' => '',
 'Wallis and Futuna' => 'WF','Yugoslavia' => 'YU','Zambia' => 'ZM','Zimbabwe' => 'ZW'
 );
+		$ids = array();
+		$dno = array();
+		foreach($dids as $did) {
+		  $iddno = explode('/', $did);
+		  $ids[] = $iddno[0];
+		  $dno[$iddno[0]] = $iddno[1];
+		}
 		$result = pg_query_params($conn,
 		  'SELECT ' . 
 		  'r.discogs_id, ' . 
 		  'r.title, ' . 
 		  'r.country, ' . 
 		  'r.released, ' .
-		  '(SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id) as year, ' .
-		  'an.name ' . 
+		  'r.artist_credit, ' .
+		  '(SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
+		  '(SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id) as year ' .
 		  'FROM release r ' .
-		  'INNER JOIN artist_credit ac ON ac.id = r.artist_credit ' .
-		  'INNER JOIN artist_name an ON an.id = ac.name ' .
 		  'WHERE r.discogs_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
@@ -427,6 +433,33 @@ class phpCTDB{
 		  'WHERE rl.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		$labelmeta = pg_fetch_all($result);
 		pg_free_result($result);
+                $result = pg_query_params($conn,
+                  'SELECT t.release_id, t.artist_credit, t.discno, tt.name ' .
+                  'FROM track t ' .
+                  'INNER JOIN track_title tt ON t.title = tt.id ' .
+                  'WHERE t.release_id IN ' . phpCTDB::pg_array_indexes($ids) . ' ' . 
+                  'AND t.discno IS NOT NULL AND t.trno IS NOT NULL ' .
+		  'ORDER BY t.release_id, t.index', $ids);
+                $trackmeta = pg_fetch_all($result);
+                pg_free_result($result);
+		$artist_credit = array();
+		foreach($meta as $r)
+		  if ($r['artist_credit'] != null)
+		    $artist_credit[$r['artist_credit']] = null;
+		foreach($trackmeta as $t)
+		  if ($t['artist_credit'] != null)
+		    $artist_credit[$t['artist_credit']] = null;
+		$acs = array_keys($artist_credit);
+                $result = pg_query_params($conn,
+                  'SELECT ' .
+                  'ac.id, an.name ' .
+                  'FROM artist_credit ac ' .
+                  'INNER JOIN artist_name an ON an.id = ac.name ' .
+                  'WHERE ac.id IN ' . phpCTDB::pg_array_indexes($acs), $acs);
+                $acmeta = pg_fetch_all($result);
+                pg_free_result($result);
+		foreach($acmeta as $ac)
+		  $artist_credit[$ac['id']] = $ac['name'];
 		$res = array();
 		foreach($meta as $r)
 		{
@@ -438,18 +471,21 @@ class phpCTDB{
 		  foreach($labelmeta as $l)
 		    if ($l['release_id'] == $r['discogs_id'])
 		      $label[] = array('catno' => $l['catno'], 'name' => $l['name']);
+		  foreach($trackmeta as $t)
+		    if ($t['release_id'] == $r['discogs_id'] && $t['discno'] == $dno[$r['discogs_id']])
+		      $tracklist[] = array('name' => $t['name'], 'artist' => @$artist_credit[$t['artist_credit']]);
 		  $res[] = array(
 		    'source' => 'discogs',
 		    'id' => $r['discogs_id'],
-		    'artistname' => $r['name'],
+		    'artistname' => @$artist_credit[$r['artist_credit']],
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => $r['year'],
 		    'genre' => null, //$r['genre'],
 		    'extra' => null, //$r['extra'],
 		    'tracklist' => $tracklist,
 		    'label' => $label,
-		    'discnumber' => null,
-		    'totaldiscs' => null,
+		    'discnumber' => $dno[$r['discogs_id']],
+		    'totaldiscs' => $r['totaldiscs'],
 		    'discname' => null,
 		    'barcode' => null,
 		    'coverarturl' => null,
