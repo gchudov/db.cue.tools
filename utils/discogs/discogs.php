@@ -38,7 +38,7 @@ function printInsert($table, $record)
   global $fps;
   $fp = @$fps[$table];
   if (!$fp) {
-    $fp = gzopen("discogs_" . $table . "_sql.gz", "wb9");
+    $fp = gzopen("discogs_" . $table . "_sql.gz", "wb5");
     $keys = implode(', ',array_keys($record));
     gzwrite($fp, "COPY $table ($keys) FROM stdin;\n");
     $fps[$table] = $fp;
