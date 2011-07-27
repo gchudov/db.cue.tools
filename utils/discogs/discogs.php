@@ -256,22 +256,24 @@ function parseRelease($rel)
 //      'extra_artists' => parseCredits($trk->extraartists),
       'title' => parseTitle($trk->title)));
   }
-  if (end(array_keys($toc)) == count($toc))
-  foreach($toc as $dis => $trk) {
-    if (end(array_keys($trk)) == count($trk))
-      printInsert('toc', array(
-        'discogs_id' => $rel['id'],
-        'disc' => $dis,
-        //'toc' => 'create_cube_from_toc(' . printArray($trk) . ')',
-        'duration' => printArray($trk)));
-  }
+  $iscd = false;
   if ($rel->formats)
   foreach($rel->formats->children() as $fmt) {
+    $iscd |= $fmt['name'] == 'CD';
     printInsert('releases_formats', array(
       'release_id' => $rel['id'],
       'format_name' => escapeNode($fmt['name']),
       'qty' => $fmt['qty'],
       'descriptions' => escapeNodes($fmt->descriptions, 'description_t')));
+  }
+  if ($iscd && end(array_keys($toc)) == count($toc))
+  foreach($toc as $dis => $trk) {
+    if (count($trk) < 100 && end(array_keys($trk)) == count($trk))
+      printInsert('toc', array(
+        'discogs_id' => $rel['id'],
+        'disc' => $dis,
+        //'toc' => 'create_cube_from_toc(' . printArray($trk) . ')',
+        'duration' => printArray($trk)));
   }
   if ($rel->images)
   foreach($rel->images->children() as $img) {
