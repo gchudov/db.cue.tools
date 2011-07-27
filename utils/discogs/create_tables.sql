@@ -728,6 +728,11 @@ CREATE TABLE releases_labels (
     catno text
 );
 
+CREATE TABLE toc (
+    discogs_id integer NOT NULL,
+    disc integer NOT NULL,
+    duration integer[]
+);
 
 --
 -- Name: track; Type: TABLE; Schema: public; Owner: -; Tablespace: 

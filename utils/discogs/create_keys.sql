@@ -154,6 +154,9 @@ ALTER TABLE ONLY track
 ALTER TABLE ONLY track
     ADD CONSTRAINT track_title_fkey FOREIGN KEY (title) REFERENCES track_title(id);
 
+ALTER TABLE ONLY toc
+    ADD CONSTRAINT toc_discogs_id_fkey FOREIGN KEY (discogs_id) REFERENCES release(discogs_id);
+
 --
 -- PostgreSQL database dump complete
 --
