@@ -54,6 +54,7 @@ pg_free_result($result);
 $mbid = phpCTDB::toc2mbid($record);
 $mbmeta = phpCTDB::mblookup($mbid);
 $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmeta)));
+if (!phpCTDB::discogsids($mbmeta)) $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup(phpCTDB::toc_toc2s($record))));
 $mbmeta = array_merge($mbmeta, phpCTDB::freedblookup(phpCTDB::toc_toc2s($record)));
 if (!$mbmeta) $mbmeta = phpCTDB::freedblookup(phpCTDB::toc_toc2s($record), 300);
 $ids = explode(' ', $record['trackoffsets']);
@@ -175,7 +176,7 @@ printf('<br>');
 
 printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&discogs=1&freedb=2&freedbfuzzy=3&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&discogs=1&freedb=2&freedbfuzzy=3&discogsfuzzy=3&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);

@@ -50,7 +50,7 @@ function drawTable()
       }
       var srow = table.getSelection()[0].row;
       var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&musicbrainz=1&discogs=1&freedb=2&freedbfuzzy=3&fuzzy=1&toc=' + data.getValue(srow, 7), true);
+      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&musicbrainz=1&discogs=1&freedb=2&discogsfuzzy=2&freedbfuzzy=3&fuzzy=1&toc=' + data.getValue(srow, 7), true);
       mbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
