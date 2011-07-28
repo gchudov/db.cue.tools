@@ -307,8 +307,8 @@ class phpCTDB{
 		else
                   $result = pg_query_params($freedbconn,
                     'SELECT * FROM entries ' .
-                    'WHERE toc <@ create_bounding_cube($1, $2) AND array_upper(offsets, 1)=$3 ' . 
-                    'ORDER BY cube_distance(toc, create_cube_from_toc($1)) LIMIT 5',
+                    'WHERE create_cube_from_toc(offsets) <@ create_bounding_cube($1, $2) AND array_upper(offsets, 1)=$3 ' . 
+                    'ORDER BY cube_distance(create_cube_from_toc(offsets), create_cube_from_toc($1)) LIMIT 7',
                     array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids)));
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
@@ -360,8 +360,8 @@ class phpCTDB{
 	  $result = pg_query_params($conn,
 	    'SELECT discogs_id, disc ' . 
 	    'FROM toc ' .
-	    'WHERE cube(duration) && cube_enlarge($1,2,$2)',
-	    array('(' . substr($offsets,1) . ')', count($ids) - 1));
+	    'WHERE create_cube_from_toc(duration) <@ create_bounding_cube($1,2) AND array_upper(duration, 1)=$2',
+	    array('{' . substr($offsets,1) . '}', count($ids) - 1));
 	  $dids = pg_fetch_all($result);
 	  pg_free_result($result);
 	  $res = array();
