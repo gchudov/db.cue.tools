@@ -2,10 +2,8 @@ CREATE LANGUAGE plpgsql;
 CREATE TYPE freedb_category_t AS ENUM ('blues','classical','country','data','folk','jazz','misc','newage','reggae','rock','soundtrack');
 CREATE TABLE entries (id integer not null, category freedb_category_t not null,
     offsets integer array not null, year integer, artist text, title text, genre text, 
-    extra text, track_title text array, track_extra text array, toc CUBE not null);
+    extra text, track_title text array, track_extra text array);
 CREATE UNIQUE INDEX entries_id_category on entries(id, category);
-CREATE INDEX entries_offsets on entries(offsets);
-CREATE INDEX entries_toc ON entries USING gist (toc);
 CREATE OR REPLACE FUNCTION entries_insert_before_F()
 RETURNS TRIGGER
  AS $BODY$
@@ -14,8 +12,6 @@ DECLARE
 BEGIN
     SET SEARCH_PATH TO PUBLIC;
     
-    new.toc := create_cube_from_toc(new.offsets);
-
     -- Find out if there is a row
     result = (select count(*) from entries
                 where id = new.id
@@ -31,7 +27,7 @@ BEGIN
                year = new.year, artist = new.artist,
                title = new.title, genre = new.genre,
                extra = new.extra, track_title = new.track_title,
-               track_extra = new.track_extra, toc = new.toc
+               track_extra = new.track_extra
          WHERE id = new.id
            AND category = new.category;
            
@@ -145,3 +141,6 @@ BEGIN
     RETURN str::cube;
 END;
 $$ LANGUAGE 'plpgsql' IMMUTABLE;
+
+CREATE INDEX entries_offsets on entries(offsets);
+CREATE INDEX entries_offsets_gist_index ON entries USING GIST (create_cube_from_toc(offsets));
