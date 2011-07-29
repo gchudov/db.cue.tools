@@ -51,12 +51,13 @@ if (pg_num_rows($result) > 1) die('not unique');
 $record = pg_fetch_array($result);
 pg_free_result($result);
 
+$toc = phpCTDB::toc_toc2s($record);
 $mbid = phpCTDB::toc2mbid($record);
-$mbmeta = phpCTDB::mblookup($mbid);
+$mbmeta = phpCTDB::mbzlookup(array($toc));
 $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmeta)));
-if (!phpCTDB::discogsids($mbmeta)) $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup(phpCTDB::toc_toc2s($record))));
-$mbmeta = array_merge($mbmeta, phpCTDB::freedblookup(phpCTDB::toc_toc2s($record)));
-if (!$mbmeta) $mbmeta = phpCTDB::freedblookup(phpCTDB::toc_toc2s($record), 300);
+if (!phpCTDB::discogsids($mbmeta)) $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup($toc)));
+$mbmeta = array_merge($mbmeta, phpCTDB::freedblookup($toc));
+if (!$mbmeta) $mbmeta = phpCTDB::freedblookup($toc, 300);
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = explode(' ', $record['trackcrcs']);
 $tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;

@@ -519,12 +519,38 @@ class phpCTDB{
 		return $res;
 	}
 
+	static function mbzlookup($tocs)
+	{
+	  $mbids = array();
+	  foreach($tocs as $toc)
+	    $mbids[] = phpCTDB::toc2mbid(phpCTDB::toc_s2toc($toc));
+	  $mbids = array_unique($mbids);
+	  $res = array();
+	  foreach ($mbids as $mbid)
+	    $res = array_merge($res, phpCTDB::mblookup($mbid));
+	  return $res;
+	}
+
 	static function mblookup($mbid)
 	{
 		$mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
 		if (!$mbconn)
 		  return array();
 		// first get cttoc ids; then select where WHERE mc.cdtoc IN $1;
+/*
+		  'SELECT ' .
+		  'cube_distance(toc, create_cube_from_durations($1)) AS distance, ' . 
+		  'm.id AS medium, ' . 
+		  'release, position, name ' . 
+		  'FROM tracklist_index ti ' . 
+		  'JOIN tracklist t ON t.id = ti.tracklist ' . 
+		  'JOIN medium m ON m.tracklist = ti.tracklist ' . 
+		  'WHERE ti.toc <@ create_bounding_cube($1, 1000) ' . 
+		  'AND t.track_count = $2 ' . 
+		  'AND m.format = 1 ' .
+		  'ORDER BY distance'
+*/
+
 		$mbresult = pg_query_params($mbconn,
 		  'SELECT ' . 
 		  'rgm.first_release_date_year, ' .
