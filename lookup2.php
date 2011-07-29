@@ -25,24 +25,23 @@ if ($doctdb)
   pg_free_result($result);
 }
 
-$mbids = array(phpCTDB::toc2mbid($toc));
+$tocs = array($toc_s);
 if ($records && $fuzzy)
   foreach($records as $record)
-    $mbids[] = phpCTDB::toc2mbid($record);
+    $tocs[] = phpCTDB::toc_toc2s($record);
 
 $mbmetas = array();
 for ($priority=1; $priority <= 7; $priority++)
 {
-  if (($dometa & 7) == $priority)
-    foreach (array_unique($mbids) as $mbid)
-      $mbmetas = array_merge($mbmetas, phpCTDB::mblookup($mbid)); 
-  if (($dodiscogs & 7) == $priority)
+  if ($dometa == $priority)
+    $mbmetas = array_merge($mbmetas, phpCTDB::mbzlookup($tocs)); 
+  if ($dodiscogs == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas))); 
-  if (($dodiscogsfuzzy & 7) == $priority)
+  if ($dodiscogsfuzzy == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup($toc_s))); 
-  if (($dofreedbfuzzy & 7) == $priority)
+  if ($dofreedbfuzzy == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 150)); 
-  else if (($dofreedb & 7) == $priority)
+  else if ($dofreedb == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 0)); 
   if ($mbmetas) break;
 }
