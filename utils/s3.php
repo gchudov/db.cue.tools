@@ -22,7 +22,7 @@ $result = pg_query("SELECT * FROM submissions2 where parfile IS NOT NULL AND NOT
 $records = pg_fetch_all($result);
 pg_free_result($result);
 
-if (!$records || count($records) == 0) die("nothing to do\n");
+if (!$records || count($records) == 0) die(gmdate("M j G:i:s") . " nothing to do\n");
 
 $ts = 0;
 foreach ($records as $record)
@@ -58,6 +58,6 @@ if (!$file_upload_response->areOK())
 }
 $dur = microtime(true) - $start;
 if ($dur < 0.01) $dur = 0.01;
-printf("COMMIT %d files, %d bytes in %d secs (%dKB/s)\n", count($records), $ts, $dur, (int)($ts/$dur/1024));
+printf("%s COMMIT %d files, %d bytes in %d secs (%dKB/s)\n", gmdate("M j G:i:s"), count($records), $ts, $dur, (int)($ts/$dur/1024));
 pg_query("COMMIT");
 }

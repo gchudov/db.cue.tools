@@ -52,8 +52,9 @@ $record = pg_fetch_array($result);
 pg_free_result($result);
 
 $toc = phpCTDB::toc_toc2s($record);
-$mbid = phpCTDB::toc2mbid($record);
+$mbid = phpCTDB::tocs2mbid($toc);
 $mbmeta = phpCTDB::mbzlookup(array($toc));
+if (!$mbmeta) $mbmeta = array_merge(phpCTDB::mbzlookup(array($toc), true));
 $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmeta)));
 if (!phpCTDB::discogsids($mbmeta)) $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup($toc)));
 $mbmeta = array_merge($mbmeta, phpCTDB::freedblookup($toc));
