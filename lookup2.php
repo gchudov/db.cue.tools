@@ -4,6 +4,7 @@ require_once 'XML/Serializer.php';
 
 $toc_s = $_GET['toc'] or die('Invalid arguments');
 $dometa = @$_GET['musicbrainz'];
+$dombzfuzzy = isset($_GET['musicbrainzfuzzy']) ? $_GET['musicbrainzfuzzy'] : false; // $dometa;
 $dofreedb = isset($_GET['freedb']) ? $_GET['freedb'] : false; // $dometa;
 $dofreedbfuzzy = isset($_GET['freedbfuzzy']) ? $_GET['freedbfuzzy'] : false; // $dometa;
 $dodiscogs = isset($_GET['discogs']) ? $_GET['discogs'] : false; // $dometa;
@@ -33,7 +34,9 @@ if ($records && $fuzzy)
 $mbmetas = array();
 for ($priority=1; $priority <= 7; $priority++)
 {
-  if ($dometa == $priority)
+  if ($dombzfuzzy == $priority)
+    $mbmetas = array_merge($mbmetas, phpCTDB::mbzlookup($tocs, true)); 
+  else if ($dometa == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::mbzlookup($tocs)); 
   if ($dodiscogs == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas))); 
@@ -71,7 +74,7 @@ else if ($type == 'xml')
       'confidence' => $record['confidence'], 
       'npar' => 8, 
       'stride' => 5880,
-      'hasparity' => ($record['s3'] == 't' ? sprintf("http://p.cuetools.net/%s%08x", str_replace('.','%2B',$record['tocid']), $record['crc32']) :  ($record['parfile'] ? "/" . $record['parfile'] : false)),
+      'hasparity' => ($record['hasparity'] == 't' ? sprintf("%s/%s%08x", $record['s3'] == 't' ? "http://p.cuetools.net" : "",str_replace('.','%2B',$record['tocid']), $record['crc32']) : false),
       'parity' => $record['parity'],
       'toc' => phpCTDB::toc_toc2s($record)
     );

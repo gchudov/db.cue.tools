@@ -44,9 +44,9 @@ if (@$_POST['parityfile'])
   $tmpname = $file['tmp_name'];
   @file_exists($tmpname) or die("file doesn't exist");
   if (filesize($tmpname) == 0) die("file is empty");
-  $tocidsafe = str_replace('.','+',$tocid); 
-  $target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
-  $parfile = sprintf("%s/%s.%08x.bin", $target_path, substr($tocidsafe, 2), $crc32);
+  //$tocidsafe = str_replace('.','+',$tocid); 
+  //$target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
+  $parfile = sprintf("parity/%s%08x",  str_replace('.','+', $tocid), $crc32);
 } else {
   $tmpname = false;
   $parfile = false;
@@ -60,8 +60,7 @@ if ($confirmid)
   $oldrecord = pg_fetch_array($result)
     or die('Query failed: ' . pg_last_error());
   pg_free_result($result);
-  $oldparfile = @$oldrecord['parfile'];
-  if (!$oldparfile || !@file_exists($oldparfile)) $needparfile = true;
+  if ($oldrecord['hasparity'] != 't') $needparfile = true;
   @$oldrecord['trackcrcs'] or $needparfile = true;
 }
 else
@@ -90,14 +89,14 @@ if (isset($_POST['barcode'])) $record3['barcode'] = $_POST['barcode'];
 
 if ($confirmid) {
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, parfile=$1, parity=$2, crc32=$3, trackcrcs=$4 WHERE id=$5 AND tocid=$6", array($parfile, $paritysample, $crc32, $trackcrcs, $sub2_id, $tocid));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $sub2_id, $tocid));
   else
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid));
   $result or die('Query failed: ' . pg_last_error());
   if (pg_affected_rows($result) < 1) die('not found');
   if (pg_affected_rows($result) > 1) die('not unique');
   pg_free_result($result);
-  if ($oldparfile && $parfile) unlink($oldparfile);
+  // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
   $record = false;
@@ -113,8 +112,7 @@ if ($confirmid) {
   $record['artist'] = @$_POST['artist'];
   $record['title'] = @$_POST['title'];
   $record['tocid'] = $tocid;
-  if ($parfile)
-    $record['parfile'] = $parfile;
+  if ($parfile) $record['hasparity'] = true;
 
   if (phpCTDB::toc2tocid($record) != $tocid) die('tocid mismatch');
 
@@ -137,7 +135,7 @@ pg_insert($dbconn, 'submissions', $record3)
 
 if ($parfile)
 {
-  @mkdir($target_path, 0777, true);
+  //@mkdir($target_path, 0777, true);
   move_uploaded_file($tmpname, $parfile)
     or die('error uploading file ' . $tmpname . ' to ' . $parfile);
 }
