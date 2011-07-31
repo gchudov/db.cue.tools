@@ -81,9 +81,10 @@ $ctdb = new phpCTDB($tmpname);
 $record = $ctdb->ctdb2pg();
 unset($ctdb);
 
-$tocidsafe = str_replace('.','+',$record['tocid']);
-$target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
-$record['parfile'] = sprintf("%s/%s.%08x.bin", $target_path, substr($tocidsafe, 2), $record['crc32']);
+//$tocidsafe = str_replace('.','+',$record['tocid']);
+//$target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
+$parityfile = sprintf("parity/%s%08x",  str_replace('.','+',$record['tocid']), $record['crc32']);
+$record['hasparity'] = true;
 
 if ($_SERVER['HTTP_USER_AGENT']=='CUETools 205')
 	die ('outdated client version');
@@ -110,9 +111,9 @@ $record3['time'] = gmdate ("Y-m-d H:i:s");
 $record3['ip'] = $_SERVER["REMOTE_ADDR"];
 pg_insert($dbconn,'submissions',$record3);
 
-@mkdir($target_path, 0777, true);
-if(!move_uploaded_file($tmpname, $record['parfile']))
-  die('error uploading file ' . $tmpname . ' to ' . $record['parfile']);
+//@mkdir($target_path, 0777, true);
+if(!move_uploaded_file($tmpname, $parityfile))
+  die('error uploading file ' . $tmpname . ' to ' . $parityfile);
 
 if ($rescount > 1)
   printf("%s has been updated", $record['tocid']);

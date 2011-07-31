@@ -309,7 +309,7 @@ class phpCTDB{
 		if ($fuzzy == 0)
 		  $result = pg_query_params($freedbconn,
 		    'SELECT * FROM entries ' .
-                    'WHERE offsets = $1;', array('{' . substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75) . '}')); 
+                    'WHERE array_to_string(offsets,\',\') = $1;', array(substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75))); 
 		else
                   $result = pg_query_params($freedbconn,
                     'SELECT * FROM entries ' .
