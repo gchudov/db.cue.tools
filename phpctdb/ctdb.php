@@ -298,6 +298,7 @@ class phpCTDB{
 
 	static function freedblookup($toc, $fuzzy = 0)
         {
+		//$freedbconn = pg_connect("dbname=freedb1 user=freedb_user port=5432");
 		$freedbconn = pg_connect("dbname=freedb user=freedb_user port=6543");
 		if (!$freedbconn)
 			return false;
@@ -308,33 +309,42 @@ class phpCTDB{
 		}
 		if ($fuzzy == 0)
 		  $result = pg_query_params($freedbconn,
-		    'SELECT * FROM entries ' .
+		    'SELECT e.id, e.freedbid, e.category, e.year, e.title, e.extra, an.name as artist, gn.name as genre ' . 
+		    'FROM entries e LEFT OUTER JOIN artist_names an ON an.id = e.artist LEFT OUTER JOIN genre_names gn ON gn.id = e.genre ' .
                     'WHERE array_to_string(offsets,\',\') = $1;', array(substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75))); 
 		else
                   $result = pg_query_params($freedbconn,
-                    'SELECT * FROM entries ' .
+		    'SELECT e.id, e.freedbid, e.category, e.year, e.title, e.extra, an.name as artist, gn.name as genre ' . 
+		    'FROM entries e LEFT OUTER JOIN artist_names an ON an.id = e.artist LEFT OUTER JOIN genre_names gn ON gn.id = e.genre ' .
                     'WHERE create_cube_from_toc(offsets) <@ create_bounding_cube($1, $2) AND array_upper(offsets, 1)=$3 ' . 
                     'ORDER BY cube_distance(create_cube_from_toc(offsets), create_cube_from_toc($1)) LIMIT 7',
                     array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids)));
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		if (!$meta) return array();
-		$validcategories = array("blues","classical","country",
-        	  "data","folk","jazz","misc",
-        	  "newage","reggae","rock","soundtrack");
 		$res = array();
 		foreach($meta as $r)
 		{
+		  $result = pg_query_params($freedbconn,
+		    'SELECT t.number, t.title, t.extra, an.name AS artist ' . 
+		    'FROM tracks t LEFT OUTER JOIN artist_names an ON an.id = t.artist ' .
+		    'WHERE t.id = $1;', array($r['id']));
+		  $tmeta = pg_fetch_all($result);
+		  pg_free_result($result);
 		  $tracklist = null;
-		  $track_title = null;
-		  $track_extra = null;
-		  if ($r['track_title']) phpCTDB::pg_array_parse($r['track_title'], $track_title);
-		  if ($r['track_extra']) phpCTDB::pg_array_parse($r['track_extra'], $track_extra);
-		  for ($i = 0; $i < count($track_title) || $i < count($track_extra); $i++)
-		    $tracklist[] = array('name' => @$track_title[$i], 'artist' => null, 'extra' => @$track_extra[$i]);
+		  if ($tmeta) {
+		    for ($i = 0; $i < count($ids) - 1; $i++)
+		      $tracklist[] = array();
+		    foreach ($tmeta as $t) {
+		      $i = $t['number'] - 1;
+		      $tracklist[$i]['name'] = $t['title'];
+		      $tracklist[$i]['artist'] = $t['artist'];
+		      $tracklist[$i]['extra'] = $t['extra'];
+		    }
+		  }
 		  $res[] = array(
 		    'source' => 'freedb',
-		    'id' => sprintf('%s/%08x', $validcategories[$r['category']], $r['id']),
+		    'id' => sprintf('%s/%08x', $r['category'], $r['freedbid']),
 		    'artistname' => $r['artist'],
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => $r['year'],
