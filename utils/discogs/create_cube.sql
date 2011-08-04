@@ -1,3 +1,5 @@
+CREATE LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION create_cube_from_toc(offsets INTEGER[]) RETURNS cube AS $$
 DECLARE
     point    cube;
