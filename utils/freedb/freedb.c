@@ -23,17 +23,17 @@ int c_ext = 0;
 int freedbid = 0;
 int category = -1;
 BZFILE * entries;
-BZFILE * disc_extra;
+//BZFILE * disc_extra;
 BZFILE * tracks;
 BZFILE * genre_names;
 BZFILE * artist_names;
-BZFILE * track_names;
-BZFILE * track_extra;
+//BZFILE * track_names;
+//BZFILE * track_extra;
 int bzerror;
 struct hsearch_data h_genre_names;
 struct hsearch_data h_artist_names;
-struct hsearch_data h_track_names;
-struct hsearch_data h_track_extra;
+//struct hsearch_data h_track_names;
+//struct hsearch_data h_track_extra;
 
 char * validcategories[] = {"blues","classical","country",
 	"data","folk","jazz","misc",
@@ -204,6 +204,7 @@ int charset_is_valid_latin1(const char *s)
 }
 
 regex_t regex_dtitle;
+regex_t regex_ttitle;
 
 int islatin1 = 1;
 int isutf8 = 1;
@@ -326,16 +327,27 @@ void output()
     static int max_genre_name_id = 0;
     static int max_artist_name_id = 0;
     static int max_track_name_id = 0;
-    static int max_track_extra_id = 0;
+//    static int max_track_extra_id = 0;
     regmatch_t res[3];
     char *dalbum = 0;
     char *dartist = 0;
     int i;
     char buf_artist[16] = "\\N";
     char buf_genre[16] = "\\N";
+    char buf_year[16] = "\\N";
     char* t_artist[100];
     char* t_title[100];
     int va = -1;
+    int num = -1;
+    char buf_offsets[100*7];
+    int i_offsets = 0;
+
+    for (i = 0; i < c_title; i++)
+      num &= ttitle[i] && 0 == regexec(&regex_ttitle, ttitle[i], 3, res, 0) && res[1].rm_so >= 0 && res[2].rm_so >= 0 && atoi(ttitle[i]) == i + 1;
+    if (num) for (i = 0; i < c_title; i++) {
+      regexec(&regex_ttitle, ttitle[i], 3, res, 0);
+      memmove(ttitle[i], ttitle[i] + res[2].rm_so, strlen(ttitle[i] + res[2].rm_so) + 1);
+    }
 
     pgquote(&dtitle, 0);
     pgquote(&dgenre, 0);
@@ -374,12 +386,14 @@ void output()
         BZ2_bzPrintf(artist_names, "%d\t%s\n", artist_name_id, dartist);
       snprintf(buf_artist, 16, "%d", artist_name_id);
     }
-    BZ2_bzPrintf(entries, "%d\t%d\t%s\t%s\t%s\t%s\t%s\t{%d", ++entryid, freedbid, validcategories[category], dyear && strcmp(dyear,"0") ? dyear : "\\N", buf_genre, buf_artist, dalbum, offsets[0]);
-    for (i = 1; i < n_offsets; i++)
-      BZ2_bzPrintf(entries, ",%d", offsets[i]);
-    BZ2_bzPrintf (entries, ",%d}\n", disc_length * 75);
-    if (strcmp(dext, "\\N"))
-      BZ2_bzPrintf(disc_extra, "%d\t%s\n", entryid, dext);
+    if (dyear && atoi(dyear) > 0)
+      snprintf(buf_year, 16, "%d", atoi(dyear));
+    for (i = 0; i < n_offsets; i++)
+      i_offsets += snprintf(buf_offsets + i_offsets, sizeof(buf_offsets) - i_offsets, ",%d", offsets[i]);
+    buf_offsets[i_offsets] = 0;
+    BZ2_bzPrintf(entries, "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t{%s,%d}\n", ++entryid, freedbid, validcategories[category], buf_year, buf_genre, buf_artist, dalbum, dext, buf_offsets + 1, disc_length * 75);
+//    if (strcmp(dext, "\\N"))
+//      BZ2_bzPrintf(disc_extra, "%d\t%s\n", entryid, dext);
     for (i = 0; i < c_title; i++) {
       t_artist[i] = "\\N";
       t_title[i] = ttitle[i];
@@ -392,26 +406,27 @@ void output()
       t_title[i] = ttitle[i] + res[2].rm_so;
     }
     for (i = 0; i < n_offsets; i++) {
-      int track_name_id = 0;
-      int track_extra_id = 0;
+      char * track_name = i < c_title ? t_title[i] : "\\N";
+      char * track_extra = i < c_ext ? t_ext[i] : "\\N";
+//      int track_extra_id = 0;
       int artist_name_id = 0;
       if (i < c_title && strcmp(t_artist[i], "\\N"))
 	if (!lookup(&h_artist_names, t_artist[i], &max_artist_name_id, &artist_name_id))
           BZ2_bzPrintf(artist_names, "%d\t%s\n", artist_name_id, t_artist[i]);
-      if (i < c_title && strcmp(t_title[i], "\\N"))
-	if (!lookup(&h_track_names, t_title[i], &max_track_name_id, &track_name_id))
-          BZ2_bzPrintf(track_names, "%d\t%s\n", track_name_id, t_title[i]);
-      if (i < c_ext && strcmp(t_ext[i], "\\N"))
-	if (!lookup(&h_track_extra, t_ext[i], &max_track_extra_id, &track_extra_id))
-          BZ2_bzPrintf(track_extra, "%d\t%s\n", track_extra_id, t_ext[i]);
-      if (track_name_id || track_extra_id || artist_name_id) {
-	char buf1[16] = "\\N";
-	char buf2[16] = "\\N";
+//      if (i < c_title && strcmp(t_title[i], "\\N"))
+//	if (!lookup(&h_track_names, t_title[i], &max_track_name_id, &track_name_id))
+//          BZ2_bzPrintf(track_names, "%d\t%s\n", track_name_id, t_title[i]);
+//      if (i < c_ext && strcmp(t_ext[i], "\\N"))
+//	if (!lookup(&h_track_extra, t_ext[i], &max_track_extra_id, &track_extra_id))
+//          BZ2_bzPrintf(track_extra, "%d\t%s\n", track_extra_id, t_ext[i]);
+      if (strcmp(track_name,"\\N") || strcmp(track_extra,"\\N") || artist_name_id) {
+//	char buf1[16] = "\\N";
+//	char buf2[16] = "\\N";
 	char buf3[16] = "\\N";
-        if (track_name_id) snprintf(buf1, 16, "%d", track_name_id);
-        if (track_extra_id) snprintf(buf2, 16, "%d", track_extra_id);
+//        if (track_name_id) snprintf(buf1, 16, "%d", track_name_id);
+//        if (track_extra_id) snprintf(buf2, 16, "%d", track_extra_id);
         if (artist_name_id) snprintf(buf3, 16, "%d", artist_name_id);
-        BZ2_bzPrintf(tracks, "%d\t%d\t%s\t%s\t%s\n", entryid, i+1, buf1, buf3, buf2);
+        BZ2_bzPrintf(tracks, "%d\t%d\t%s\t%s\t%s\n", entryid, i+1, buf3, track_extra, track_name);
       }
     }
 }
@@ -477,26 +492,26 @@ int main(void)
     regmatch_t res[10];
     int empty = 1;
 
-    hcreate_r(10000000, &h_track_names); 
-    hcreate_r(10000, &h_genre_names); 
-    hcreate_r(100000, &h_artist_names); 
-    hcreate_r(100000, &h_track_extra); 
+//    hcreate_r(30000000, &h_track_names); 
+    hcreate_r(200000, &h_genre_names); 
+    hcreate_r(4000000, &h_artist_names); 
+//    hcreate_r(900000, &h_track_extra); 
 
     entries = BZ2_bzWriteOpen(&bzerror, fopen("freedb_entries.sql.bz2", "wb"), 1, 0, 0);
-    disc_extra = BZ2_bzWriteOpen(&bzerror, fopen("freedb_disc_extra.sql.bz2", "wb"), 1, 0, 0);
+//    disc_extra = BZ2_bzWriteOpen(&bzerror, fopen("freedb_disc_extra.sql.bz2", "wb"), 1, 0, 0);
     tracks = BZ2_bzWriteOpen(&bzerror, fopen("freedb_tracks.sql.bz2", "wb"), 1, 0, 0);
     genre_names = BZ2_bzWriteOpen(&bzerror, fopen("freedb_genre_names.sql.bz2", "wb"), 1, 0, 0);
     artist_names = BZ2_bzWriteOpen(&bzerror, fopen("freedb_artist_names.sql.bz2", "wb"), 1, 0, 0);
-    track_names = BZ2_bzWriteOpen(&bzerror, fopen("freedb_track_names.sql.bz2", "wb"), 1, 0, 0);
-    track_extra = BZ2_bzWriteOpen(&bzerror, fopen("freedb_track_extra.sql.bz2", "wb"), 1, 0, 0);
+//    track_names = BZ2_bzWriteOpen(&bzerror, fopen("freedb_track_names.sql.bz2", "wb"), 1, 0, 0);
+//    track_extra = BZ2_bzWriteOpen(&bzerror, fopen("freedb_track_extra.sql.bz2", "wb"), 1, 0, 0);
 
-    BZ2_bzPrintf(entries, "COPY entries (id, freedbid, category, year, genre, artist, title, offsets) FROM stdin;\n");
-    BZ2_bzPrintf(disc_extra, "COPY disc_extra (id, extra) FROM stdin;\n");
-    BZ2_bzPrintf(tracks, "COPY tracks (id, number, name, artist, extra) FROM stdin;\n");
+    BZ2_bzPrintf(entries, "COPY entries (id, freedbid, category, year, genre, artist, title, extra, offsets) FROM stdin;\n");
+//    BZ2_bzPrintf(disc_extra, "COPY disc_extra (id, extra) FROM stdin;\n");
+    BZ2_bzPrintf(tracks, "COPY tracks (id, number, artist, extra, title) FROM stdin;\n");
     BZ2_bzPrintf(genre_names, "COPY genre_names (id, name) FROM stdin;\n");
     BZ2_bzPrintf(artist_names, "COPY artist_names (id, name) FROM stdin;\n");
-    BZ2_bzPrintf(track_names, "COPY track_names (id, name) FROM stdin;\n");
-    BZ2_bzPrintf(track_extra, "COPY track_extra (id, extra) FROM stdin;\n");
+//    BZ2_bzPrintf(track_names, "COPY track_names (id, name) FROM stdin;\n");
+//    BZ2_bzPrintf(track_extra, "COPY track_extra (id, extra) FROM stdin;\n");
 
     compile(&regex_id, "^([a-z]{1,12})/([0-9a-f]{8})$", REG_EXTENDED);
     compile(&regex_offsets, "^#[ \t]*Track frame offsets:[ \t]*$", REG_EXTENDED);
@@ -505,6 +520,7 @@ int main(void)
     compile(&regex_entry, "^([A-Z]+)=(.+)$", REG_EXTENDED);
     compile(&regex_entry1, "^([A-Z]+)([0-9]+)=(.+)$", REG_EXTENDED);
     compile(&regex_dtitle, "^(.*) +/ +(.*)$", REG_EXTENDED);
+    compile(&regex_ttitle, "^([0-9]+)[-. /]*(.*)$", REG_EXTENDED);
     
     while (fgets(buf, sizeof(buf), stdin)) 
     {
@@ -583,17 +599,17 @@ int main(void)
     if (category >= 0) output();
 
     BZ2_bzPrintf(entries, "\\.\n");
-    BZ2_bzPrintf(disc_extra, "\\.\n");
+//    BZ2_bzPrintf(disc_extra, "\\.\n");
     BZ2_bzPrintf(tracks, "\\.\n");
     BZ2_bzPrintf(genre_names, "\\.\n");
     BZ2_bzPrintf(artist_names, "\\.\n");
-    BZ2_bzPrintf(track_names, "\\.\n");
-    BZ2_bzPrintf(track_extra, "\\.\n");
+//    BZ2_bzPrintf(track_names, "\\.\n");
+//    BZ2_bzPrintf(track_extra, "\\.\n");
     BZ2_bzWriteClose(&bzerror, entries, 0, NULL, NULL);
-    BZ2_bzWriteClose(&bzerror, disc_extra, 0, NULL, NULL);
+//    BZ2_bzWriteClose(&bzerror, disc_extra, 0, NULL, NULL);
     BZ2_bzWriteClose(&bzerror, tracks, 0, NULL, NULL);
     BZ2_bzWriteClose(&bzerror, genre_names, 0, NULL, NULL);
     BZ2_bzWriteClose(&bzerror, artist_names, 0, NULL, NULL);
-    BZ2_bzWriteClose(&bzerror, track_names, 0, NULL, NULL);
-    BZ2_bzWriteClose(&bzerror, track_extra, 0, NULL, NULL);
+//    BZ2_bzWriteClose(&bzerror, track_names, 0, NULL, NULL);
+//    BZ2_bzWriteClose(&bzerror, track_extra, 0, NULL, NULL);
 }

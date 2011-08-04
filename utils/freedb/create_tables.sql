@@ -1,53 +1,76 @@
+--
+-- PostgreSQL database dump
+--
+
+--
+-- Name: freedb_category_t; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE freedb_category_t AS ENUM (
+    'blues',
+    'classical',
+    'country',
+    'data',
+    'folk',
+    'jazz',
+    'misc',
+    'newage',
+    'reggae',
+    'rock',
+    'soundtrack'
+);
+
+
+--
+-- Name: artist_names; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE artist_names (
+    id integer NOT NULL,
+    name text NOT NULL
+);
+
+
+--
+-- Name: entries; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE entries (
+    id integer NOT NULL,
+    freedbid integer NOT NULL,
+    category freedb_category_t NOT NULL,
+    year integer,
+    genre integer,
+    artist integer,
+    title text,
+    extra text,
+    offsets integer[] NOT NULL
+);
+
+
+--
+-- Name: genre_names; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE genre_names (
+    id integer NOT NULL,
+    name text NOT NULL
+);
+
+
+--
+-- Name: tracks; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE tracks (
+    id integer NOT NULL,
+    number integer NOT NULL,
+    artist integer,
+    extra text,
+    title text
+);
+
 CREATE LANGUAGE plpgsql;
-CREATE TYPE freedb_category_t AS ENUM ('blues','classical','country','data','folk','jazz','misc','newage','reggae','rock','soundtrack');
-CREATE TABLE entries (id integer not null, category freedb_category_t not null,
-    offsets integer array not null, year integer, artist text, title text, genre text, 
-    extra text, track_title text array, track_extra text array);
-CREATE UNIQUE INDEX entries_id_category on entries(id, category);
-CREATE OR REPLACE FUNCTION entries_insert_before_F()
-RETURNS TRIGGER
- AS $BODY$
-DECLARE
-    result INTEGER; 
-BEGIN
-    SET SEARCH_PATH TO PUBLIC;
-    
-    -- Find out if there is a row
-    result = (select count(*) from entries
-                where id = new.id
-                  and category = new.category
-               );
-
-    -- On the update branch, perform the update
-    -- and then return NULL to prevent the 
-    -- original insert from occurring
-    IF result = 1 THEN
-        UPDATE entries 
-           SET offsets = new.offsets,
-               year = new.year, artist = new.artist,
-               title = new.title, genre = new.genre,
-               extra = new.extra, track_title = new.track_title,
-               track_extra = new.track_extra
-         WHERE id = new.id
-           AND category = new.category;
-           
-        RETURN null;
-    END IF;
-    
-    -- The default branch is to return "NEW" which
-    -- causes the original INSERT to go forward
-    RETURN new;
-
-END; $BODY$
-LANGUAGE 'plpgsql' SECURITY DEFINER;
-
--- That extremely annoying second command you always
--- need for Postgres triggers.
-CREATE TRIGGER entries_insert_before_T
-   before insert
-   ON entries
-   FOR EACH ROW
-   EXECUTE PROCEDURE entries_insert_before_F();
 
 CREATE OR REPLACE FUNCTION create_cube_from_toc(offsets INTEGER[]) RETURNS cube AS $$
 DECLARE
@@ -142,5 +165,7 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql' IMMUTABLE;
 
-CREATE INDEX entries_offsets on entries(offsets);
-CREATE INDEX entries_offsets_gist_index ON entries USING GIST (create_cube_from_toc(offsets));
+--
+-- PostgreSQL database dump complete
+--
+
