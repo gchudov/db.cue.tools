@@ -46,6 +46,13 @@ function ctdbMetaData(json)
     mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
     mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    mbdata.setProperty(row, 10, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    if (mbdata.getValue(row,10) != null) {
+      var diff = 100 - mbdata.getValue(row,10);
+      color = (255 - diff).toString(16).toUpperCase() + (255 - Math.floor(diff*0.7)).toString(16).toUpperCase() + "FF";
+      mbdata.setProperty(row, 10, 'style', 'background-color:#' + color + ';');
+    //mbdata.setFormattedValue(row, 10, '<span style="background-color:#' + color + ';">' + mbdata.getValue(row,10) + '</span>');
+    }
   }
   return mbdata;
 };

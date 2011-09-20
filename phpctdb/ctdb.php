@@ -131,6 +131,7 @@ class phpCTDB{
             array('v' => $mbr['barcode']),
             array('v' => $mbr['id']),
             array('v' => $mbr['source']),
+            array('v' => $mbr['relevance']),
             ));
     }
     $json_releases_table = array(
@@ -145,6 +146,7 @@ class phpCTDB{
           array('label' => 'Barcode', 'type' => 'string'),
           array('label' => 'Id', 'type' => 'string'),
           array('label' => 'Source', 'type' => 'string'),
+          array('label' => 'Rel', 'type' => 'number'),
           ), 
         'rows' => $json_releases);
     return json_encode($json_releases_table);
@@ -315,10 +317,12 @@ class phpCTDB{
 		else
                   $result = pg_query_params($freedbconn,
 		    'SELECT e.id, e.freedbid, e.category, e.year, e.title, e.extra, an.name as artist, gn.name as genre ' . 
+		    ', cube_distance(create_cube_from_toc(offsets), create_cube_from_toc($1)) as distance ' .
 		    'FROM entries e LEFT OUTER JOIN artist_names an ON an.id = e.artist LEFT OUTER JOIN genre_names gn ON gn.id = e.genre ' .
                     'WHERE create_cube_from_toc(offsets) <@ create_bounding_cube($1, $2) AND array_upper(offsets, 1)=$3 ' . 
-                    'ORDER BY cube_distance(create_cube_from_toc(offsets), create_cube_from_toc($1)) LIMIT 7',
-                    array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids)));
+                    'ORDER BY distance LIMIT 30',
+                    array('{' . substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75) . '}', $fuzzy, count($ids)));
+                    //array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids)));
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		if (!$meta) return array();
@@ -359,48 +363,30 @@ class phpCTDB{
 		    'info_url' => null,
 		    'releasedate' => null,
 		    'country' => null,
+		    'relevance' => (isset($r['distance']) ? (int)(exp(-$r['distance']/450)*100) : null),
 		  );
 		}
 		return $res;
         }
-
-	static function discogsfuzzylookup($toc)
-	{
-          $conn = pg_connect("dbname=discogs user=discogs port=6543");
-          if (!$conn)
-            return array();
-          $ids = explode(':', $toc);
-          $offsets = '';
-          for ($tr = 1; $tr < count($ids); $tr++)
-            $offsets .= ',' . round((abs($ids[$tr]) - abs($ids[$tr-1])) / 75);
-	  $result = pg_query_params($conn,
-	    'SELECT discogs_id, disc ' . 
-	    'FROM toc ' .
-	    'WHERE create_cube_from_toc(duration) <@ create_bounding_cube($1,2) AND array_upper(duration, 1)=$2',
-	    array('{' . substr($offsets,1) . '}', count($ids) - 1));
-	  $dids = pg_fetch_all($result);
-	  pg_free_result($result);
-	  $res = array();
-	  if (!$dids) return array();
-	  foreach($dids as $did)
-	    $res[] = $did['discogs_id'] . '/' . $did['disc'];
-	  return $res;
-	}
 
 	static function discogsids($mbmetas)
         {
 	    $dids = null;
 	    foreach($mbmetas as $m) {
 	      $d = @$m['discogs_id'];
-	      if ($d != null) $dids[] = $d . '/' . @$m['discnumber'];
+	      if ($d != null) {
+	        $clone = false;
+	        foreach($mbmetas as $r)
+		  $clone |= $r['source'] == 'discogs' && $r['id'] == $d;
+		if (!$clone)
+		  $dids[] = $d . '/' . @$m['discnumber'] . '/' . @$m['relevance'];
+	      }
 	    }
 	    return $dids;
 	}
 
-	static function discogslookup($dids)
+	static function discogslookup($dids, $fuzzy = null)
 	{
-		if (!$dids)
-		  return array();
 		$conn = pg_connect("dbname=discogs user=discogs port=6543");
 		if (!$conn)
 		  return array();
@@ -445,26 +431,69 @@ class phpCTDB{
 'Wallis and Futuna' => 'WF','Yugoslavia' => 'YU','Zambia' => 'ZM','Zimbabwe' => 'ZW'
 );
 		$ids = array();
-		$dno = array();
-		foreach($dids as $did) {
-		  $iddno = explode('/', $did);
-		  $ids[] = $iddno[0];
-		  $dno[$iddno[0]] = $iddno[1];
+		if (!$fuzzy) {
+		  if (!$dids)
+		    return array();
+		  foreach($dids as $did) {
+		    $iddno = explode('/', $did);
+		    $ids[] = $iddno[0];
+		  }
+		  $result = pg_query_params($conn,
+		    'SELECT ' . 
+		    '  r.discogs_id, ' . 
+		    '  r.title, ' . 
+		    '  r.country, ' . 
+		    '  r.released, ' .
+		    '  r.artist_credit, ' .
+		    '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
+		    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
+		    'FROM release r ' .
+		    'WHERE r.discogs_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
+		} else {
+	          $toff = explode(':', $fuzzy);
+	          $offsets = '';
+	          for ($tr = 1; $tr < count($toff); $tr++)
+	            $offsets .= ',' . round((abs($toff[$tr]) - abs($toff[$tr-1])) / 75);
+		  $result = pg_query_params($conn,
+		    'SELECT ' .
+		    '  cube_distance(create_cube_from_toc(t.duration), create_cube_from_toc($1)) as distance, ' . 
+		    '  t.disc, ' . 
+                    '  r.discogs_id, ' .
+                    '  r.title, ' .
+                    '  r.country, ' .
+                    '  r.released, ' .
+                    '  r.artist_credit, ' .
+                    '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
+                    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
+		    'FROM toc t ' .
+		    'INNER JOIN release r ON r.discogs_id = t.discogs_id ' .
+		    'WHERE create_cube_from_toc(t.duration) <@ create_bounding_cube($1,3) AND array_upper(t.duration, 1)=$2 '.
+	            'ORDER BY distance LIMIT 30',
+		    array('{' . substr($offsets,1) . '}', count($toff) - 1));
 		}
-		$result = pg_query_params($conn,
-		  'SELECT ' . 
-		  'r.discogs_id, ' . 
-		  'r.title, ' . 
-		  'r.country, ' . 
-		  'r.released, ' .
-		  'r.artist_credit, ' .
-		  '(SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
-		  '(SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
-		  'FROM release r ' .
-		  'WHERE r.discogs_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		if (!$meta) return array();
+		if (!$fuzzy) {
+		  $dno = array();
+		  $dis = array();
+		  foreach($dids as $did) {
+		    $iddno = explode('/', $did);
+		    $dno[$iddno[0]] = $iddno[1];
+		    if (@$iddno[2])
+		    $dis[$iddno[0]] = $iddno[2];
+		  }
+		  for($i = 0; $i < count($meta); $i++) {
+		    $id = $meta[$i]['discogs_id'];
+		    $meta[$i]['disc'] = $dno[$id];
+		    $meta[$i]['relevance'] = @$dis[$id] ;
+		  }
+		} else {
+		  for($i = 0; $i < count($meta); $i++) {
+		    $ids[] = $meta[$i]['discogs_id'];
+		    $meta[$i]['relevance'] = (int)(exp(-$meta[$i]['distance']/6)*100);
+		  }
+		}
 		$result = pg_query_params($conn,
 		  'SELECT rl.release_id, rl.catno, l.name ' . 
 		  'FROM releases_labels rl ' .
@@ -485,7 +514,7 @@ class phpCTDB{
 		foreach($meta as $r)
 		  if ($r['artist_credit'] != null)
 		    $artist_credit[$r['artist_credit']] = null;
-		foreach($trackmeta as $t)
+		if ($trackmeta) foreach($trackmeta as $t)
 		  if ($t['artist_credit'] != null)
 		    $artist_credit[$t['artist_credit']] = null;
 		$acs = array_keys($artist_credit);
@@ -510,8 +539,8 @@ class phpCTDB{
 		  foreach($labelmeta as $l)
 		    if ($l['release_id'] == $r['discogs_id'])
 		      $label[] = array('catno' => $l['catno'], 'name' => $l['name']);
-		  foreach($trackmeta as $t)
-		    if ($t['release_id'] == $r['discogs_id'] && $t['discno'] == $dno[$r['discogs_id']])
+		  if ($trackmeta) foreach($trackmeta as $t)
+		    if ($t['release_id'] == $r['discogs_id'] && $t['discno'] == $r['disc'])
 		      $tracklist[] = array('name' => $t['name'], 'artist' => @$artist_credit[$t['artist_credit']]);
 		  $res[] = array(
 		    'source' => 'discogs',
@@ -523,7 +552,7 @@ class phpCTDB{
 		    'extra' => null, //$r['extra'],
 		    'tracklist' => $tracklist,
 		    'label' => $label,
-		    'discnumber' => $dno[$r['discogs_id']],
+		    'discnumber' => $r['disc'],
 		    'totaldiscs' => $r['totaldiscs'],
 		    'discname' => null,
 		    'barcode' => null,
@@ -531,6 +560,7 @@ class phpCTDB{
 		    'info_url' => null,
 		    'releasedate' => $r['released'],
 		    'country' => $country_iso,
+		    'relevance' => @$r['relevance'],
 		  );
 		}
 		return $res;
@@ -589,7 +619,7 @@ class phpCTDB{
 	      'WHERE ti.toc <@ create_bounding_cube($1, 3000) ' . 
 	      'AND t.track_count = array_upper($1, 1) ' . 
 	      'AND (m.format = 1 OR m.format IS NULL) ' .
-	      'ORDER BY distance', array('{' . implode(',', $dur) . '}'));
+	      'ORDER BY distance LIMIT 30', array('{' . implode(',', $dur) . '}'));
 	  } else {
 		$mbresult = pg_query_params($mbconn,
 		  'SELECT ' . 
@@ -686,6 +716,7 @@ class phpCTDB{
 		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
 		  $r['tracklist'] = $tltl[$r['tracklistno']];
 		  $r['source'] = 'musicbrainz';
+		  $r['relevance'] = isset($r['distance']) ? (int)(exp(-$r['distance']/6000)*100) : null;
 		  $catno = false;
 		  $label = false;
 		  $labelcat = false;

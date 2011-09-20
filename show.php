@@ -55,10 +55,12 @@ $toc = phpCTDB::toc_toc2s($record);
 $mbid = phpCTDB::tocs2mbid($toc);
 $mbmeta = phpCTDB::mbzlookup(array($toc));
 if (!$mbmeta) $mbmeta = array_merge(phpCTDB::mbzlookup(array($toc), true));
+$mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(null, $toc));
 $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmeta)));
-if (!phpCTDB::discogsids($mbmeta)) $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup($toc)));
-$mbmeta = array_merge($mbmeta, phpCTDB::freedblookup($toc));
-if (!$mbmeta) $mbmeta = phpCTDB::freedblookup($toc, 300);
+$fbmeta = phpCTDB::freedblookup($toc);
+if (!$fbmeta) $fbmeta = phpCTDB::freedblookup($toc, 300);
+$mbmeta = array_merge($mbmeta, $fbmeta);
+//if (!$mbmeta) $mbmeta = phpCTDB::freedblookup($toc, 300);
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = explode(' ', $record['trackcrcs']);
 $tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;
@@ -100,7 +102,8 @@ if ($mbmeta)
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-    <script type='text/javascript' src="http://s3.cuetools.net/ctdb10.js"></script>
+    <script type='text/javascript' src="/s3/ctdb10.js"></script>
+    <!rem script type='text/javascript' src="http://s3.cuetools.net/ctdb10.js"></script>
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
       function drawTable() {
@@ -178,7 +181,7 @@ printf('<br>');
 
 printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?toc=%s&musicbrainz=1&discogs=1&freedb=2&freedbfuzzy=3&discogsfuzzy=3&fuzzy=1">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);

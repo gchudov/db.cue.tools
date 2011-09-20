@@ -3,17 +3,36 @@ require_once 'phpctdb/ctdb.php';
 require_once 'XML/Serializer.php';
 
 $toc_s = $_GET['toc'] or die('Invalid arguments');
-$dometa = @$_GET['musicbrainz'];
-$dombzfuzzy = isset($_GET['musicbrainzfuzzy']) ? $_GET['musicbrainzfuzzy'] : false; // $dometa;
-$dofreedb = isset($_GET['freedb']) ? $_GET['freedb'] : false; // $dometa;
-$dofreedbfuzzy = isset($_GET['freedbfuzzy']) ? $_GET['freedbfuzzy'] : false; // $dometa;
-$dodiscogs = isset($_GET['discogs']) ? $_GET['discogs'] : false; // $dometa;
-$dodiscogsfuzzy = isset($_GET['discogsfuzzy']) ? $_GET['discogsfuzzy'] : false; // $dometa;
+$dombz = $dombzfuzzy = $dofreedb = $dofreedbfuzzy = $dodiscogs = $dodiscogsfuzzy = 0;
+if(isset($_GET['metadata']))
+{
+  if ($_GET['metadata'] == 'fast') {
+    $dombz = $dodiscogs = 1;
+    $dofreedb = 2;
+  }
+  if ($_GET['metadata'] == 'default') {
+    $dombz = $dodiscogs = 1;
+    $dombzfuzzy = $dodiscogsfuzzy = $dofreedb = 2;
+    $dofreedbfuzzy = 3;
+  }
+  if ($_GET['metadata'] == 'extensive') {
+    $dombz = $dodiscogs = $dombzfuzzy = $dodiscogsfuzzy = $dofreedbfuzzy = 1;
+  }
+}
+if (isset($_GET['musicbrainz'])) $dombz = $_GET['musicbrainz'];
+if ($dombz == 1 && $dombzfuzzy == 0) $dombzfuzzy = 2;
+if (isset($_GET['musicbrainzfuzzy'])) $dombzfuzzy = $_GET['musicbrainzfuzzy'];
+if (isset($_GET['freedb'])) $dofreedb = $_GET['freedb'];
+if (isset($_GET['freedbfuzzy'])) $dofreedbfuzzy = $_GET['freedbfuzzy'];
+if (isset($_GET['discogs'])) $dodiscogs = $_GET['discogs'];
+if (isset($_GET['discogsfuzzy'])) $dodiscogsfuzzy = $_GET['discogsfuzzy'];
+
 $doctdb = isset($_GET['ctdb']) ? $_GET['ctdb'] : 1;
 $type = isset($_GET['type']) ? $_GET['type'] : 'xml';
 $fuzzy = @$_GET['fuzzy'];
 $toc = phpCTDB::toc_s2toc($toc_s);
 $records = array();
+
 if ($doctdb)
 {
   $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543") or die('Could not connect: ' . pg_last_error());
@@ -36,18 +55,18 @@ for ($priority=1; $priority <= 7; $priority++)
 {
   if ($dombzfuzzy == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::mbzlookup($tocs, true)); 
-  else if ($dometa == $priority)
+  if ($dombz == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::mbzlookup($tocs)); 
-  if ($dodiscogs == $priority)
-    $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas))); 
   if ($dodiscogsfuzzy == $priority)
-    $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsfuzzylookup($toc_s))); 
+    $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(null, $toc_s));
   if ($dofreedbfuzzy == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 150)); 
   else if ($dofreedb == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::freedblookup($toc_s, 0)); 
   if ($mbmetas) break;
 }
+if ($dodiscogs != 0)
+  $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas))); 
 
 if ($type == 'json')
 {
@@ -74,7 +93,7 @@ else if ($type == 'xml')
       'confidence' => $record['confidence'], 
       'npar' => 8, 
       'stride' => 5880,
-      'hasparity' => ($record['hasparity'] == 't' ? sprintf("%s/%s%08x", $record['s3'] == 't' ? "http://p.cuetools.net" : "",str_replace('.','%2B',$record['tocid']), $record['crc32']) : false),
+      'hasparity' => ($record['hasparity'] == 't' ? sprintf("%s/%s%08x", $record['s3'] == 't' ? "http://p.cuetools.net" : "parity",str_replace('.','%2B',$record['tocid']), $record['crc32']) : false),
       'parity' => $record['parity'],
       'toc' => phpCTDB::toc_toc2s($record)
     );
@@ -107,6 +126,7 @@ else if ($type == 'xml')
       'discogs_id' => @$mbmeta['discogs_id'],
       'genre' => @$mbmeta['genre'],
       'extra' => @$mbmeta['extra'],
+      'relevance' => $mbmeta['relevance'],
     );
   }
   $ctdbdata = array('entry' => $xmlentry, 'musicbrainz' => $xmlmbmeta);

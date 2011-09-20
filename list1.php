@@ -2,7 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-<script type='text/javascript' src="http://s3.cuetools.net/ctdb10.js"></script>
+<script type='text/javascript' src="/s3/ctdb10.js"></script>
+<!rem script type='text/javascript' src="http://s3.cuetools.net/ctdb10.js"></script>
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
 function drawTable() 
@@ -50,7 +51,7 @@ function drawTable()
       }
       var srow = table.getSelection()[0].row;
       var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&musicbrainz=1&discogs=1&freedb=2&musicbrainzfuzzy=2&discogsfuzzy=2&freedbfuzzy=3&fuzzy=1&toc=' + data.getValue(srow, 7), true);
+      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&metadata=default&fuzzy=1&toc=' + data.getValue(srow, 7), true);
       mbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
       xmlhttp.onreadystatechange=function() {
         if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
