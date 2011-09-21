@@ -1,8 +1,12 @@
-psql -U postgres -c "DROP DATABASE freedb1"
-psql -U postgres -c "CREATE DATABASE freedb1"
-psql -U postgres -c "ALTER DATABASE freedb1 OWNER TO freedb_user"
-psql -U postgres -d freedb1 -f /usr/share/pgsql/contrib/cube.sql
-psql -U freedb_user -d freedb1 -f create_tables.sql
-bzcat /tmp/freedb_*sql.bz2 | psql -U freedb_user -d freedb1
-psql -U freedb_user -d freedb1 -f create_keys.sql
-psql -U postgres -d freedb1 -c "VACUUM"
+dbname=freedb1
+dbuser=freedb_user
+psql -U postgres -c "DROP DATABASE $dbname"
+psql -U postgres -c "CREATE DATABASE $dbname"
+psql -U postgres -c "ALTER DATABASE $dbname OWNER TO $dbuser"
+psql -U postgres -d $dbname -f /usr/share/pgsql/contrib/cube.sql
+psql -U $dbuser -d $dbname -f create_tables.sql
+for table in artist_names genre_names entries tracks ; do
+  s3cmd --no-progress get s3://private.cuetools.net/freedb/`date +%Y%m`01/freedb_"$table".sql.bz2 - | nice -n 19 bunzip2 | psql -U $dbuser -d $dbname
+done
+psql -U $dbuser -d $dbname -f create_keys.sql
+psql -U postgres -d $dbname -c "VACUUM"
