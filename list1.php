@@ -2,8 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-<script type='text/javascript' src="/s3/ctdb10.js"></script>
-<!rem script type='text/javascript' src="http://s3.cuetools.net/ctdb10.js"></script>
+<script type='text/javascript' src="http://s3.cuetools.net/ctdb11.js"></script>
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
 function drawTable() 
