@@ -4,79 +4,78 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <title>CTDB Statistics</title>
-    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
-    <script type="text/javascript">
-      google.load('visualization', '1', {packages: ['corechart']});
+    <script type="text/javascript"
+      src='https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1"}]}'>
     </script>
     <script type="text/javascript">
       function drawSubmissionsStacked() {
-	var xmlhttp = new XMLHttpRequest();
-  	xmlhttp.open("GET", '/statsjson.php?type=submissions&stacked=1', false);
-        xmlhttp.send();
-        var data = new google.visualization.DataTable(xmlhttp.responseText);
-        var ac = new google.visualization.AreaChart(document.getElementById('submissions_stacked'));
-        ac.draw(data, {
-          title : 'Cummulative submissions', // ' since' 
-          isStacked: 'true',
-          width: 800,
-          height: 400,
-          vAxis: {title: "Submissions"},
-          hAxis: {title: "Day"}
+        var wrapper = new google.visualization.ChartWrapper({
+          chartType: 'AreaChart',
+          dataSourceUrl: '/statsjson.php?type=submissions&stacked=1',
+          options: {
+            title : 'Cummulative submissions', // ' since' 
+            isStacked: 'true',
+            width: 800,
+            height: 400,
+            vAxis: {title: "Submissions"},
+            hAxis: {title: "Day"}
+          },
+          containerId: 'submissions_stacked'
         });
+        wrapper.draw();
       }
       function drawSubmissions() {
-	var xmlhttp = new XMLHttpRequest();
-  	xmlhttp.open("GET", '/statsjson.php?type=submissions', false);
-        xmlhttp.send();
-        var data = new google.visualization.DataTable(xmlhttp.responseText);
-        var ac = new google.visualization.AreaChart(document.getElementById('submissions'));
-        ac.draw(data, {
-          title : 'Daily submissions',
-          isStacked: 'false',
-          width: 800,
-          height: 400,
-          vAxis: {title: "Submissions"},
-          hAxis: {title: "Day"}
+        var wrapper = new google.visualization.ChartWrapper({
+          chartType: 'AreaChart',
+          dataSourceUrl: '/statsjson.php?type=submissions',
+          options: {
+            title : 'Daily submissions',
+            isStacked: 'false',
+            width: 800,
+            height: 400,
+            vAxis: {title: "Submissions"},
+            hAxis: {title: "Day"}
+          },
+          containerId: 'submissions'
         });
+        wrapper.draw();
       };
       function drawSubmissionsHourly() {
-	var xmlhttp = new XMLHttpRequest();
-  	xmlhttp.open("GET", '/statsjson.php?type=submissions&hourly=1', false);
-        xmlhttp.send();
-        var data = new google.visualization.DataTable(xmlhttp.responseText);
-        var ac = new google.visualization.AreaChart(document.getElementById('submissions_hourly'));
-        ac.draw(data, {
-          title : 'Hourly submissions', // ' since' 
-          isStacked: 'false',
-          width: 800,
-          height: 400,
-          vAxis: {title: "Submissions"},
-          hAxis: {title: "Hour"}
+        var wrapper = new google.visualization.ChartWrapper({
+          chartType: 'AreaChart',
+          dataSourceUrl: '/statsjson.php?type=submissions&hourly=1',
+          options: {
+            title : 'Hourly submissions', // ' since' 
+            isStacked: 'false',
+            width: 800,
+            height: 400,
+            vAxis: {title: "Submissions"},
+            hAxis: {title: "Hour"}
+          },
+          containerId: 'submissions_hourly'
         });
+        wrapper.draw();
       }
       function drawDrives() {
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", '/statsjson.php?type=drives', false);
-        xmlhttp.send();
-        var data = new google.visualization.DataTable(xmlhttp.responseText);
-        new google.visualization.PieChart(document.getElementById('drives')).
-          draw(data, {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
+        var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=drives',
+          options: {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400},
+          containerId: 'drives'
+        });
+        wrapper.draw();
       };
       function drawAgents() {
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", '/statsjson.php?type=agents', false);
-        xmlhttp.send();
-        var data = new google.visualization.DataTable(xmlhttp.responseText);
-        new google.visualization.PieChart(document.getElementById('agents')).
-          draw(data, {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
+        var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=agents',
+          options: {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400},
+          containerId: 'agents'
+        });
+        wrapper.draw();
       };
       function drawPregaps() {
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", '/statsjson.php?type=pregaps', false);
-        xmlhttp.send();
-        var data = new google.visualization.DataTable(xmlhttp.responseText);
-        new google.visualization.PieChart(document.getElementById('pregaps')).
-          draw(data, {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
+        var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=pregaps',
+          options: {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400},
+          containerId: 'pregaps'
+        });
+        wrapper.draw();
       };
       google.setOnLoadCallback(drawSubmissions);
       google.setOnLoadCallback(drawSubmissionsHourly);
