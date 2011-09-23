@@ -35,10 +35,10 @@ else if ($stattype == 'pregaps')
 else if ($stattype == 'submissions')
 {
   $hourly = isset($_GET['hourly']);
-  $since = isset($_GET['since']) ? $_GET['since'] : $hourly ? gmdate('Y-m-d H:00:00', time() - 60*60*24*10) : gmdate('Y-m-d', time() - 60*60*24*30);
+  $since = isset($_GET['since']) ? $_GET['since'] : $hourly ? gmdate('Y-m-d H:00:00', time() - 60*60*24*10) : gmdate('Y-m-d', time() - 60*60*24*60);
   $till = isset($_GET['till']) ? $_GET['till'] : $hourly ? gmdate('Y-m-d H:00:00', time()) : gmdate('Y-m-d', time());
   $stacked = isset($_GET['stacked']) ? $_GET['stacked'] == 1 : false;
-  $result = pg_query_params($dbconn, "select date_trunc($1, time) t, count(NULLIF(agent ilike 'EAC%', false)) eac, count(NULLIF(agent ilike 'CUERipper%', false)) cueripper, count(NULLIF(agent ilike 'CUETools%', false)) cuetools from submissions where time > $2 AND time < $3 group by t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
+  $result = pg_query_params($dbconn, "select date_trunc($1, hour) t, sum(eac) as eac, sum(cueripper) as cueripper, sum(cuetools) as cuetools from hourly_stats where hour > $2 AND hour < $3 GROUP BY t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
   #$result = pg_query_params($dbconn, "select date_trunc($1, time) t, count(NULLIF(agent ilike 'EAC%', false)) eac, count(NULLIF(agent ilike 'CUERipper%', false)) cueripper, count(NULLIF(agent ilike 'CUETools%', false)) cuetools from submissions where time > $2 group by t ORDER by t", array($hourly ? 'hour' : 'day', $since))
     or die('Query failed: ' . pg_last_error());
   $records = pg_fetch_all($result);
@@ -63,5 +63,6 @@ else if ($stattype == 'submissions')
 }
 else die('bad stattype');
 $json_entries = json_encode($json_entries_table);
+if ($stattype != 'submissions')
 header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60) . ' GMT');
 die($json_entries);
