@@ -39,6 +39,21 @@
           hAxis: {title: "Day"}
         });
       };
+      function drawSubmissionsHourly() {
+	var xmlhttp = new XMLHttpRequest();
+  	xmlhttp.open("GET", '/statsjson.php?type=submissions&hourly=1', false);
+        xmlhttp.send();
+        var data = new google.visualization.DataTable(xmlhttp.responseText);
+        var ac = new google.visualization.AreaChart(document.getElementById('submissions_hourly'));
+        ac.draw(data, {
+          title : 'Hourly submissions', // ' since' 
+          isStacked: 'false',
+          width: 800,
+          height: 400,
+          vAxis: {title: "Submissions"},
+          hAxis: {title: "Hour"}
+        });
+      }
       function drawDrives() {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", '/statsjson.php?type=drives', false);
@@ -64,6 +79,7 @@
           draw(data, {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400});
       };
       google.setOnLoadCallback(drawSubmissions);
+      google.setOnLoadCallback(drawSubmissionsHourly);
       google.setOnLoadCallback(drawSubmissionsStacked);
       google.setOnLoadCallback(drawDrives);
       google.setOnLoadCallback(drawAgents);
@@ -73,6 +89,7 @@
   <?php include 'logo_start2.php'; ?>
     <center>
     <div id="submissions"></div>
+    <div id="submissions_hourly"></div>
     <div id="submissions_stacked"></div>
     <div id="drives"></div>
     <div id="agents"></div>

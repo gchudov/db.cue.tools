@@ -34,9 +34,12 @@ else if ($stattype == 'pregaps')
     "select substring(trackoffsets from '([^ ]*) ') as label, count(*) as cnt FROM submissions2 WHERE int4(substring(trackoffsets from '([^ ]*) ')) < 450  AND int4(substring(trackoffsets from '([^ ]*) ')) != 0 GROUP BY label ORDER BY cnt DESC LIMIT 100");
 else if ($stattype == 'submissions')
 {
-  $since = isset($_GET['since']) ? $_GET['since'] : gmdate('Y-m-d', time() - 60*60*24*30);
+  $hourly = isset($_GET['hourly']);
+  $since = isset($_GET['since']) ? $_GET['since'] : $hourly ? gmdate('Y-m-d H:00:00', time() - 60*60*24*10) : gmdate('Y-m-d', time() - 60*60*24*30);
+  $till = isset($_GET['till']) ? $_GET['till'] : $hourly ? gmdate('Y-m-d H:00:00', time()) : gmdate('Y-m-d', time());
   $stacked = isset($_GET['stacked']) ? $_GET['stacked'] == 1 : false;
-  $result = pg_query_params($dbconn, "select date_trunc('day', time) t, count(NULLIF(agent ilike 'EAC%', false)) eac, count(NULLIF(agent ilike 'CUERipper%', false)) cueripper, count(NULLIF(agent ilike 'CUETools%', false)) cuetools from submissions where time > $1 group by t ORDER by t", array($since))
+  $result = pg_query_params($dbconn, "select date_trunc($1, time) t, count(NULLIF(agent ilike 'EAC%', false)) eac, count(NULLIF(agent ilike 'CUERipper%', false)) cueripper, count(NULLIF(agent ilike 'CUETools%', false)) cuetools from submissions where time > $2 AND time < $3 group by t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
+  #$result = pg_query_params($dbconn, "select date_trunc($1, time) t, count(NULLIF(agent ilike 'EAC%', false)) eac, count(NULLIF(agent ilike 'CUERipper%', false)) cueripper, count(NULLIF(agent ilike 'CUETools%', false)) cuetools from submissions where time > $2 group by t ORDER by t", array($hourly ? 'hour' : 'day', $since))
     or die('Query failed: ' . pg_last_error());
   $records = pg_fetch_all($result);
   pg_free_result($result);
@@ -45,7 +48,7 @@ else if ($stattype == 'submissions')
   {
     if (!$stacked) $i=$j=$k=0;
     $json_entries[] = array('c' => array(
-      array('v' => substr($record['t'],0,10)),
+      array('v' => $hourly ? substr($record['t'],5,11) : substr($record['t'],5,5)),
       array('v' => $j+= (int)$record['eac']),
       array('v' => $i+= (int)$record['cueripper']),
       array('v' => $k+= (int)$record['cuetools']),
@@ -60,5 +63,5 @@ else if ($stattype == 'submissions')
 }
 else die('bad stattype');
 $json_entries = json_encode($json_entries_table);
-header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60*4) . ' GMT');
+header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60) . ' GMT');
 die($json_entries);
