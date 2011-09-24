@@ -8,31 +8,16 @@
       src='https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1"}]}'>
     </script>
     <script type="text/javascript">
-      function drawSubmissionsStacked() {
-        var wrapper = new google.visualization.ChartWrapper({
-          chartType: 'AreaChart',
-          dataSourceUrl: '/statsjson.php?type=submissions&stacked=1',
-          options: {
-            title : 'Cummulative submissions', // ' since' 
-            isStacked: 'true',
-            width: 800,
-            height: 400,
-            vAxis: {title: "Submissions"},
-            hAxis: {title: "Day"}
-          },
-          containerId: 'submissions_stacked'
-        });
-        wrapper.draw();
-      }
       function drawSubmissions() {
         var wrapper = new google.visualization.ChartWrapper({
           chartType: 'AreaChart',
-          dataSourceUrl: '/statsjson.php?type=submissions',
+          dataSourceUrl: '/statsjson.php?type=submissions&count=200',
           options: {
             title : 'Daily submissions',
             isStacked: 'false',
-            width: 800,
-            height: 400,
+            width: 1200,
+            height: 350,
+            fontSize: 12,
             vAxis: {title: "Submissions"},
             hAxis: {title: "Day"}
           },
@@ -43,12 +28,13 @@
       function drawSubmissionsHourly() {
         var wrapper = new google.visualization.ChartWrapper({
           chartType: 'AreaChart',
-          dataSourceUrl: '/statsjson.php?type=submissions&hourly=1',
+          dataSourceUrl: '/statsjson.php?type=submissions&count=200&hourly=1',
           options: {
-            title : 'Hourly submissions', // ' since' 
+            title : 'Hourly submissions', // ' since'
             isStacked: 'false',
-            width: 800,
-            height: 400,
+            width: 1200,
+            height: 350,
+            fontSize: 12,
             vAxis: {title: "Submissions"},
             hAxis: {title: "Hour"}
           },
@@ -56,30 +42,47 @@
         });
         wrapper.draw();
       }
+      function drawSubmissionsStacked() {
+        var wrapper = new google.visualization.ChartWrapper({
+          chartType: 'AreaChart',
+          dataSourceUrl: '/statsjson.php?type=submissions&hourly=1&count=200&stacked=1',
+          options: {
+            title : 'Cummulative submissions', // ' since' 
+            isStacked: 'true',
+            width: 1200,
+            height: 350,
+            fontSize: 12,
+            vAxis: {title: "Submissions"},
+            hAxis: {title: "Day"}
+          },
+          containerId: 'submissions_stacked'
+        });
+        wrapper.draw();
+      }
       function drawDrives() {
         var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=drives',
-          options: {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400},
+          options: {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
           containerId: 'drives'
         });
         wrapper.draw();
       };
       function drawAgents() {
         var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=agents',
-          options: {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400},
+          options: {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
           containerId: 'agents'
         });
         wrapper.draw();
       };
       function drawPregaps() {
         var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=pregaps',
-          options: {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400},
+          options: {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
           containerId: 'pregaps'
         });
         wrapper.draw();
       };
       google.setOnLoadCallback(drawSubmissions);
       google.setOnLoadCallback(drawSubmissionsHourly);
-      google.setOnLoadCallback(drawSubmissionsStacked);
+      //google.setOnLoadCallback(drawSubmissionsStacked);
       google.setOnLoadCallback(drawDrives);
       google.setOnLoadCallback(drawAgents);
       google.setOnLoadCallback(drawPregaps);
@@ -90,9 +93,9 @@
     <div id="submissions"></div>
     <div id="submissions_hourly"></div>
     <div id="submissions_stacked"></div>
-    <div id="drives"></div>
-    <div id="agents"></div>
-    <div id="pregaps"></div>
+    <span id="drives"></span>
+    <span id="agents"></span>
+    <span id="pregaps"></span>
     </center>
   </body>
 </html>
