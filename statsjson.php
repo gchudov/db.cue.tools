@@ -32,11 +32,13 @@ else if ($stattype == 'pregaps')
 else if ($stattype == 'submissions')
 {
   $hourly = isset($_GET['hourly']);
-  $since = isset($_GET['since']) ? $_GET['since'] : $hourly ? gmdate('Y-m-d H:00:00', time() - 60*60*100) : gmdate('Y-m-d', time() - 60*60*24*100);
-  $till = isset($_GET['till']) ? $_GET['till'] : $hourly ? gmdate('Y-m-d H:00:00', time()) : gmdate('Y-m-d', time());
+  $count = isset($_GET['count']) ? $_GET['count'] : 100;
+  $secondscount = 60 * 60 * ($hourly ? 1 : 24) * $count;
+  $mask = $hourly ? 'Y-m-d H:00:00' : 'Y-m-d';
+  $since = gmdate($mask, time() - $secondscount);
+  $till = gmdate($mask, time());
   $stacked = isset($_GET['stacked']) ? $_GET['stacked'] == 1 : false;
-  $result = pg_query_params($dbconn, "select date_trunc($1, hour) t, sum(eac) as eac, sum(cueripper) as cueripper, LEAST(sum(cuetools),800) as cuetools from hourly_stats where hour > $2 AND hour < $3 GROUP BY t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
-  #$result = pg_query_params($dbconn, "select date_trunc($1, time) t, count(NULLIF(agent ilike 'EAC%', false)) eac, count(NULLIF(agent ilike 'CUERipper%', false)) cueripper, count(NULLIF(agent ilike 'CUETools%', false)) cuetools from submissions where time > $2 group by t ORDER by t", array($hourly ? 'hour' : 'day', $since))
+  $result = pg_query_params($dbconn, "select date_trunc($1, hour) t, sum(eac) as eac, sum(cueripper) as cueripper, LEAST(sum(cuetools),1200) as cuetools from hourly_stats where hour > $2 AND hour < $3 GROUP BY t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
     or die('Query failed: ' . pg_last_error());
   $records = pg_fetch_all($result);
   pg_free_result($result);
@@ -45,7 +47,7 @@ else if ($stattype == 'submissions')
   {
     if (!$stacked) $i=$j=$k=0;
     $json_entries[] = array('c' => array(
-      array('v' => $hourly ? substr($record['t'],5,11) : substr($record['t'],5,5)),
+      array('v' => $hourly ? substr($record['t'],5,11) : substr($record['t'],0,10)),
       array('v' => $j+= (int)$record['eac']),
       array('v' => $i+= (int)$record['cueripper']),
       array('v' => $k+= (int)$record['cuetools']),
@@ -59,8 +61,7 @@ else if ($stattype == 'submissions')
   ), 'rows' => $json_entries);
 }
 else die('bad stattype');
-#if ($stattype != 'submissions')
-#  header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60) . ' GMT');
+#header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*5) . ' GMT');
 if (isset($_GET['tqx'])) {
   $tqx = array();
   foreach (explode(';', $_GET['tqx']) as $kvpair) {
@@ -69,10 +70,16 @@ if (isset($_GET['tqx'])) {
       $tqx[$kva[0]] = $kva[1];
     }
   }
-  $resp = array('version' => '0.6', 'status' => 'ok');
+  $sig = md5(json_encode($json_entries_table));
+  $resp = array('version' => '0.6', 'status' => 'ok', 'sig' => $sig);
   if (isset($tqx['reqId'])) $resp['reqId'] = $tqx['reqId'];
-  $resp['table'] = $json_entries_table;
   $hdlr = isset($tqx['responseHandler']) ? $tqx['responseHandler'] : 'google.visualization.Query.setResponse';
+  if (isset($tqx['sig']) && $tqx['sig'] == $sig) {
+    $resp['status'] = 'error';
+    $resp['errors'] = array('reason' => 'not_modified');
+    die($hdlr . '(' . json_encode($resp) . ')');
+  }
+  $resp['table'] = $json_entries_table;
   die($hdlr . '(' . json_encode($resp) . ')');
 } else {
   $json_entries = json_encode($json_entries_table);
