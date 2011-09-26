@@ -38,7 +38,7 @@ else if ($stattype == 'submissions')
   $since = gmdate($mask, time() - $secondscount);
   $till = gmdate($mask, time());
   $stacked = isset($_GET['stacked']) ? $_GET['stacked'] == 1 : false;
-  $result = pg_query_params($dbconn, "select date_trunc($1, hour) t, sum(eac) as eac, sum(cueripper) as cueripper, LEAST(sum(cuetools),1200) as cuetools from hourly_stats where hour > $2 AND hour < $3 GROUP BY t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
+  $result = pg_query_params($dbconn, "select date_trunc($1, hour) t, sum(eac) as eac, sum(cueripper) as cueripper, sum(cuetools) as cuetools from hourly_stats where hour > $2 AND hour < $3 GROUP BY t ORDER by t", array($hourly ? 'hour' : 'day', $since, $till))
     or die('Query failed: ' . pg_last_error());
   $records = pg_fetch_all($result);
   pg_free_result($result);
@@ -62,6 +62,7 @@ else if ($stattype == 'submissions')
 }
 else die('bad stattype');
 #header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*5) . ' GMT');
+header('Content-type: text/javascript; charset=UTF-8');
 if (isset($_GET['tqx'])) {
   $tqx = array();
   foreach (explode(';', $_GET['tqx']) as $kvpair) {
@@ -71,14 +72,15 @@ if (isset($_GET['tqx'])) {
     }
   }
   $sig = md5(json_encode($json_entries_table));
-  $resp = array('version' => '0.6', 'status' => 'ok', 'sig' => $sig);
+  $resp = array('version' => '0.6', 'status' => 'ok');
   if (isset($tqx['reqId'])) $resp['reqId'] = $tqx['reqId'];
   $hdlr = isset($tqx['responseHandler']) ? $tqx['responseHandler'] : 'google.visualization.Query.setResponse';
   if (isset($tqx['sig']) && $tqx['sig'] == $sig) {
     $resp['status'] = 'error';
-    $resp['errors'] = array('reason' => 'not_modified');
+    $resp['errors'][] = array('reason' => 'not_modified', 'message' => 'Data not modified');
     die($hdlr . '(' . json_encode($resp) . ')');
   }
+  $resp['sig'] = $sig;
   $resp['table'] = $json_entries_table;
   die($hdlr . '(' . json_encode($resp) . ')');
 } else {

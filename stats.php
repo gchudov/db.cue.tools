@@ -11,14 +11,14 @@
       function drawSubmissions() {
         var wrapper = new google.visualization.ChartWrapper({
           chartType: 'AreaChart',
-          dataSourceUrl: '/statsjson.php?type=submissions&count=200',
+          dataSourceUrl: '/statsjson.php?type=submissions&count=365',
           options: {
             title : 'Daily submissions',
             isStacked: 'false',
             width: 1200,
             height: 350,
             fontSize: 12,
-            vAxis: {title: "Submissions"},
+            vAxis: {title: "Submissions", viewWindow: {min: 0, max: 1800}},
             hAxis: {title: "Day"}
           },
           containerId: 'submissions'
@@ -28,10 +28,13 @@
       function drawSubmissionsHourly() {
         var wrapper = new google.visualization.ChartWrapper({
           chartType: 'AreaChart',
-          dataSourceUrl: '/statsjson.php?type=submissions&count=200&hourly=1',
+//          chartType: 'LineChart',
+//          refreshInterval: 1,
+          dataSourceUrl: '/statsjson.php?type=submissions&count=336&hourly=1',
           options: {
             title : 'Hourly submissions', // ' since'
             isStacked: 'false',
+//            curveType: 'function',
             width: 1200,
             height: 350,
             fontSize: 12,
@@ -40,7 +43,11 @@
           },
           containerId: 'submissions_hourly'
         });
+//        google.visualization.events.addListener(wrapper, 'ready', onReady);
         wrapper.draw();
+//  function onReady() {
+//    alert(wrapper.getRefreshInterval());
+//  }
       }
       function drawSubmissionsStacked() {
         var wrapper = new google.visualization.ChartWrapper({
