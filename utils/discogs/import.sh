@@ -4,7 +4,7 @@ psql -U postgres -c "DROP DATABASE $dbname"
 psql -U postgres -c "CREATE DATABASE $dbname"
 psql -U postgres -c "ALTER DATABASE $dbname OWNER TO $dbuser"
 psql -U discogs -d $dbname -f create_tables.sql
-for table in artist_credit_name artist_credit artist_name image label release releases_formats releases_images releases_labels toc track track_title ; do 
+for table in enums artist_credit_name artist_credit artist_name image label release releases_formats releases_images releases_labels toc track track_title ; do 
   s3cmd --no-progress get s3://private.cuetools.net/discogs/`date +%Y%m`01/discogs_"$table"_sql.gz - | gunzip | psql -U $dbuser -d $dbname
 done
 psql -U $dbuser -d $dbname -f create_keys.sql

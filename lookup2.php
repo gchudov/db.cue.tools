@@ -101,7 +101,7 @@ else if ($type == 'xml')
   $xmlmbmeta = null; 
   foreach ($mbmetas as $mbmeta)
   {
-    $tracks = null;
+    $tracks = array();
     foreach ($mbmeta['tracklist'] as $track) {
       if ($track['artist'] == $mbmeta['artistname'])
         $track['artist'] = null;

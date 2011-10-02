@@ -71,7 +71,7 @@ if (isset($_GET['tqx'])) {
       $tqx[$kva[0]] = $kva[1];
     }
   }
-  $sig = md5(json_encode($json_entries_table));
+  $sig = (string)crc32(json_encode($json_entries_table));
   $resp = array('version' => '0.6', 'status' => 'ok');
   if (isset($tqx['reqId'])) $resp['reqId'] = $tqx['reqId'];
   $hdlr = isset($tqx['responseHandler']) ? $tqx['responseHandler'] : 'google.visualization.Query.setResponse';
