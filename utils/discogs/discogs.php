@@ -298,14 +298,14 @@ while(1)
 }
 $xml->close();
 
-array_walk($known_styles, function(&$val, $key) { $val = escapeNode($key); }); 
-array_walk($known_genres, function(&$val, $key) { $val = escapeNode($key); }); 
-array_walk($known_descriptions, function(&$val, $key) { $val = escapeNode($key); }); 
-echo '-- CREATE TYPE style_t AS ENUM (' . implode(',',$known_styles) . ");\n";
-echo '-- CREATE TYPE genre_t AS ENUM (' . implode(',',$known_genres) . ");\n";
-echo '-- CREATE TYPE description_t AS ENUM (' . implode(',',$known_descriptions) . ");\n";
-
-echo '-- CREATE TYPE format_t AS ENUM (' . implode(',',array_keys($known_formats)) . ");\n";
+array_walk($known_styles, function(&$val, $key) { $val = "'" . pg_escape_string($key) . "'"; }); 
+array_walk($known_genres, function(&$val, $key) { $val = "'" . pg_escape_string($key) . "'"; }); 
+array_walk($known_descriptions, function(&$val, $key) { $val = "'" . pg_escape_string($key) . "'"; }); 
+array_walk($known_formats, function(&$val, $key) { $val = "'" . pg_escape_string($key) . "'"; }); 
+echo "CREATE TYPE style_t AS ENUM (\n    " . implode(",\n    ",$known_styles) . "\n);\n";
+echo "CREATE TYPE genre_t AS ENUM (\n    " . implode(",\n    ",$known_genres) . "\n);\n";
+echo "CREATE TYPE description_t AS ENUM (\n    " . implode(",\n    ",$known_descriptions) . "\n);\n";
+echo "CREATE TYPE format_t AS ENUM (\n    " . implode(",\n    ",$known_formats) . "\n);\n";
 foreach($fps as $fp) {
   gzwrite($fp, "\\.\n");
   gzclose($fp);

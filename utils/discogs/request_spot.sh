@@ -5,5 +5,5 @@ wget -q -U $user_agent -O $discogs_rel http://www.discogs.com/data/$discogs_rel
 s3cmd --no-progress --rr put $discogs_rel s3://private.cuetools.net/
 rm $discogs_rel 
 cat $(dirname $0)/ec2init.sh | sed "/^#s3cfg/a echo $(gzip -c ~/.s3cfg | base64 -w 0) | base64 -d | gunzip > ~/.s3cfg" > $user_data
-ec2rsi -region us-east-1 ami-2a1fec43 -g sg-b81154d1 -k ec2 -n 1 -p 0.20 -r one-time -t c1.medium -f $user_data
+ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p 0.20 -r one-time -t c1.medium -f $user_data
 rm $user_data

@@ -18,7 +18,7 @@
             width: 1200,
             height: 350,
             fontSize: 12,
-            vAxis: {title: "Submissions", viewWindow: {min: 0, max: 1800}},
+            vAxis: {title: "Submissions", viewWindow: {min: 0, max: 2200}},
             hAxis: {title: "Day"}
           },
           containerId: 'submissions'
@@ -68,21 +68,24 @@
       }
       function drawDrives() {
         var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=drives',
-          options: {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
+          options: {title:"Drives", is3D : true, pieSliceText : 'label', width : 400, height : 400, fontSize : 9, chartArea : {left:'5%',top:'10%',width:'90%',height:'80%'}},
+          //options: {title:"Drives", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
           containerId: 'drives'
         });
         wrapper.draw();
       };
       function drawAgents() {
         var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=agents',
-          options: {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
+          options: {title:"Agents", is3D : true, pieSliceText : 'label', width : 400, height : 400, fontSize : 9, chartArea : {left:'5%',top:'10%',width:'90%',height:'80%'}},
+          //options: {title:"Agents", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
           containerId: 'agents'
         });
         wrapper.draw();
       };
       function drawPregaps() {
         var wrapper = new google.visualization.ChartWrapper({ chartType: 'PieChart', dataSourceUrl: '/statsjson.php?type=pregaps',
-          options: {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
+          options: {title:"Pregaps", is3D : true, pieSliceText : 'label', width : 400, height : 400, fontSize : 9, chartArea : {left:'5%',top:'10%',width:'90%',height:'80%'}},
+          //options: {title:"Pregaps", is3D : true, pieSliceText : 'label', legend : 'none', width : 400, height : 400, fontSize : 9},
           containerId: 'pregaps'
         });
         wrapper.draw();
