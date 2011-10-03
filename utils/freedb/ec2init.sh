@@ -10,5 +10,5 @@ sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
 hg clone http://hg.cuetools.net/ctdbweb
 make -C ctdbweb/utils/freedb/
 s3cmd --no-progress get s3://private.cuetools.net/freedb-complete-`date +%Y%m01`.tar.bz2 - | tar vxjO 2>&1 | ./ctdbweb/utils/freedb/freedb
-s3cmd --no-progress --rr put freedb_*.sql.bz2 ./ctdbweb/utils/freedb/*.sql s3://private.cuetools.net/freedb/`date +%Y%m01`/
-#shutdown -h now
+s3cmd --no-progress --rr put freedb_*.sql.bz2 ./ctdbweb/utils/freedb/*.sql /var/log/cloud-init.log s3://private.cuetools.net/freedb/`date +%Y%m01`/
+shutdown -h now
