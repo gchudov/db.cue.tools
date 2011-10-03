@@ -18,7 +18,7 @@
             width: 1200,
             height: 350,
             fontSize: 12,
-            vAxis: {title: "Submissions", viewWindow: {min: 0, max: 2200}},
+            vAxis: {title: "Submissions"},
             hAxis: {title: "Day"}
           },
           containerId: 'submissions'
