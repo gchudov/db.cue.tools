@@ -97,6 +97,16 @@ if ($confirmid) {
   }
   pg_free_result($result);
 
+  if ($record3['drivename'] != null) {
+    $result = pg_query_params($dbconn, "SELECT * FROM drives ds WHERE $1 ~* ('^'|| ds.name ||'.*-')", array($record3['drivename']));
+    if (pg_num_rows($result) == 0) {
+      $record3['reason'] = "unrecognized or virtual drive";
+      pg_insert($dbconn, 'failed_submissions', $record3);
+      die($record3['reason']);
+    }
+    pg_free_result($result);
+  }
+
   if ($parfile)
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $sub2_id, $tocid));
   else
