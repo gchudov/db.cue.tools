@@ -88,13 +88,30 @@ $record3['ip'] = $_SERVER["REMOTE_ADDR"];
 if (isset($_POST['barcode'])) $record3['barcode'] = $_POST['barcode'];
 
 if ($confirmid) {
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND userid=$2 AND drivename=$3", array($sub2_id, $record3['userid'], $record3['drivename']))
+    or die('Query failed: ' . pg_last_error());
+  if (pg_num_rows($result) > 0) {
+    $record3['reason'] = "already submitted";
+    pg_insert($dbconn, 'failed_submissions', $record3);
+    die($record3['reason']);
+  }
+  pg_free_result($result);
+
   if ($parfile)
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $sub2_id, $tocid));
   else
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid));
   $result or die('Query failed: ' . pg_last_error());
-  if (pg_affected_rows($result) < 1) die('not found');
-  if (pg_affected_rows($result) > 1) die('not unique');
+  if (pg_affected_rows($result) > 1) {
+    $record3['reason'] = "not unique";
+    pg_insert($dbconn, 'failed_submissions', $record3);
+    die($record3['reason']);
+  }
+  if (pg_affected_rows($result) < 1) {
+    $record3['reason'] = "not found";
+    pg_insert($dbconn, 'failed_submissions', $record3);
+    die($record3['reason']);
+  }
   pg_free_result($result);
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
@@ -114,17 +131,21 @@ if ($confirmid) {
   $record['tocid'] = $tocid;
   if ($parfile) $record['hasparity'] = true;
 
-  if (phpCTDB::toc2tocid($record) != $tocid) die('tocid mismatch');
+  if (phpCTDB::toc2tocid($record) != $tocid) { 
+    $record3['reason'] = "tocid mismatch";
+    pg_insert($dbconn, 'failed_submissions', $record3);
+    die($record3['reason']);
+  }
 
-  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1", array($tocid))
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2", array($tocid, $crc32))
     or die('Query failed: ' . pg_last_error());
   $rescount = pg_num_rows($result);
-  while (TRUE == ($record2 = pg_fetch_array($result)))
-    if ($record2['crc32'] == $crc32) {
-	// TODO: conirm
-	die("Duplicate entry");
-  }
   pg_free_result($result);
+  if ($rescount > 0) { // or confirm?
+    $record3['reason'] = "duplicate entry";
+    pg_insert($dbconn, 'failed_submissions', $record3);
+    die($record3['reason']);
+  }
 
   pg_insert($dbconn, 'submissions2', $record)
     or die('Query failed');
@@ -142,8 +163,8 @@ if ($parfile)
 
 if ($confirmid)
   printf("%s has been confirmed", $tocid);
-else if ($rescount > 1)
-  printf("%s has been updated", $tocid);
-else
+else if ($parfile)
   printf("%s has been uploaded", $tocid);
+else
+  printf("%s has been submitted", $tocid);
 ?>
