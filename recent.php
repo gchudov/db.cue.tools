@@ -121,7 +121,7 @@ $json_submissions_table = array(
 $json_submissions = json_encode($json_submissions_table);
   $body = $json_submissions;
   $etag = crc32($body);
-  header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*5) . ' GMT');
+//  header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*5) . ' GMT');
   header("ETag:  " . $etag);
   if (@$_SERVER['HTTP_IF_NONE_MATCH'] == $etag) {
     header($_SERVER["SERVER_PROTOCOL"]." 304 Not Modified");
