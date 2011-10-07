@@ -52,6 +52,23 @@ if (@$_POST['parityfile'])
   $parfile = false;
 }
 
+$record3 = false;
+$record3['entryid'] = $sub2_id;
+$record3['confidence'] = $confidence;
+$record3['quality'] = $quality;
+$record3['userid'] = @$_POST['userid'];
+$record3['drivename'] = @$_POST['drivename'];
+$record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
+$record3['time'] = gmdate ("Y-m-d H:i:s");
+$record3['ip'] = $_SERVER["REMOTE_ADDR"];
+if (isset($_POST['barcode'])) $record3['barcode'] = $_POST['barcode'];
+
+function submit_error($dbconn, $submission, $reason) {
+  $submission['reason'] = $reason;
+  pg_insert($dbconn, 'failed_submissions', $submission);
+  die($reason);
+}
+
 $needparfile = false;
 if ($confirmid)
 { 
@@ -65,45 +82,25 @@ if ($confirmid)
 }
 else
 {
-  if ($quality < 50)
-    die('insufficient quality');
+  if ($quality < 50) submit_error($dbconn, $record3, "insufficient quality");
   if ($quality > 95 || $confidence > 1) 
     $needparfile = true;
 }
 
 if ($parfile && !$needparfile)
-  die ('parity not needed'); // parfile = false?
+  submit_error($dbconn, $record3, "parity not needed"); // parfile = false?
 if (!$parfile && $needparfile)
   die ('parity needed');
-
-$record3 = false;
-$record3['entryid'] = $sub2_id;
-$record3['confidence'] = $confidence;
-$record3['quality'] = $quality;
-$record3['userid'] = @$_POST['userid'];
-$record3['drivename'] = @$_POST['drivename'];
-$record3['agent'] = $_SERVER['HTTP_USER_AGENT'];
-$record3['time'] = gmdate ("Y-m-d H:i:s");
-$record3['ip'] = $_SERVER["REMOTE_ADDR"];
-if (isset($_POST['barcode'])) $record3['barcode'] = $_POST['barcode'];
 
 if ($confirmid) {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND userid=$2 AND drivename=$3", array($sub2_id, $record3['userid'], $record3['drivename']))
     or die('Query failed: ' . pg_last_error());
-  if (pg_num_rows($result) > 0) {
-    $record3['reason'] = "already submitted";
-    pg_insert($dbconn, 'failed_submissions', $record3);
-    die($record3['reason']);
-  }
+  if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "already submitted");
   pg_free_result($result);
 
   if ($record3['drivename'] != null) {
     $result = pg_query_params($dbconn, "SELECT * FROM drives ds WHERE $1 ~* ('^'|| ds.name ||'.*-')", array($record3['drivename']));
-    if (pg_num_rows($result) == 0) {
-      $record3['reason'] = "unrecognized or virtual drive";
-      pg_insert($dbconn, 'failed_submissions', $record3);
-      die($record3['reason']);
-    }
+    if (pg_num_rows($result) == 0) submit_error($dbconn, $record3, "unrecognized or virtual drive");
     pg_free_result($result);
   }
 
@@ -112,16 +109,8 @@ if ($confirmid) {
   else
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid));
   $result or die('Query failed: ' . pg_last_error());
-  if (pg_affected_rows($result) > 1) {
-    $record3['reason'] = "not unique";
-    pg_insert($dbconn, 'failed_submissions', $record3);
-    die($record3['reason']);
-  }
-  if (pg_affected_rows($result) < 1) {
-    $record3['reason'] = "not found";
-    pg_insert($dbconn, 'failed_submissions', $record3);
-    die($record3['reason']);
-  }
+  if (pg_affected_rows($result) > 1) submit_error($dbconn, $record3, "not unique");
+  if (pg_affected_rows($result) < 1) submit_error($dbconn, $record3, "not found");
   pg_free_result($result);
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
@@ -151,11 +140,7 @@ if ($confirmid) {
     or die('Query failed: ' . pg_last_error());
   $rescount = pg_num_rows($result);
   pg_free_result($result);
-  if ($rescount > 0) { // or confirm?
-    $record3['reason'] = "duplicate entry";
-    pg_insert($dbconn, 'failed_submissions', $record3);
-    die($record3['reason']);
-  }
+  if ($rescount > 0) submit_error($dbconn, $record3, "duplicate entry"); // or confirm?
 
   pg_insert($dbconn, 'submissions2', $record)
     or die('Query failed');
