@@ -8,13 +8,6 @@ $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
 
 $confirmid = @$_POST['confirmid'];
-if (!$confirmid)
-{
-  $result= pg_query("SELECT nextval('submissions2_id_seq')");
-  $sub2_id = pg_fetch_result($result,0,0);
-  pg_free_result($result);
-} else
-  $sub2_id = $confirmid;
 
 $toc_s = @$_POST['toc'];
 if (!$toc_s) die('toc not specified');
@@ -53,7 +46,6 @@ if (@$_POST['parityfile'])
 }
 
 $record3 = false;
-$record3['entryid'] = $sub2_id;
 $record3['confidence'] = $confidence;
 $record3['quality'] = $quality;
 $record3['userid'] = @$_POST['userid'];
@@ -93,7 +85,9 @@ if (!$parfile && $needparfile)
   die ('parity needed');
 
 if ($confirmid) {
-  $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND userid=$2 AND drivename=$3", array($sub2_id, $record3['userid'], $record3['drivename']))
+  $record3['entryid'] =  $confirmid;
+
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND (userid=$2 OR ip=$3) AND drivename=$4", array($confirmid, $record3['userid'], $record3['ip'], $record3['drivename']))
     or die('Query failed: ' . pg_last_error());
   if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "already submitted");
   pg_free_result($result);
@@ -105,9 +99,9 @@ if ($confirmid) {
   }
 
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $sub2_id, $tocid));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $confirmid, $tocid));
   else
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($sub2_id, $tocid));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
   $result or die('Query failed: ' . pg_last_error());
   if (pg_affected_rows($result) > 1) submit_error($dbconn, $record3, "not unique");
   if (pg_affected_rows($result) < 1) submit_error($dbconn, $record3, "not found");
@@ -115,8 +109,12 @@ if ($confirmid) {
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
+  $result= pg_query("SELECT nextval('submissions2_id_seq')");
+  $record3['entryid'] =  pg_fetch_result($result,0,0);
+  pg_free_result($result);
+
   $record = false;
-  $record['id'] = $sub2_id;
+  $record['id'] = $record3['entryid'];
   $record['trackcount'] = $toc['trackcount'];
   $record['audiotracks'] = $toc['audiotracks'];
   $record['firstaudio'] = $toc['firstaudio'];
@@ -130,11 +128,7 @@ if ($confirmid) {
   $record['tocid'] = $tocid;
   if ($parfile) $record['hasparity'] = true;
 
-  if (phpCTDB::toc2tocid($record) != $tocid) { 
-    $record3['reason'] = "tocid mismatch";
-    pg_insert($dbconn, 'failed_submissions', $record3);
-    die($record3['reason']);
-  }
+  if (phpCTDB::toc2tocid($record) != $tocid) submit_error($dbconn, $record3, "tocid mismatch");
 
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2", array($tocid, $crc32))
     or die('Query failed: ' . pg_last_error());
