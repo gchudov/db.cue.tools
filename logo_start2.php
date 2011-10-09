@@ -1,9 +1,33 @@
-<?php
-$dbresult = pg_query($dbconn,"SELECT reltuples FROM pg_class WHERE oid = 'submissions2'::regclass"); 
-$rec = pg_fetch_array($dbresult);
-$cntunique = $rec[0];
-pg_free_result($dbresult);
-?>
+<script>
+
+window.onblur = function() { window.ctdb_blurred = true; };
+window.onfocus = function() { window.ctdb_blurred = false; };
+
+var totals_http = new XMLHttpRequest();
+var totals_timer;
+totals_http.onreadystatechange=function() {
+  if (totals_http.readyState != 4) return;
+  if (totals_http.status == 200)
+  {
+    var totals_val = JSON.parse(totals_http.responseText);
+    document.getElementById('totals_span').innerHTML = 'CUETools DB:<br>' + totals_val.unique_tocs + ' discs<br>' + totals_val.submissions + ' rips';
+  }
+  totals_timer = setTimeout("updateTotals()",5000);
+};
+function updateTotals()
+{
+  if (window.ctdb_blurred)
+  {
+    totals_timer = setTimeout("updateTotals()",1000);
+  }
+  else
+  {
+    totals_http.open("GET", '/statsjson.php?type=totals', true);
+    totals_http.send(null);
+  }
+}
+google.setOnLoadCallback(updateTotals());
+</script>
 <title>CUETools DB</title>
 <link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb10.css" />
 </head>
@@ -19,6 +43,6 @@ pg_free_result($dbresult);
 	<?php if ($isadmin) { ?><li id="nav-7"><a href="/?logout=1">Logout</a></li><?php }?>
 	<li id="nav-8"><a href="http://www.cuetools.net/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a></li>
 	<li id="nav-0"><a href="http://www.cuetools.net/wiki/CUETools" target="_blank">CUETools</a></li>
-	<li id="nav-11"><a><?php echo 'CUETools DB: ' . $cntunique . ' unique discs'?></a></li>
+	<li id="nav-11"><a><span id=totals_span></span></a></li>
 </ul>
 <br clear=all>
