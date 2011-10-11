@@ -97,8 +97,7 @@
       google.setOnLoadCallback(drawAgents);
       google.setOnLoadCallback(drawPregaps);
     </script>
-  </head>
-  <?php include 'logo_start2.php'; ?>
+    <?php include 'logo_start2.php'; ?>
     <center>
     <div id="submissions"></div>
     <div id="submissions_hourly"></div>
