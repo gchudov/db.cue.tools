@@ -27,8 +27,7 @@ if (!$records || count($records) == 0) die(gmdate("M j G:i:s") . " nothing to do
 $ts = 0;
 foreach ($records as $record)
 {
-  $filename = sprintf("%s%08x", str_replace('.', '+', $record['tocid']), $record['crc32']);
-  $localname = '/var/www/ctdbweb/parity/' . $filename;
+  $localname = '/var/www/ctdbweb/parity/' . $record['id'];
   if (!file_exists($localname)) {
     echo 'File missing: ';
     print_r($record);
@@ -37,7 +36,7 @@ foreach ($records as $record)
     continue;
   }
   $ts += filesize($localname);
-  $s3->batch()->create_object($bucket, $filename, array(
+  $s3->batch()->create_object($bucket, $record['id'], array(
 	'fileUpload' => $localname,
 	'acl' => AmazonS3::ACL_PUBLIC
   ));
@@ -59,7 +58,7 @@ pg_query("COMMIT");
 foreach ($records as $record)
 {
   $filename = sprintf("%s%08x", str_replace('.', '+', $record['tocid']), $record['crc32']);
-  $localname = '/var/www/ctdbweb/parity/' . $filename;
+  $localname = '/var/www/ctdbweb/parity/' . $record['id'];
   unlink($localname);
 }
 }

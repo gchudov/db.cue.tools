@@ -10,7 +10,7 @@ totals_http.onreadystatechange=function() {
   if (totals_http.status == 200)
   {
     var totals_val = JSON.parse(totals_http.responseText);
-    document.getElementById('totals_span').innerHTML = 'CUETools DB:<br>' + totals_val.unique_tocs + ' discs<br>' + totals_val.submissions + ' rips';
+    document.getElementById('totals_span').innerHTML = 'CUETools DB:<br><span style="font-family: Consolas,\'Lucida Console\',\'DejaVu Sans Mono\',monospace;">' + totals_val.unique_tocs + '</span> discs<br><span style="font-family: Consolas,\'Lucida Console\',\'DejaVu Sans Mono\',monospace;">' + totals_val.submissions + '</span> rips';
   }
   totals_timer = setTimeout("updateTotals()",5000);
 };
@@ -29,7 +29,7 @@ function updateTotals()
 google.setOnLoadCallback(updateTotals());
 </script>
 <title>CUETools DB</title>
-<link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb10.css" />
+<link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb12.css" />
 </head>
 <body>
 <ul id="nav">

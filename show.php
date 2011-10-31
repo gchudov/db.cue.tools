@@ -198,7 +198,7 @@ if ($isadmin)
 {
   printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
   printf('<input type=hidden name=id value=%s>', $id);
-  $parityfile = sprintf("%s%08x", str_replace('.','+',$record['tocid']), $record['crc32']);
+  $parityfile = $record['id'];
   printf('<tr><td class=td_album>Parity file</td><td class=td_discid><a href="http://p.cuetools.net/%s">%s</a></td></tr>' . "\n", urlencode($parityfile), $record['hasparity'] == 't' ? ($record['s3'] == 't' ? "s3" : "pending") : "none");
   printf('<tr><td colspan=2 align=center></td></tr>');
   printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);

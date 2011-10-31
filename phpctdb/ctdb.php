@@ -31,7 +31,7 @@ class phpCTDB{
             array('v' => $record['tocid']),
             array('v' => $trcnt),
             array('v' => (int)$record['id']),
-            array('v' => (int)$record['confidence']),
+            array('v' => (int)$record['subcount']),
             array('v' => (int)$record['crc32']),
             array('v' => phpCTDB::toc_toc2s($record)),
             ));
@@ -42,7 +42,7 @@ class phpCTDB{
           array('label' => 'Disc Id', 'type' => 'string'),
           array('label' => 'Tracks', 'type' => 'string'),
           array('label' => 'CTDB Id', 'type' => 'number'),
-          array('label' => 'AR', 'type' => 'number'),
+          array('label' => 'Cf', 'type' => 'number'),
           array('label' => 'CRC32', 'type' => 'number'),
           array('label' => 'TOC', 'type' => 'string'),
           ), 'rows' => $json_entries);
@@ -540,6 +540,7 @@ class phpCTDB{
                   'r.artist_credit, ' .
 //                  'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
                   'rn.name as albumname, ' .
+//                  'rg.gid as group_id, ' .
                   'm.position as discnumber, ' .
                   'm.name as discname, ' .
                   '(select count(*) from medium where release = r.id) as totaldiscs, ' .
@@ -587,6 +588,7 @@ class phpCTDB{
                   '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
 //                  'r.date_year as year, ' .
                   'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
+//                  'rg.gid as group_id, ' .
                   'r.barcode ' .
                   'FROM cdtoc c ' .
 		  'INNER JOIN medium_cdtoc mc on mc.cdtoc = c.id ' .

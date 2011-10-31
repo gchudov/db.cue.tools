@@ -53,6 +53,12 @@
     box-shadow: 3px 3px 5px #DFDFDF;
 }
 
+.google-visualization-table-td-consolas-left {
+   font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
+   width: 0;
+   white-space: nowrap;
+}
+
 .google-visualization-table-td-consolas {
    font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
    width: 0;

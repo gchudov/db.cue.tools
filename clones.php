@@ -1,23 +1,37 @@
 <?php
-include 'logo_start.php'; 
+include 'logo_start1.php';
 require_once( 'phpctdb/ctdb.php' );
 
-$count = 25;
-$query = "select * from submissions2 a where exists(select *from submissions2 t where t.tocid=a.tocid and t.trackoffsets=a.trackoffsets and t.id != a.id)";
-$url = '';
-$query = $query . " ORDER BY tocid";
-$result = pg_query($query) or die('Query failed: ' . pg_last_error());
-$start = @$_GET['start'];
-if (pg_num_rows($result) == 0)
-  die('nothing found');
-if ($count > pg_num_rows($result))
-	$count = pg_num_rows($result);
-if ($start == '') $start = pg_num_rows($result) - $count;
+$count = 20;
+$term = ' WHERE ';
+$query = "SELECT * FROM submissions2 a";
+$where_artist=@$_GET['artist'];
+if ($where_artist != '')
+{
+  $query = $query . $term . "artist ilike '" . pg_escape_string($where_artist) . "'";
+  $term = ' AND ';
+  $url = $url . '&artist=' . urlencode($where_artist);
+}
+if ($term == ' WHERE ')
+{
+  $query = $query . $term . "subcount>=5";
+  $term = ' AND ';
+}
+$query = $query . $term . "(confidence > 20 OR subcount > 1) AND exists(select *from submissions2 t where t.tocid=a.tocid and t.trackoffsets=a.trackoffsets and t.id != a.id AND (t.confidence > 20 OR t.subcount > 1))";
+$start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
+$query = $query . " ORDER BY tocid, id OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
 
-printf("<center><h3>Clones (%d):</h3>", pg_num_rows($result));
-include 'list.php';
-pg_free_result($result);
-printf("</center>");
+$json_entries = phpCTDB::query2json($dbconn, $query);
+if (@$_GET['json']) die($json_entries);
+if ($json_entries == '') die('nothing found');
+
+include 'list1.php';
+include 'logo_start2.php';
 ?>
+<center><h3>CUETools Database: clones</h3>
+<div id='entries_div'></div>
+<br><div id='musicbrainz_div'></div>
+<?php if ($isadmin) { ?><br><div id='submissions_div'></div><?php } ?>
+</center>
 </body>
 </html>
