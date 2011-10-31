@@ -23,11 +23,11 @@ if ($where_artist != '')
 }
 if ($term == ' WHERE ')
 {
-	$query = $query . $term . "confidence>=100";
+	$query = $query . $term . "subcount>=5";
 	$term = ' AND ';
 }
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
-$query = $query . " ORDER BY confidence DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
+$query = $query . " ORDER BY subcount DESC, id DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
 
 $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);

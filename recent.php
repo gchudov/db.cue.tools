@@ -67,7 +67,7 @@ if ($query == '')
   $show_date = false;
 }
 */
-$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, quality, barcode, s.entryid as entryid, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
+$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, quality, barcode, s.entryid as entryid, subcount, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
   or die('Query failed: ' . pg_last_error());
 $submissions = pg_fetch_all($result);
 pg_free_result($result);
@@ -92,7 +92,8 @@ foreach($submissions as $record)
       array('v' => $record['tocid']),
       array('v' => $trcnt),
       array('v' => (int)$record['entryid']),
-      array('v' => $record['confidence'] == $record['confidence2'] ? $record['confidence'] : sprintf('%d/%d', $record['confidence'], $record['confidence2'])),
+      array('v' => ($record['confidence2'] == $record['subcount'] ? '' : '(' . ($record['confidence2'] - $record['subcount']) . ') ') . $record['subcount']),
+      //array('v' => $record['subcount'] . '(' . ($record['confidence'] == $record['confidence2'] ? $record['confidence'] : sprintf('%d/%d', $record['confidence'], $record['confidence2'])) . ')'),
       array('v' => (int)$record['crc32']),
       array('v' => phpCTDB::toc_toc2s($record)),
       array('v' => $record['quality']),
@@ -111,7 +112,7 @@ $json_submissions_table = array(
     array('label' => 'TOC Id', 'type' => 'string'),
     array('label' => 'Tr#', 'type' => 'string'),
     array('label' => 'CTDB Id', 'type' => 'number'),
-    array('label' => 'AR', 'type' => 'string'),
+    array('label' => 'Cf', 'type' => 'string'),
     array('label' => 'CRC32', 'type' => 'number'),
     array('label' => 'TOC', 'type' => 'string'),
     array('label' => 'Q', 'type' => 'number'),
@@ -122,6 +123,7 @@ $json_submissions = json_encode($json_submissions_table);
   $body = $json_submissions;
   $etag = crc32($body);
 //  header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*5) . ' GMT');
+  header("Cache-Control: max-age=10");
   header("ETag:  " . $etag);
   if (@$_SERVER['HTTP_IF_NONE_MATCH'] == $etag) {
     header($_SERVER["SERVER_PROTOCOL"]." 304 Not Modified");
@@ -129,13 +131,13 @@ $json_submissions = json_encode($json_submissions_table);
   }
   die($body);
 } else
-  header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*60*24) . ' GMT');
+  header("Cache-Control: max-age=" . 60*60*24);
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-<script type='text/javascript' src="http://s3.cuetools.net/ctdb11.js"></script>
+<script type='text/javascript' src="http://s3.cuetools.net/ctdb12.js"></script>
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
 function drawTable()

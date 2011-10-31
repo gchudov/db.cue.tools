@@ -37,9 +37,7 @@ if (@$_POST['parityfile'])
   $tmpname = $file['tmp_name'];
   @file_exists($tmpname) or die("file doesn't exist");
   if (filesize($tmpname) == 0) die("file is empty");
-  //$tocidsafe = str_replace('.','+',$tocid); 
-  //$target_path = sprintf("parity/%s/%s", substr($tocidsafe, 0, 1), substr($tocidsafe, 1, 1));
-  $parfile = sprintf("parity/%s%08x",  str_replace('.','+', $tocid), $crc32);
+  $parfile = true;
 } else {
   $tmpname = false;
   $parfile = false;
@@ -99,9 +97,9 @@ if ($confirmid) {
   }
 
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $confirmid, $tocid));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $confirmid, $tocid));
   else
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
   $result or die('Query failed: ' . pg_last_error());
   if (pg_affected_rows($result) > 1) submit_error($dbconn, $record3, "not unique");
   if (pg_affected_rows($result) < 1) submit_error($dbconn, $record3, "not found");
@@ -109,12 +107,12 @@ if ($confirmid) {
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
-  $result= pg_query("SELECT nextval('submissions2_id_seq')");
-  $record3['entryid'] =  pg_fetch_result($result,0,0);
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2 AND trackoffsets=$3", array($tocid, $crc32, $toc['trackoffsets']))
+    or die('Query failed: ' . pg_last_error());
+  if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "duplicate entry"); // or confirm?
   pg_free_result($result);
 
-  $record = false;
-  $record['id'] = $record3['entryid'];
+  $record = array();
   $record['trackcount'] = $toc['trackcount'];
   $record['audiotracks'] = $toc['audiotracks'];
   $record['firstaudio'] = $toc['firstaudio'];
@@ -130,14 +128,14 @@ if ($confirmid) {
 
   if (phpCTDB::toc2tocid($record) != $tocid) submit_error($dbconn, $record3, "tocid mismatch");
 
-  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2", array($tocid, $crc32))
-    or die('Query failed: ' . pg_last_error());
-  $rescount = pg_num_rows($result);
+  $result = pg_query("SELECT nextval('submissions2_id_seq')");
+  $record['id'] =  pg_fetch_result($result,0,0);
   pg_free_result($result);
-  if ($rescount > 0) submit_error($dbconn, $record3, "duplicate entry"); // or confirm?
 
   pg_insert($dbconn, 'submissions2', $record)
     or die('Query failed');
+
+  $record3['entryid'] = $record['id'];
 }
 
 pg_insert($dbconn, 'submissions', $record3)
@@ -146,8 +144,9 @@ pg_insert($dbconn, 'submissions', $record3)
 if ($parfile)
 {
   //@mkdir($target_path, 0777, true);
-  move_uploaded_file($tmpname, $parfile)
-    or die('error uploading file ' . $tmpname . ' to ' . $parfile);
+  $parfilename = 'parity/' . $record3['entryid'];
+  move_uploaded_file($tmpname, $parfilename)
+    or die('error uploading file ' . $tmpname . ' to ' . $parfilename);
 }
 
 if ($confirmid)

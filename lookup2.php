@@ -39,6 +39,7 @@ if ($doctdb)
   $tocid = phpCTDB::toc2tocid($toc); 
   $query = "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "'";
   if (!$fuzzy) $query = $query . " AND trackoffsets='" . pg_escape_string($toc['trackoffsets']) . "'";
+  $query = $query . " ORDER BY id";
   $result = pg_query($dbconn, $query) 
     or die('Query failed: ' . pg_last_error());
   $records = pg_fetch_all($result);
@@ -93,7 +94,7 @@ else if ($type == 'xml')
       'confidence' => $record['confidence'], 
       'npar' => 8, 
       'stride' => 5880,
-      'hasparity' => ($record['hasparity'] == 't' ? sprintf("%s/%s%08x", $record['s3'] == 't' ? "http://p.cuetools.net" : "parity",str_replace('.','%2B',$record['tocid']), $record['crc32']) : false),
+      'hasparity' => ($record['hasparity'] == 't' ? sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "parity", $record['id']) : false),
       'parity' => $record['parity'],
       'toc' => phpCTDB::toc_toc2s($record)
     );
@@ -124,6 +125,7 @@ else if ($type == 'xml')
       'track' => $tracks,
       'label' => @$mbmeta['label'],
       'discogs_id' => @$mbmeta['discogs_id'],
+      'group_id' => @$mbmeta['group_id'],
       'genre' => @$mbmeta['genre'],
       'extra' => @$mbmeta['extra'],
       'relevance' => $mbmeta['relevance'],
@@ -150,7 +152,7 @@ else
 }
 
 $etag = md5($body);
-header("Expires:  " . gmdate('D, d M Y H:i:s', time() + 60*5) . ' GMT');
+header("Cache-Control: max-age=10");
 header("ETag:  " . $etag);
 if (@$_SERVER['HTTP_IF_NONE_MATCH'] == $etag) {
   header($_SERVER["SERVER_PROTOCOL"]." 304 Not Modified");
