@@ -27,13 +27,13 @@ if (isset($_GET['freedbfuzzy'])) $dofreedbfuzzy = $_GET['freedbfuzzy'];
 if (isset($_GET['discogs'])) $dodiscogs = $_GET['discogs'];
 if (isset($_GET['discogsfuzzy'])) $dodiscogsfuzzy = $_GET['discogsfuzzy'];
 
-$doctdb = isset($_GET['ctdb']) ? $_GET['ctdb'] : 1;
+$ctdbversion = isset($_GET['ctdb']) ? (int)$_GET['ctdb'] : 1;
 $type = isset($_GET['type']) ? $_GET['type'] : 'xml';
 $fuzzy = @$_GET['fuzzy'];
 $toc = phpCTDB::toc_s2toc($toc_s);
 $records = array();
 
-if ($doctdb)
+if ($ctdbversion > 0)
 {
   $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543") or die('Could not connect: ' . pg_last_error());
   $tocid = phpCTDB::toc2tocid($toc); 
@@ -88,14 +88,24 @@ else if ($type == 'xml')
   if ($records)
   foreach($records as $record)
   {
+    $parityurl = null;
+    if ($record['hasparity'] == 't') {
+      if ($record['syndrome'] != null && $ctdbversion == 1)
+        $parityurl = $record['s3'] == 't' ? "/tov1.php?id=" . $record['id'] : null;
+      else if ($record['syndrome'] == null && $ctdbversion == 2)
+        $parityurl = $record['s3'] == 't' ? "/tov2.php?id=" . $record['id'] : null;
+      else
+        $parityurl = sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "/parity", $record['id']);
+    }
     $xmlentry[] = array(
       'id' => $record['id'],
       'crc32' => sprintf("%08x", $record['crc32']),
       'confidence' => $record['confidence'], 
-      'npar' => 8, 
+      'npar' => $record['syndrome'] == null ? 8 : strlen(base64_decode($record['syndrome']))/2, 
       'stride' => 5880,
-      'hasparity' => ($record['hasparity'] == 't' ? sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "parity", $record['id']) : false),
-      'parity' => $record['parity'],
+      'hasparity' => $parityurl,
+      'parity' => $record['syndrome'] == null || $ctdbversion == 1 ? $record['parity'] : null,
+      'syndrome' => $ctdbversion == 1 ? null : $record['syndrome'],
       'toc' => phpCTDB::toc_toc2s($record)
     );
   }
