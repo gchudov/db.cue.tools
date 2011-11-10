@@ -100,12 +100,13 @@ else if ($type == 'xml')
     $xmlentry[] = array(
       'id' => $record['id'],
       'crc32' => sprintf("%08x", $record['crc32']),
-      'confidence' => $record['confidence'], 
+      'confidence' => $ctdbversion == 1 ? $record['confidence'] : $record['subcount'], 
       'npar' => $record['syndrome'] == null ? 8 : strlen(base64_decode($record['syndrome']))/2, 
       'stride' => 5880,
       'hasparity' => $parityurl,
       'parity' => $record['syndrome'] == null || $ctdbversion == 1 ? $record['parity'] : null,
       'syndrome' => $ctdbversion == 1 ? null : $record['syndrome'],
+      'trackcrcs' => $ctdbversion == 1 ? null : $record['trackcrcs'],
       'toc' => phpCTDB::toc_toc2s($record)
     );
   }
