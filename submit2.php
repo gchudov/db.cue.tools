@@ -50,7 +50,7 @@ $tocid = phpCTDB::toc2tocid($toc);
 
 $paritysample = @$_POST['parity'];
 if (!$paritysample) fatal_error('parity not specified');
-$syndromesample = @$_POST['syndrome'];
+$syndromesample = isset($_POST['syndrome']) ? base64_decode($_POST['syndrome']) : null;
 
 $crc32 = $_POST['crc32'];
 if (!$crc32) fatal_error('crc32 not specified');
