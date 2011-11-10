@@ -86,9 +86,10 @@ else if ($type == 'xml')
 
   $xmlentry = null;
   if ($records)
-  foreach($records as $record)
+  foreach($records as &$record)
   {
     $parityurl = null;
+    if ($record['syndrome'] != null) $record['syndrome'] = stripcslashes($record['syndrome']);
     if ($record['hasparity'] == 't') {
       if ($record['syndrome'] != null && $ctdbversion == 1)
         $parityurl = $record['s3'] == 't' ? "/tov1.php?id=" . $record['id'] : null;
@@ -101,11 +102,11 @@ else if ($type == 'xml')
       'id' => $record['id'],
       'crc32' => sprintf("%08x", $record['crc32']),
       'confidence' => $ctdbversion == 1 ? $record['confidence'] : $record['subcount'], 
-      'npar' => $record['syndrome'] == null ? 8 : strlen(base64_decode($record['syndrome']))/2, 
+      'npar' => $record['syndrome'] == null ? 8 : strlen($record['syndrome'])/2, 
       'stride' => 5880,
       'hasparity' => $parityurl,
       'parity' => $record['syndrome'] == null || $ctdbversion == 1 ? $record['parity'] : null,
-      'syndrome' => $ctdbversion == 1 ? null : $record['syndrome'],
+      'syndrome' => $record['syndrome'] == null || $ctdbversion == 1 ? null : base64_encode($record['syndrome']),
       'trackcrcs' => $ctdbversion == 1 ? null : $record['trackcrcs'],
       'toc' => phpCTDB::toc_toc2s($record)
     );
