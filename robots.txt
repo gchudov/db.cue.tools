@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /
+Disallow: /lookup.php
+Disallow: /confirm.php
+Disallow: /repair.php
+Disallow: /confirm.php
+Disallow: /show.php
+Disallow: /top.php
+Disallow: /parity/
