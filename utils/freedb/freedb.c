@@ -356,6 +356,11 @@ void output()
       pgquote(ttitle + i, 0);
     for (i = 0; i < c_ext; i++)
       pgquote(t_ext + i, 1);
+    if (!isascii7 && !isutf8 && !islatin1)
+    {
+       fprintf(stderr, "Invalid encoding for %s/%08x\n", validcategories[category], freedbid);
+       return;
+    }
     if (!isascii7 && !isutf8 && islatin1)
     {
         charset_latin1_utf8(&dtitle);
