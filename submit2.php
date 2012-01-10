@@ -17,7 +17,7 @@ $options = array(
   );
 $serializer = &new XML_Serializer($options);
 
-$version = isset($_POST['ctdb']) ? $_POST['ctdb'] : 2;
+$version = isset($_POST['ctdb']) ? $_POST['ctdb'] : 1;
 if ($version == 2) header('Content-type: text/xml; charset=UTF-8');
 
 function report_success($reason) {
@@ -47,6 +47,10 @@ if (!$toc_s) fatal_error('toc not specified');
 
 $toc = phpCTDB::toc_s2toc($toc_s);
 $tocid = phpCTDB::toc2tocid($toc);
+
+$trackoffsets = explode(' ', $toc['trackoffsets']);
+if ($version == 1 && $trackoffsets[0] != 0)
+  fatal_error('discs with pregaps not supported in this protocol version');
 
 $paritysample = @$_POST['parity'];
 if (!$paritysample) fatal_error('parity not specified');
@@ -97,9 +101,9 @@ $needparfile = false;
 if ($confirmid)
 { 
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE id=$1", array($confirmid))
-    or fatal_error('Query failed: ' . pg_last_error());
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
   $oldrecord = pg_fetch_array($result)
-    or fatal_error('Query failed: ' . pg_last_error());
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
   pg_free_result($result);
   if ($oldrecord['hasparity'] != 't') $needparfile = true;
   if ($oldrecord['syndrome'] == null && $syndromesample != null) $needparfile = true;
@@ -114,14 +118,10 @@ else
 
 if ($parfile && !$needparfile)
   submit_error($dbconn, $record3, "parity not needed"); // parfile = false?
-if (!$parfile && $needparfile)
-  parity_needed(16);
 
 if ($confirmid) {
-  $record3['entryid'] =  $confirmid;
-
   $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND (userid=$2 OR ip=$3) AND drivename=$4", array($confirmid, $record3['userid'], $record3['ip'], $record3['drivename']))
-    or fatal_error('Query failed: ' . pg_last_error());
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "already submitted");
   pg_free_result($result);
 
@@ -130,23 +130,29 @@ if ($confirmid) {
     if (pg_num_rows($result) == 0) submit_error($dbconn, $record3, "unrecognized or virtual drive");
     pg_free_result($result);
   }
+} else {
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2 AND trackoffsets=$3", array($tocid, $crc32, $toc['trackoffsets']))
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
+  if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "duplicate submission"); // or confirm?
+  pg_free_result($result);
+}
 
+if (!$parfile && $needparfile)
+  parity_needed(16);
+
+if ($confirmid) {
+  $record3['entryid'] =  $confirmid;
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=$6, crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $confirmid, $tocid, $syndromesample));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $confirmid, $tocid, base64_encode($syndromesample)));
   else
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
-  $result or fatal_error('Query failed: ' . pg_last_error());
+  $result or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_affected_rows($result) > 1) submit_error($dbconn, $record3, "not unique");
   if (pg_affected_rows($result) < 1) submit_error($dbconn, $record3, "not found");
   pg_free_result($result);
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
-  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2 AND trackoffsets=$3", array($tocid, $crc32, $toc['trackoffsets']))
-    or fatal_error('Query failed: ' . pg_last_error());
-  if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "duplicate entry"); // or confirm?
-  pg_free_result($result);
-
   $record = array();
   $record['trackcount'] = $toc['trackcount'];
   $record['audiotracks'] = $toc['audiotracks'];
@@ -168,8 +174,10 @@ if ($confirmid) {
   $record['id'] =  pg_fetch_result($result,0,0);
   pg_free_result($result);
 
+#  error_log(print_r($record,true));
+#  error_log(base64_encode($syndromesample));
   pg_insert($dbconn, 'submissions2', $record)
-    or fatal_error('Query failed');
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
 
   $record3['entryid'] = $record['id'];
 }
