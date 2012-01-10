@@ -67,6 +67,8 @@ if (!$confidence) fatal_error('confidence not specified');
 
 $quality = $_POST['quality'];
 
+$maxid = isset($_POST['maxid']) ? $_POST['maxid'] : 0;
+
 if (@$_POST['parityfile'])
 {
   $file = $_FILES['parityfile'];
@@ -119,21 +121,31 @@ else
 if ($parfile && !$needparfile)
   submit_error($dbconn, $record3, "parity not needed"); // parfile = false?
 
+#error_log(print_r($_POST,true));
+#error_log('v=' . $version);
+#error_log('maxid=' . $maxid);
+if ($version != 1) {
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND id > $2", array($tocid, $maxid))
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
+  if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "client is not aware of recent entries"); // or confirm?
+  pg_free_result($result);
+}
+
 if ($confirmid) {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND (userid=$2 OR ip=$3) AND drivename=$4", array($confirmid, $record3['userid'], $record3['ip'], $record3['drivename']))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "already submitted");
   pg_free_result($result);
-
-  if ($record3['drivename'] != null) {
-    $result = pg_query_params($dbconn, "SELECT * FROM drives ds WHERE $1 ~* ('^'|| ds.name ||'.*-')", array($record3['drivename']));
-    if (pg_num_rows($result) == 0) submit_error($dbconn, $record3, "unrecognized or virtual drive");
-    pg_free_result($result);
-  }
 } else {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2 AND trackoffsets=$3", array($tocid, $crc32, $toc['trackoffsets']))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "duplicate submission"); // or confirm?
+  pg_free_result($result);
+}
+
+if ($record3['drivename'] != null) {
+  $result = pg_query_params($dbconn, "SELECT * FROM drives ds WHERE $1 ~* ('^'|| ds.name ||'.*-')", array($record3['drivename']));
+  if (pg_num_rows($result) == 0) submit_error($dbconn, $record3, "unrecognized or virtual drive");
   pg_free_result($result);
 }
 
