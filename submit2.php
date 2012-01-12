@@ -125,7 +125,7 @@ if ($parfile && !$needparfile)
 #error_log('v=' . $version);
 #error_log('maxid=' . $maxid);
 if ($version != 1) {
-  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND id > $2", array($tocid, $maxid))
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND trackoffsets = $2 AND id > $3", array($tocid, $toc['trackoffsets'], $maxid))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "client is not aware of recent entries"); // or confirm?
   pg_free_result($result);
