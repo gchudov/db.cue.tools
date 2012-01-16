@@ -137,17 +137,6 @@ int parse_utf8(const char **ps)
 	return wc;
 }
 
-int charset_is_utf8(const char *s)
-{
-	const char *t = s;
-	int n;
-
-	while ((n = parse_utf8(&t)))
-		if (n == -1)
-			return 0;
-	return 1;
-}
-
 /*
  *  * Here we define the acceptable characters in a DB entry:
  *   * - ASCII control chars: 9 (tab), 10 (lf), 13 (cr)
@@ -167,7 +156,7 @@ int charset_is_utf8(const char *s)
 	 (c) == 9 || (c) == 10 || (c) == 13)
 #define GOOD_UCS(c) \
 	(GOOD_ASCII(c) || \
-	 ((c) >= 160 && ((c) & ~0x3ff) != 0xd800 && \
+	 ((c) >= 160 && ((c) & ~0x7ff) != 0xd800 && \
 	  (c) != 0xfeff && (c) != 0xfffe && (c) != 0xffff))
 #define GOOD_LATIN1(c) \
 	(GOOD_ASCII(c) || \
