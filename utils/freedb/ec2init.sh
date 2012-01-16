@@ -7,8 +7,8 @@ printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (R
 yum -y install php-cli php-xml s3cmd mercurial gcc make bzip2-devel
 yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
-hg clone http://hg.cuetools.net/ctdbweb
-make -C ctdbweb/utils/freedb/
-s3cmd --no-progress get s3://private.cuetools.net/freedb-complete-`date +%Y%m01`.tar.bz2 - | tar vxjO 2>&1 | ./ctdbweb/utils/freedb/freedb
-s3cmd --no-progress --rr put freedb_*.sql.bz2 ./ctdbweb/utils/freedb/*.sql /var/log/cloud-init.log s3://private.cuetools.net/freedb/`date +%Y%m01`/
+hg clone https://code.google.com/p/cuetools-database/
+make -C cuetools-database/utils/freedb/
+s3cmd --no-progress get s3://private.cuetools.net/freedb-complete-`date +%Y%m01`.tar.bz2 - | tar vxjO 2>&1 | ./cuetools-database/utils/freedb/freedb 2> freedb.log
+s3cmd --no-progress --rr put freedb_*.sql.bz2 ./cuetools-database/utils/freedb/*.sql /var/log/cloud-init.log freedb.log s3://private.cuetools.net/freedb/`date +%Y%m01`/
 shutdown -h now

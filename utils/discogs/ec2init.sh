@@ -7,7 +7,7 @@ printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (R
 yum -y install php-cli php-xml php-pgsql s3cmd mercurial augeas
 yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
-hg clone http://hg.cuetools.net/ctdbweb
-s3cmd --no-progress get s3://private.cuetools.net/discogs_`date +%Y%m01`_releases.xml.gz - | ./ctdbweb/utils/discogs/run_discogs_converter.sh
-s3cmd --no-progress --rr put discogs_*_sql.gz ./ctdbweb/utils/discogs/*.sql s3://private.cuetools.net/discogs/`date +%Y%m01`/
+hg clone https://code.google.com/p/cuetools-database/
+s3cmd --no-progress get s3://private.cuetools.net/discogs_`date +%Y%m01`_releases.xml.gz - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
+s3cmd --no-progress --rr put discogs_*_sql.gz ./cuetools-database/utils/discogs/*.sql s3://private.cuetools.net/discogs/`date +%Y%m01`/
 #shutdown -h now
