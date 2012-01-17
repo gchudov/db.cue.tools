@@ -143,24 +143,15 @@ $imgfound = array();
 $imgfoundlinks = array();
 /*
 if ($mbmeta)
-	foreach ($mbmeta as $mbr)
-		if ($mbr['info_url'] && $mbr['info_url'] != '')
-		if (0 < preg_match("/(http\:\/\/www\.amazon\.)([^\/]*)\/gp\/product\/(.*)/", $mbr['info_url'], $match))
-		{
-			switch($match[2])
-			{
-			  case 'com' : $cc = 1; break;
-			  case 'co.uk' : $cc = 2; break;
-			  case 'de' : $cc = 3; break;
-			  case 'fr' : $cc = 8; break;
-			  case 'jp' : $cc = 9; break;
-			}
-			$img = sprintf('http://images.amazon.com/images/P/%s.0%d._SL160_.jpg', $match[3], $cc);
-			//$img = sprintf('http://images.amazon.com/images/P/%s.0%d._SS160_.jpg', $match[3], $cc);
-			//$img = sprintf('http://images.amazon.com/images/P/%s.0%d.LZZZZZZZ.jpg', $match[3], $cc);
-			$imgfound[] = $img;
-			$imgfoundlinks[$img] = $mbr['info_url'];
-		}
+  foreach ($mbmeta as &$mbr)
+    if (isset($mbr['coverart']) && $mbr['coverart'] != null)
+      foreach ($mbr['coverart'] as &$cover) {
+        $img = $cover['uri150'];
+        { // if (!in_array($img, $imgfound)) {
+          $imgfound[] = $img;
+          $imgfoundlinks[$img] = $mbr['info_url'];
+        }
+      }
 */
 if ($imgfound) {
   printf('<table class="ctdbbox"><tr><td>' . "\n");
@@ -180,7 +171,7 @@ printf('<br>');
 
 printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?ctdb=2&metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
