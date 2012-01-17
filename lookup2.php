@@ -27,13 +27,14 @@ if (isset($_GET['freedbfuzzy'])) $dofreedbfuzzy = $_GET['freedbfuzzy'];
 if (isset($_GET['discogs'])) $dodiscogs = $_GET['discogs'];
 if (isset($_GET['discogsfuzzy'])) $dodiscogsfuzzy = $_GET['discogsfuzzy'];
 
-$ctdbversion = isset($_GET['ctdb']) ? (int)$_GET['ctdb'] : 1;
+$doctdb = isset($_GET['ctdb']) ? (int)$_GET['ctdb'] : 1;
+$ctdbversion = isset($_GET['version']) ? (int)$_GET['version'] : 1;
 $type = isset($_GET['type']) ? $_GET['type'] : 'xml';
 $fuzzy = @$_GET['fuzzy'];
 $toc = phpCTDB::toc_s2toc($toc_s);
 $records = array();
 
-if ($ctdbversion > 0)
+if ($doctdb > 0)
 {
   $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543") or die('Could not connect: ' . pg_last_error());
   $tocid = phpCTDB::toc2tocid($toc); 
@@ -131,19 +132,22 @@ else if ($type == 'xml')
       'discnumber' => $mbmeta['discnumber'], 
       'disccount' => $mbmeta['totaldiscs'], 
       'discname' => $mbmeta['discname'], 
-      'coverarturl' => $mbmeta['coverarturl'], 
       'infourl' => $mbmeta['info_url'], 
       'barcode' => $mbmeta['barcode'],
-      'track' => $tracks,
-      'label' => @$mbmeta['label'],
       'discogs_id' => @$mbmeta['discogs_id'],
       'group_id' => @$mbmeta['group_id'],
       'genre' => @$mbmeta['genre'],
       'extra' => @$mbmeta['extra'],
       'relevance' => $mbmeta['relevance'],
+      'track' => $tracks,
+      'label' => @$mbmeta['label'],
+      'coverart' => @$mbmeta['coverart'], 
     );
   }
-  $ctdbdata = array('entry' => $xmlentry, 'musicbrainz' => $xmlmbmeta);
+  if ($ctdbversion == 2)
+    $ctdbdata = array('entry' => $xmlentry, 'metadata' => $xmlmbmeta);
+  else
+    $ctdbdata = array('entry' => $xmlentry, 'musicbrainz' => $xmlmbmeta);
   $options = array(
     XML_SERIALIZER_OPTION_INDENT        => '  ',
     XML_SERIALIZER_OPTION_RETURN_RESULT => true,

@@ -1,5 +1,7 @@
 <?php
 
+require_once 'ctdbcfg.php';
+
 class phpCTDB{
   static function query2json($conn, $query)
   {
@@ -244,10 +246,10 @@ class phpCTDB{
 
 	static function freedblookup($toc, $fuzzy = 0)
         {
-		//$freedbconn = pg_connect("dbname=freedb1 user=freedb_user port=5432");
-		$freedbconn = pg_connect("dbname=freedb user=freedb_user port=6543");
+                global $ctdbcfg_freedb_db;
+		$freedbconn = pg_connect($ctdbcfg_freedb_db);
 		if (!$freedbconn)
-			return false;
+			return array();
 		$ids = explode(':', $toc);
 		$offsets = '';
 		for ($tr = 0; $tr < count($ids) - 1; $tr++) {
@@ -331,7 +333,8 @@ class phpCTDB{
 
 	static function discogslookup($dids, $fuzzy = null)
 	{
-		$conn = pg_connect("dbname=discogs user=discogs port=6543");
+                global $ctdbcfg_discogs_db;
+		$conn = pg_connect($ctdbcfg_discogs_db);
 		if (!$conn)
 		  return array();
 		$discogs_countries = array(
@@ -454,6 +457,13 @@ class phpCTDB{
 		  'ORDER BY t.release_id, t.index', $ids);
                 $trackmeta = pg_fetch_all($result);
                 pg_free_result($result);
+                $result = pg_query_params($conn,
+		  'SELECT ri.release_id, i.image_type, uri, height, width, uri150 ' . 
+		  'FROM releases_images ri ' . 
+		  'INNER JOIN image i ON ri.image_id = i.id ' . 
+                  'WHERE ri.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
+		$images =  pg_fetch_all($result);
+                pg_free_result($result);
 		$artist_credit = array();
 		foreach($meta as $r)
 		  if ($r['artist_credit'] != null)
@@ -486,6 +496,11 @@ class phpCTDB{
 		  if ($trackmeta) foreach($trackmeta as $t)
 		    if ($t['release_id'] == $r['discogs_id'] && $t['discno'] == $r['disc'])
 		      $tracklist[] = array('name' => $t['name'], 'artist' => @$artist_credit[$t['artist_credit']]);
+		  $rimages = array();
+#		  error_log(print_r($images,true));
+		  foreach ($images as &$image)
+		    if ($image['release_id'] == $r['discogs_id'])
+		      $rimages[] = array('uri' => $image['uri'], 'uri150' => $image['uri150'], 'width' => $image['width'], 'height' => $image['height'], 'primary' => $image['image_type'] == 'primary' ? 1 : 0);
 		  $res[] = array(
 		    'source' => 'discogs',
 		    'id' => $r['discogs_id'],
@@ -500,7 +515,7 @@ class phpCTDB{
 		    'totaldiscs' => $r['totaldiscs'],
 		    'discname' => null,
 		    'barcode' => null,
-		    'coverarturl' => null,
+		    'coverart' => $rimages ? $rimages : null,
 		    'info_url' => null,
 		    'releasedate' => $r['released'],
 		    'country' => $country_iso,
@@ -512,9 +527,12 @@ class phpCTDB{
 
 	static function mbzlookup($tocs, $fuzzy = false)
 	{
+          global $ctdbcfg_musicbrainz_db;
 	  if (!$tocs) return array();
-	  $mbconn = pg_connect("dbname=musicbrainz_db user=musicbrainz port=6543");
+	  $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
 	  if (!$mbconn) return array();
+          $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
+          pg_free_result($result);
 	  $mbids = array();
 	  foreach($tocs as $toc)
 	    $mbids[] = phpCTDB::tocs2mbid($toc);
@@ -678,6 +696,30 @@ class phpCTDB{
 		      $labelcat[$i]['name'] = $label[$i];*/
       }
 		  $r['label'] = $labelcat;
+
+                  $coverart = array();
+                  if (!isset($r['coverarturl']) || $r['coverarturl'] == '')
+                  if (isset($r['info_url']) && $r['info_url'] != '')
+                  if (0 < preg_match("/(http\:\/\/www\.amazon\.)([^\/]*)\/gp\/product\/(.*)/", $r['info_url'], $match))
+                  {
+                      $cc = null;
+                      switch($match[2])
+                      {
+                        case 'com' : $cc = 1; break;
+                        case 'co.uk' : $cc = 2; break;
+                        case 'co.jp' : $cc = 9; break;
+                        case 'de' : $cc = 3; break;
+                        case 'fr' : $cc = 8; break;
+                        case 'jp' : $cc = 9; break;
+                      }
+                      if ($cc != null)
+                        $coverart[] = array(
+                          'primary' => true,
+                          'uri' => sprintf('http://images.amazon.com/images/P/%s.0%d.LZZZZZZZ.jpg', $match[3], $cc),
+                          'uri150' => sprintf('http://images.amazon.com/images/P/%s.0%d._SL150_.jpg', $match[3], $cc));
+                  }
+                  if ($coverart)
+                    $r['coverart'] = $coverart;
 		}
 		return $mbmeta;
 	}
