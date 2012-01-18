@@ -23,12 +23,20 @@ if ($version == 2) header('Content-type: text/xml; charset=UTF-8');
 function report_success($reason) {
   global $version, $serializer;
   $response = array('status' => 'success', 'message' => $reason);
+#  if (substr($_SERVER['HTTP_USER_AGENT'],0,strlen('EACv1.0b3 CTDB 2.1.4')) == 'EACv1.0b3 CTDB 2.1.4') {
+#    $response['updateurl'] = 'http://s3.cuetools.net/CUETools.CTDB.EACPlugin.Installer.msi';
+#    $response['updatemsg'] = 'Version 2.1.4 adds support for coverart.';
+#  }
   die($version == 1 ? $reason : $serializer->serialize($response));
 }
 
 function fatal_error($reason) {
   global $version, $serializer;
   $response = array('status' => 'error', 'message' => $reason);
+#  if (substr($_SERVER['HTTP_USER_AGENT'],0,strlen('EACv1.0b3 CTDB 2.1.4')) == 'EACv1.0b3 CTDB 2.1.4') {
+#    $response['updateurl'] = 'http://s3.cuetools.net/CUETools.CTDB.EACPlugin.Installer.msi';
+#    $response['updatemsg'] = 'Version 2.1.4 adds support for coverart.';
+#  }
   die($version == 1 ? $reason : $serializer->serialize($response));
 }
 
@@ -150,7 +158,7 @@ if ($record3['drivename'] != null) {
 }
 
 if (!$parfile && $needparfile)
-  parity_needed(16);
+  parity_needed(8);
 
 if ($confirmid) {
   $record3['entryid'] =  $confirmid;
