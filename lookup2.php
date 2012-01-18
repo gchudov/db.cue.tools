@@ -103,7 +103,7 @@ else if ($type == 'xml')
       'id' => $record['id'],
       'crc32' => sprintf("%08x", $record['crc32']),
       'confidence' => $ctdbversion == 1 ? $record['confidence'] : $record['subcount'], 
-      'npar' => $record['syndrome'] == null ? 8 : strlen($record['syndrome'])/2, 
+      'npar' => $record['syndrome'] == null || $ctdbversion == 1 ? 8 : strlen($record['syndrome'])/2, 
       'stride' => 5880,
       'hasparity' => $parityurl,
       'parity' => $record['syndrome'] == null || $ctdbversion == 1 ? $record['parity'] : null,
