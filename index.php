@@ -34,7 +34,7 @@ include 'list1.php';
 include 'logo_start2.php';
 ?>
 <center><h3>CUETools Database: recent additions</h3>
-<div id='entries_div_none'></div>
+<div id='entries_div'></div>
 <br><div id='musicbrainz_div'></div>
 <?php if ($isadmin) { ?><br><div id='submissions_div'></div><br><div id='admin_div'></div><?php } ?>
 </center>

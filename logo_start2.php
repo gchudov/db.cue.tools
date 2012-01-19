@@ -31,8 +31,8 @@ google.setOnLoadCallback(updateTotals());
 <title>CUETools DB</title>
 <link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb12.css" />
 </head>
-<body style="background: black;">
-<!-- <ul id="nav">
+<body>
+<ul id="nav">
   <li><img width=64 height=64 border=0 alt="" src="http://s3.cuetools.net/ctdb64.png"></li>
   <li id="nav-1"><a href="/">Home</a></li>
   <li id="nav-2"><a href="/top.php">Popular</a></li>
@@ -44,6 +44,5 @@ google.setOnLoadCallback(updateTotals());
 	<li id="nav-8"><a href="http://www.cuetools.net/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a></li>
 	<li id="nav-0"><a href="http://www.cuetools.net/wiki/CUETools" target="_blank">CUETools</a></li>
 	<li id="nav-11"><a><span id=totals_span></span></a></li>
-</ul>-->
+</ul>
 <br clear=all>
-<center><h1><a style="color: red;" href="https://www.google.com/landing/takeaction/">Tell Congress: Don’t censor the Web</a></h1></center>
