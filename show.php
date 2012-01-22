@@ -139,6 +139,17 @@ include 'logo_start2.php';
 
 printf('<center>');
 
+$vidfound = array();
+if ($mbmeta)
+  foreach ($mbmeta as &$mbr)
+    if (isset($mbr['videos']) && $mbr['videos'] != null)
+      foreach($mbr['videos'] as &$video) {
+        $vidfound[] = $video['uri'];
+      }
+
+//foreach(array_unique($vidfound) as $vid)
+  //printf("%s<br>", $vid);
+
 $imgfound = array();
 $imgfoundlinks = array();
 /*
