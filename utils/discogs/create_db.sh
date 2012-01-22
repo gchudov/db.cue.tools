@@ -11,4 +11,4 @@ done
 psql -U $dbuser -d $dbname -f $(dirname $0)/create_keys.sql
 psql -U postgres -d $dbname -f /usr/share/pgsql/contrib/cube.sql
 psql -U $dbuser -d $dbname -f $(dirname $0)/create_cube.sql
-psql -U postgres -d $dbname -c "VACUUM"
+pg_dump -Fc -U postgres $dbname > discogs.bin
