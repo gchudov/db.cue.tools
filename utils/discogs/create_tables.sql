@@ -81,13 +81,10 @@ CREATE TABLE track_title (
 -- Name: image; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
-CREATE TABLE image (
+CREATE TABLE video (
     id integer NOT NULL,
-    image_type image_type_t NOT NULL,
-    uri text NOT NULL,
-    height integer,
-    width integer,
-    uri150 text
+    src text NOT NULL,
+    duration integer
 );
 
 
@@ -138,9 +135,16 @@ CREATE TABLE releases_formats (
 
 CREATE TABLE releases_images (
     release_id integer NOT NULL,
-    image_id integer NOT NULL
+    image_type image_type_t NOT NULL,
+    uri text NOT NULL,
+    height integer,
+    width integer
 );
 
+CREATE TABLE releases_videos (
+    release_id integer NOT NULL,
+    video_id integer NOT NULL
+);
 
 --
 -- Name: releases_labels; Type: TABLE; Schema: public; Owner: -; Tablespace: 

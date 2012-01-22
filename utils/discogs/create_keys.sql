@@ -16,11 +16,11 @@ ALTER TABLE ONLY artist_name
 
 
 --
--- Name: image_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: video_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
-ALTER TABLE ONLY image
-    ADD CONSTRAINT image_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY video
+    ADD CONSTRAINT video_pkey PRIMARY KEY (id);
 
 
 --
@@ -43,10 +43,12 @@ ALTER TABLE ONLY track_title
 
 
 --
--- Name: releases_images_release_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: releases_videos_release_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
 CREATE INDEX releases_images_release_id_index ON releases_images USING btree (release_id);
+
+CREATE INDEX releases_videos_release_id_index ON releases_videos USING btree (release_id);
 
 CREATE INDEX track_release_id_index ON track(release_id);
 
@@ -97,20 +99,22 @@ ALTER TABLE ONLY releases_formats
 
 
 --
--- Name: releases_images_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: releases_videos_video_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY releases_images
-    ADD CONSTRAINT releases_images_image_id_fkey FOREIGN KEY (image_id) REFERENCES image(id);
+ALTER TABLE ONLY releases_videos
+    ADD CONSTRAINT releases_videos_video_id_fkey FOREIGN KEY (video_id) REFERENCES video(id);
 
 
 --
--- Name: releases_images_release_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: releases_videos_release_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY releases_images
-    ADD CONSTRAINT releases_images_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
+-- ALTER TABLE ONLY releases_images
+--     ADD CONSTRAINT releases_images_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
 
+-- ALTER TABLE ONLY releases_videos
+--     ADD CONSTRAINT releases_videos_release_id_fkey FOREIGN KEY (release_id) REFERENCES release(discogs_id);
 
 --
 -- Name: releases_labels_label_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
