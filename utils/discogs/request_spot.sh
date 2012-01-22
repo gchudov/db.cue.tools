@@ -63,8 +63,8 @@ printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (R
 yum -y install php-cli php-xml php-pgsql postgresql-server postgresql-contrib s3cmd mercurial augeas
 yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
-sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
 service postgresql initdb
+sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
 service postgresql start
 hg clone https://code.google.com/p/cuetools-database/
 s3cmd --no-progress get s3://private.cuetools.net/$discogs_rel - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
