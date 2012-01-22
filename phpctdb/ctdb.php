@@ -463,6 +463,13 @@ class phpCTDB{
                   'WHERE ri.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		$images =  pg_fetch_all($result);
                 pg_free_result($result);
+		$result = pg_query_params($conn,
+		  'SELECT rv.release_id, v.src ' . 
+		  'FROM releases_videos rv ' .
+		  'INNER JOIN video v ON v.id = rv.video_id ' .
+		  'WHERE rv.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
+		$videos = pg_fetch_all($result);
+		pg_free_result($result);
 		$artist_credit = array();
 		foreach($meta as $r)
 		  if ($r['artist_credit'] != null)
@@ -495,6 +502,10 @@ class phpCTDB{
 		  if ($trackmeta) foreach($trackmeta as $t)
 		    if ($t['release_id'] == $r['discogs_id'] && $t['discno'] == $r['disc'])
 		      $tracklist[] = array('name' => $t['name'], 'artist' => @$artist_credit[$t['artist_credit']]);
+		  $rvideos = array();
+		  if ($videos)
+		  foreach ($videos as &$video)
+		    $rvideos[] = array('uri' => 'http://www.youtube.com/watch?v=' . $video['src']);
 		  $rimages = array();
 #		  error_log(print_r($images,true));
 		  foreach ($images as &$image)
@@ -515,6 +526,7 @@ class phpCTDB{
 		    'discname' => null,
 		    'barcode' => null,
 		    'coverart' => $rimages ? $rimages : null,
+		    'videos' => $rvideos ? $rvideos : null,
 		    'info_url' => null,
 		    'releasedate' => $r['released'],
 		    'country' => $country_iso,
