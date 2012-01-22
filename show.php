@@ -145,18 +145,23 @@ $imgfoundlinks = array();
 if ($mbmeta)
   foreach ($mbmeta as &$mbr)
     if (isset($mbr['coverart']) && $mbr['coverart'] != null)
-      foreach ($mbr['coverart'] as &$cover) {
-        $img = $cover['uri150'];
-        { // if (!in_array($img, $imgfound)) {
-          $imgfound[] = $img;
-          $imgfoundlinks[$img] = $mbr['info_url'];
+      foreach ($mbr['coverart'] as &$cover) 
+        if ($cover['primary']) {
+          $img = $cover['uri150'];
+          { // if (!in_array($img, $imgfound)) {
+            $imgfound[] = $img;
+            $imgfoundlinks[$img] = $mbr['info_url'];
+          }
         }
-      }
 */
 if ($imgfound) {
   printf('<table class="ctdbbox"><tr><td>' . "\n");
-  foreach(array_unique($imgfound) as $img)
-    printf('<a target=_blank href="%s"><img border=0 src="%s"></a>' . "\n", $imgfoundlinks[$img], $img);
+  foreach(array_unique($imgfound) as $img) {
+    if ($imgfoundlinks[$img] != '') printf('<a target=_blank href="%s">', $imgfoundlinks[$img]);
+    printf('<img border=0 src="%s">', $img);
+    if ($imgfoundlinks[$img] != '') printf('</a>');
+    printf("\n");
+  }
     //printf('<a target=_blank href="%s"><img height=160 width=160 border=0 src="%s">' . "\n", $imgfoundlinks[$img], $img);
   printf('</td></tr></table>');
 }

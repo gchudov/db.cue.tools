@@ -458,9 +458,8 @@ class phpCTDB{
                 $trackmeta = pg_fetch_all($result);
                 pg_free_result($result);
                 $result = pg_query_params($conn,
-		  'SELECT ri.release_id, i.image_type, uri, height, width, uri150 ' . 
+		  'SELECT release_id, image_type, uri, height, width ' . 
 		  'FROM releases_images ri ' . 
-		  'INNER JOIN image i ON ri.image_id = i.id ' . 
                   'WHERE ri.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		$images =  pg_fetch_all($result);
                 pg_free_result($result);
@@ -500,7 +499,7 @@ class phpCTDB{
 #		  error_log(print_r($images,true));
 		  foreach ($images as &$image)
 		    if ($image['release_id'] == $r['discogs_id'])
-		      $rimages[] = array('uri' => $image['uri'], 'uri150' => $image['uri150'], 'width' => $image['width'], 'height' => $image['height'], 'primary' => $image['image_type'] == 'primary' ? 1 : 0);
+		      $rimages[] = array('uri' => 'http://api.discogs.com/image/R-' . $image['uri'], 'uri150' => 'http://api.discogs.com/image/R-150-' . $image['uri'], 'width' => $image['width'], 'height' => $image['height'], 'primary' => $image['image_type'] == 'primary' ? 1 : 0);
 		  $res[] = array(
 		    'source' => 'discogs',
 		    'id' => $r['discogs_id'],
