@@ -66,6 +66,7 @@ $seqid_image = 1;
 $seqid_credit = 1;
 $seqid_label = 1;
 $seqid_title = 1;
+$seqid_video = 1;
 $known_names = array();
 $known_images = array();
 $known_labels = array();
@@ -73,8 +74,10 @@ $known_titles = array();
 $known_credits = array();
 $known_styles = array();
 $known_genres = array();
+$known_idtypes = array();
 $known_formats = array();
 $known_descriptions = array();
+$known_videos = array();
 
 function parseArtistName($name)
 {
@@ -123,24 +126,44 @@ function parseTitle($name)
   return $name_id;
 }
 
-function parseImage($img)
+function parseImage($rid, $img)
 {
   if ($img == null || $img['uri'] == '')
     return "\\N";
-  global $seqid_image;
-  global $known_images;
+#  global $seqid_image;
+#  global $known_images;
   $key = (string)$img['uri'];
+  $key = escapeNode(substr($key,0,31)=='http://api.discogs.com/image/R-' ? substr($key,31) : $key);
   //if (@$known_images[$key]) return $known_images[$key];
-  $image_id = $seqid_image++;
-  printInsert('image', array(
-    'id' => $image_id,
-    'uri' => escapeNode($img['uri']),
+#  $image_id = $seqid_image++;
+#  printInsert('image', array(
+#    'id' => $image_id,
+  printInsert('releases_images', array(
+    'release_id' => $rid,
+    'uri' => escapeNode($key),
     'height' => $img['height'],
     'width' => $img['width'],
-    'image_type' => escapeNode($img['type']),
-    'uri150' => escapeNode($img['uri150'])));
+    'image_type' => escapeNode($img['type'])));
   //$known_images[$key] = $image_id;
-  return $image_id;
+#  return $image_id;
+}
+
+function parseVideo($vid)
+{
+  if ($vid == null || $vid['src'] == '')
+    return "\\N";
+  global $seqid_video;
+  global $known_videos;
+  $src = (string)$vid['src'];
+  $src = escapeNode(substr($src,0,31)=='http://www.youtube.com/watch?v=' ? substr($src,31) : $src);
+  if (@$known_videos[$src]) return $known_videos[$src];
+  $video_id = $seqid_video++;
+  printInsert('video', array(
+    'id' => $video_id,
+    'src' => escapeNode($src),
+    'duration' => $vid['duration']));
+  $known_videos[$src] = $video_id;
+  return $video_id;
 }
 
 function parseCredits($artists)
@@ -187,6 +210,7 @@ function parseRelease($rel)
   global $known_styles;
   global $known_formats;
   global $known_descriptions;
+  global $known_idtypes;
 
   if ($rel->genres)
     foreach ($rel->genres->children() as $key)
@@ -201,6 +225,9 @@ function parseRelease($rel)
         foreach ($fmt->descriptions->children() as $des)
           $known_descriptions[(string)$des] = true;
     }
+  if ($rel->identifiers)
+    foreach ($rel->identifiers->children() as $key)
+      $known_idtypes[escapeNode($key['type'])] = true;
 
   //print_r( $rel);
   printInsert('release', array(
@@ -221,6 +248,13 @@ function parseRelease($rel)
       'release_id' => $rel['id'],
       'label_id' => parseLabel($lbl['name']),
       'catno' => escapeNode($lbl['catno'])));
+  }
+  if ($rel->identifiers)
+  foreach($rel->identifiers->children() as $id) {
+    printInsert('releases_identifiers', array(
+      'release_id' => $rel['id'],
+      'id_type' => escapeNode($id['type']),
+      'id_value' => escapeNode($id['value'])));
   }
 /*
   $seq = 0;
@@ -277,9 +311,16 @@ function parseRelease($rel)
   }
   if ($rel->images)
   foreach($rel->images->children() as $img) {
-    printInsert('releases_images', array(
+    parseImage($rel['id'], $img);
+#    printInsert('releases_images', array(
+#      'release_id' => $rel['id'],
+#      'image_id' => parseImage($img)));
+  }
+  if ($rel->videos)
+  foreach($rel->videos->children() as $vid) {
+    printInsert('releases_videos', array(
       'release_id' => $rel['id'],
-      'image_id' => parseImage($img)));
+      'video_id' => parseVideo($vid)));
   }
 }
 
@@ -302,10 +343,12 @@ array_walk($known_styles, function(&$val, $key) { $val = "E'" . pg_escape_string
 array_walk($known_genres, function(&$val, $key) { $val = "E'" . pg_escape_string($key) . "'"; }); 
 array_walk($known_descriptions, function(&$val, $key) { $val = "E'" . pg_escape_string($key) . "'"; }); 
 array_walk($known_formats, function(&$val, $key) { $val = "E'" . pg_escape_string($key) . "'"; }); 
+array_walk($known_idtypes, function(&$val, $key) { $val = "E'" . pg_escape_string($key) . "'"; }); 
 echo "CREATE TYPE style_t AS ENUM (\n    " . implode(",\n    ",$known_styles) . "\n);\n";
 echo "CREATE TYPE genre_t AS ENUM (\n    " . implode(",\n    ",$known_genres) . "\n);\n";
 echo "CREATE TYPE description_t AS ENUM (\n    " . implode(",\n    ",$known_descriptions) . "\n);\n";
 echo "CREATE TYPE format_t AS ENUM (\n    " . implode(",\n    ",$known_formats) . "\n);\n";
+echo "CREATE TYPE idtype_t AS ENUM (\n    " . implode(",\n    ",$known_idtypes) . "\n);\n";
 foreach($fps as $fp) {
   gzwrite($fp, "\\.\n");
   gzclose($fp);
