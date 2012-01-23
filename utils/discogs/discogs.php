@@ -161,6 +161,7 @@ function parseVideo($vid)
   printInsert('video', array(
     'id' => $video_id,
     'src' => escapeNode($src),
+    'title' => escapeNode($vid['title']),
     'duration' => $vid['duration']));
   $known_videos[$src] = $video_id;
   return $video_id;

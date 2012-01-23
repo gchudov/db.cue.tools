@@ -48,6 +48,8 @@ ALTER TABLE ONLY track_title
 
 CREATE INDEX releases_images_release_id_index ON releases_images USING btree (release_id);
 
+CREATE INDEX releases_identifiers_release_id_index ON releases_identifiers USING btree (release_id);
+
 CREATE INDEX releases_videos_release_id_index ON releases_videos USING btree (release_id);
 
 CREATE INDEX track_release_id_index ON track(release_id);

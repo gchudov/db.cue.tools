@@ -84,6 +84,7 @@ CREATE TABLE track_title (
 CREATE TABLE video (
     id integer NOT NULL,
     src text NOT NULL,
+    title text,
     duration integer
 );
 
@@ -139,6 +140,12 @@ CREATE TABLE releases_images (
     uri text NOT NULL,
     height integer,
     width integer
+);
+
+CREATE TABLE releases_identifiers (
+    release_id integer NOT NULL,
+    id_type id_type_t NOT NULL,
+    id_value text NOT NULL
 );
 
 CREATE TABLE releases_videos (
