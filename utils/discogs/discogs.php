@@ -126,7 +126,7 @@ function parseTitle($name)
   return $name_id;
 }
 
-function parseImage($rid, $img)
+function parseImage($rid, &$img)
 {
   if ($img == null || $img['uri'] == '')
     return "\\N";
@@ -148,7 +148,7 @@ function parseImage($rid, $img)
 #  return $image_id;
 }
 
-function parseVideo($vid)
+function parseVideo(&$vid)
 {
   if ($vid == null || $vid['src'] == '')
     return "\\N";
@@ -161,13 +161,13 @@ function parseVideo($vid)
   printInsert('video', array(
     'id' => $video_id,
     'src' => escapeNode($src),
-    'title' => escapeNode($vid['title']),
+    'title' => escapeNode($vid->title),
     'duration' => $vid['duration']));
   $known_videos[$src] = $video_id;
   return $video_id;
 }
 
-function parseCredits($artists)
+function parseCredits(&$artists)
 {
   if (!$artists)
     return "\\N";
@@ -175,7 +175,7 @@ function parseCredits($artists)
 //  global $known_names;
 //  $known_names = array();
   $ac = array();
-  foreach($artists->children() as $art) {
+  foreach($artists->children() as &$art) {
     $ac[] = array(
       'name' => parseArtistName($art->name),
       'anv' => parseArtistName($art->anv),
@@ -187,7 +187,7 @@ function parseCredits($artists)
   global $seqid_credit;
   global $known_credits;
   $key = '';
-  foreach($ac as $acn)
+  foreach($ac as &$acn)
     $key .= $acn['name'] . "\t" . $acn['anv'] . "\t" . $acn['join_verb'] . "\t" . $acn['role'] . "\t" . $acn['tracks'] . "\t";
   if (@$known_credits[$key]) return $known_credits[$key];
   $artist_count = 0;
@@ -196,7 +196,7 @@ function parseCredits($artists)
     'id' => $artist_credit,
     'name' => parseArtistName($artist_name),
     'count' => count($ac)));
-  foreach($ac as $acn) {
+  foreach($ac as &$acn) {
     $acn['artist_credit'] = $artist_credit;
     $acn['position'] = $artist_count++;
     printInsert('artist_credit_name', $acn);
@@ -205,7 +205,7 @@ function parseCredits($artists)
   return $artist_credit; 
 }
 
-function parseRelease($rel)
+function parseRelease(&$rel)
 {
   global $known_genres;
   global $known_styles;
@@ -220,14 +220,14 @@ function parseRelease($rel)
     foreach ($rel->styles->children() as $key)
       $known_styles[(string)$key] = true;
   if ($rel->formats)
-    foreach ($rel->formats->children() as $fmt) {
+    foreach ($rel->formats->children() as &$fmt) {
       $known_formats[escapeNode($fmt['name'])] = true;
       if ($fmt->descriptions)
         foreach ($fmt->descriptions->children() as $des)
           $known_descriptions[(string)$des] = true;
     }
   if ($rel->identifiers)
-    foreach ($rel->identifiers->children() as $key)
+    foreach ($rel->identifiers->children() as &$key)
       $known_idtypes[escapeNode($key['type'])] = true;
 
   //print_r( $rel);
@@ -244,14 +244,14 @@ function parseRelease($rel)
     'genres' => escapeNodes($rel->genres,'genre_t'),
     'styles' => escapeNodes($rel->styles,'style_t')));
   if ($rel->labels)
-  foreach($rel->labels->children() as $lbl) {
+  foreach($rel->labels->children() as &$lbl) {
     printInsert('releases_labels', array(
       'release_id' => $rel['id'],
       'label_id' => parseLabel($lbl['name']),
       'catno' => escapeNode($lbl['catno'])));
   }
   if ($rel->identifiers)
-  foreach($rel->identifiers->children() as $id) {
+  foreach($rel->identifiers->children() as &$id) {
     printInsert('releases_identifiers', array(
       'release_id' => $rel['id'],
       'id_type' => escapeNode($id['type']),
@@ -274,7 +274,7 @@ function parseRelease($rel)
   $toc = array();
   $seq = 0;
   if ($rel->tracklist)
-  foreach($rel->tracklist->children() as $trk) {
+  foreach($rel->tracklist->children() as &$trk) {
     $pos = "\\N";
     $dis = parseDiscno($trk->position, $pos);
     $dur = parseDuration($trk->duration);
@@ -293,7 +293,7 @@ function parseRelease($rel)
   }
   $iscd = false;
   if ($rel->formats)
-  foreach($rel->formats->children() as $fmt) {
+  foreach($rel->formats->children() as &$fmt) {
     $iscd |= $fmt['name'] == 'CD';
     printInsert('releases_formats', array(
       'release_id' => $rel['id'],
@@ -311,14 +311,14 @@ function parseRelease($rel)
         'duration' => printArray($trk)));
   }
   if ($rel->images)
-  foreach($rel->images->children() as $img) {
+  foreach($rel->images->children() as &$img) {
     parseImage($rel['id'], $img);
 #    printInsert('releases_images', array(
 #      'release_id' => $rel['id'],
 #      'image_id' => parseImage($img)));
   }
   if ($rel->videos)
-  foreach($rel->videos->children() as $vid) {
+  foreach($rel->videos->children() as &$vid) {
     printInsert('releases_videos', array(
       'release_id' => $rel['id'],
       'video_id' => parseVideo($vid)));
