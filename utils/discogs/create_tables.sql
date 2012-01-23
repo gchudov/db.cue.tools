@@ -144,7 +144,7 @@ CREATE TABLE releases_images (
 
 CREATE TABLE releases_identifiers (
     release_id integer NOT NULL,
-    id_type id_type_t NOT NULL,
+    id_type idtype_t NOT NULL,
     id_value text NOT NULL
 );
 
