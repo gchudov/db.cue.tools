@@ -5,7 +5,7 @@ psql -U postgres -c "CREATE DATABASE $dbname"
 psql -U postgres -c "ALTER DATABASE $dbname OWNER TO $dbuser"
 gunzip -c discogs_enums_sql.gz | psql -U $dbuser -d $dbname
 psql -U $dbuser -d $dbname -f $(dirname $0)/create_tables.sql
-for table in artist_credit_name artist_credit artist_name video label release releases_formats releases_images releases_videos releases_labels toc track track_title ; do 
+for table in artist_credit_name artist_credit artist_name video label release releases_formats releases_images releases_identifiers releases_videos releases_labels toc track track_title ; do 
   gunzip -c discogs_"$table"_sql.gz | psql -U $dbuser -d $dbname
 done
 psql -U $dbuser -d $dbname -f $(dirname $0)/create_keys.sql
