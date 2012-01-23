@@ -520,6 +520,7 @@ class phpCTDB{
 		      $rvideos[] = array('uri' => 'http://www.youtube.com/watch?v=' . $video['src']);
 		  $rimages = array();
 #		  error_log(print_r($images,true));
+                  if ($images)
 		  foreach ($images as &$image)
 		    if ($image['release_id'] == $r['discogs_id'])
 		      $rimages[] = array('uri' => 'http://api.discogs.com/image/R-' . $image['uri'], 'uri150' => 'http://api.discogs.com/image/R-150-' . $image['uri'], 'width' => $image['width'], 'height' => $image['height'], 'primary' => $image['image_type'] == 'primary' ? 1 : 0);
