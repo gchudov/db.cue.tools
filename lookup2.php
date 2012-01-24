@@ -69,6 +69,7 @@ for ($priority=1; $priority <= 7; $priority++)
 }
 if ($dodiscogs != 0)
   $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas))); 
+usort($mbmetas, 'phpCTDB::metadataOrder');
 
 if ($type == 'json')
 {

@@ -60,6 +60,7 @@ $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmet
 $fbmeta = phpCTDB::freedblookup($toc);
 if (!$fbmeta) $fbmeta = phpCTDB::freedblookup($toc, 300);
 $mbmeta = array_merge($mbmeta, $fbmeta);
+usort($mbmeta, 'phpCTDB::metadataOrder');
 //if (!$mbmeta) $mbmeta = phpCTDB::freedblookup($toc, 300);
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = explode(' ', $record['trackcrcs']);

@@ -549,18 +549,16 @@ class phpCTDB{
 		return $res;
 	}
 
-	static function mbzlookup($tocs, $fuzzy = false)
+	static function mbzlookupids($tocs, $fuzzy = false, $mbconn = null)
 	{
-          global $ctdbcfg_musicbrainz_db;
 	  if (!$tocs) return array();
-	  $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
-	  if (!$mbconn) return array();
-          $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
-          pg_free_result($result);
-	  $mbids = array();
-	  foreach($tocs as $toc)
-	    $mbids[] = phpCTDB::tocs2mbid($toc);
-	  $mbids = array_unique($mbids);
+          if (!$mbconn) {
+            global $ctdbcfg_musicbrainz_db;
+	    $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
+	    if (!$mbconn) return array();
+            $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
+            pg_free_result($result);
+          }
 	  if ($fuzzy) {
 	    $ids = explode(':', $tocs[0]);
 	    $dur = array();
@@ -570,93 +568,115 @@ class phpCTDB{
 //	    die('{' . implode(',', $dur) . '}');
 	    $mbresult = pg_query_params($mbconn,
 	      'SELECT ' .
-	      'cube_distance(toc, create_cube_from_durations($1)) AS distance, ' . 
-
-                  'rgm.first_release_date_year, ' .
-                  '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
-                  'm.tracklist as tracklistno, ' .
-//                  '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
-                  'rca.cover_art_url as coverarturl, ' .
-                  'rm.info_url, ' .
-                  'r.gid as id, ' .
-                  'r.artist_credit, ' .
-//                  'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
-                  'rn.name as albumname, ' .
-//                  'rg.gid as group_id, ' .
-                  'm.position as discnumber, ' .
-                  'm.name as discname, ' .
-                  '(select count(*) from medium where release = r.id) as totaldiscs, ' .
-                  '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
-                  '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
-                  '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
-//                  'r.date_year as year, ' .
-                  'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
-                  'r.barcode ' .
-
+	      'cube_distance(ti.toc, create_cube_from_durations($1)) AS distance, ' . 
+              'm.id as id ' .
 	      'FROM tracklist_index ti ' . 
 	      'JOIN tracklist t ON t.id = ti.tracklist ' . 
 	      'JOIN medium m ON m.tracklist = ti.tracklist ' . 
-                  'INNER JOIN release r on r.id = m.release ' .
-                  'INNER JOIN release_name rn on rn.id = r.name ' .
-//                  'INNER JOIN release_group rg on rg.id = r.release_group ' .
-//                  'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
-                  'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
-                  'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
-                  'LEFT OUTER JOIN release_group_meta rgm ON rgm.id = r.release_group ' .
 	      'WHERE ti.toc <@ create_bounding_cube($1, 3000) ' . 
 	      'AND t.track_count = array_upper($1, 1) ' . 
 	      'AND (m.format = 1 OR m.format IS NULL) ' .
-	      'ORDER BY distance LIMIT 30', array('{' . implode(',', $dur) . '}'));
+	      'LIMIT 30', array('{' . implode(',', $dur) . '}'));
 	  } else {
-		$mbresult = pg_query_params($mbconn,
-		  'SELECT ' . 
-		  'rgm.first_release_date_year, ' .
-		  '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
-		  'c.leadout_offset, ' .
-		  'c.track_offset, ' .
-		  'm.tracklist as tracklistno, ' .
-//                  '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' . 
-                  'rca.cover_art_url as coverarturl, ' . 
-                  'rm.info_url, ' . 
-                  'r.gid as id, ' .
-		  'r.artist_credit, ' .
-//                  'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
-                  'rn.name as albumname, ' .
-                  'm.position as discnumber, ' .
-                  'm.name as discname, ' .
-                  '(select count(*) from medium where release = r.id) as totaldiscs, ' .
-                  '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
-                  '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
-                  '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
-//                  'r.date_year as year, ' .
-                  'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
-//                  'rg.gid as group_id, ' .
-                  'r.barcode ' .
-                  'FROM cdtoc c ' .
-		  'INNER JOIN medium_cdtoc mc on mc.cdtoc = c.id ' .
-                  'INNER JOIN medium m on m.id = mc.medium ' .
-                  'INNER JOIN release r on r.id = m.release ' .
-                  'INNER JOIN release_name rn on rn.id = r.name ' .
-//                  'INNER JOIN release_group rg on rg.id = r.release_group ' .
-//                  'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
-                  'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
-                  'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
-		  'LEFT OUTER JOIN release_group_meta rgm ON rgm.id = r.release_group ' .
-                  'WHERE c.discid IN ' . phpCTDB::pg_array_indexes($mbids) . ' ' .
-                  'ORDER BY rgm.first_release_date_year NULLS LAST, r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', $mbids);
+	    $mbids = array();
+	    foreach($tocs as $toc)
+	      $mbids[] = phpCTDB::tocs2mbid($toc);
+	    $mbids = array_unique($mbids);
+	    $mbresult = pg_query_params($mbconn,
+	      'SELECT DISTINCT ' . 
+	      'mc.medium AS id ' .
+              'FROM cdtoc c ' .
+	      'INNER JOIN medium_cdtoc mc on mc.cdtoc = c.id ' .
+              'WHERE c.discid IN ' . phpCTDB::pg_array_indexes($mbids), $mbids);
 	  }
+	  $mbmeta = pg_fetch_all($mbresult);
+	  pg_free_result($mbresult);
+	  return $mbmeta ? $mbmeta : array();
+        }
+
+	static function metadataOrder($a, $b)
+	{
+	  $sourceOrder = array('musicbrainz' => 0, 'discogs' => 1, 'freedb' => 2);
+	  if ($a['source'] != $b['source'])
+	    return $sourceOrder[$a['source']] - $sourceOrder[$b['source']];
+	  $aRel = $a['relevance'] ?: 101;
+	  $bRel = $b['relevance'] ?: 101;
+	  if ($aRel != $bRel)
+	    return $bRel - $aRel;
+//          'ORDER BY rgm.first_release_date_year NULLS LAST, r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', $mbids);
+//            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
+	  $aFR = isset($a['first_release_date_year']) ? $a['first_release_date_year'] : 9999;
+	  $bFR = isset($b['first_release_date_year']) ? $b['first_release_date_year'] : 9999;
+	  if ($aFR != $bFR)
+	    return $aFR - $bFR;
+	  $aRD = isset($a['releasedate']) ? strtotime(strpos($a['releasedate'],'-') ? $a['releasedate'] : $a['releasedate'] . '-01-01') : 0;
+	  $bRD = isset($b['releasedate']) ? strtotime(strpos($b['releasedate'],'-') ? $b['releasedate'] : $b['releasedate'] . '-01-01') : 0;
+	  if ($aRD != $bRD)
+	    return $aRD - $bRD;
+	  if ($a['id'] != $b['id'])
+	    return $a['id'] < $b['id'] ? -1 : 1;
+	  return 0;
+	}
+
+	static function mbzlookup($tocs, $fuzzy = false)
+	{
+          global $ctdbcfg_musicbrainz_db;
+	  if (!$tocs) return array();
+	  $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
+	  if (!$mbconn) return array();
+          $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
+          pg_free_result($result);
+	  $ids = phpCTDB::mbzlookupids($tocs, $fuzzy, $mbconn);
+	  if (!$ids) return array();
+          $mediumids = array();
+          foreach($ids as $id)
+	    $mediumids[] = $id['id'];
+	  $mbresult = pg_query_params($mbconn,
+	    'SELECT ' .
+            'm.id AS mediumid, ' .
+            'rgm.first_release_date_year, ' .
+            '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
+            'm.tracklist as tracklistno, ' .
+//            '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
+            'rca.cover_art_url as coverarturl, ' .
+            'rm.info_url, ' .
+            'r.gid as id, ' .
+            'r.artist_credit, ' .
+//            'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
+            'rn.name as albumname, ' .
+//            'rg.gid as group_id, ' .
+            'm.position as discnumber, ' .
+            'm.name as discname, ' .
+            '(select count(*) from medium where release = r.id) as totaldiscs, ' .
+            '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
+            '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
+            '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
+//            'r.date_year as year, ' .
+            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
+            'r.barcode ' .
+
+	    'FROM medium m ' . 
+            'INNER JOIN release r on r.id = m.release ' .
+            'INNER JOIN release_name rn on rn.id = r.name ' .
+//            'INNER JOIN release_group rg on rg.id = r.release_group ' .
+//            'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
+            'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
+            'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
+            'LEFT OUTER JOIN release_group_meta rgm ON rgm.id = r.release_group ' .
+	    'WHERE m.id IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids); 
+//          'ORDER BY rgm.first_release_date_year NULLS LAST, r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', $mbids);
 	  $mbmeta = pg_fetch_all($mbresult);
 	  pg_free_result($mbresult);
 	  if (!$mbmeta) return array();
 
-		$tracklists = false;
-		$artistcredits = false;
+		$tracklists = null;
+		$artistcredits = null;
 
 		foreach($mbmeta as $r)
 		  $tracklists[] = $r['tracklistno'];
 		$tracklists = array_unique($tracklists);
-		$trackliststonames = false;
-		$trackliststocredits = false;
+		$trackliststonames = null;
+		$trackliststocredits = null;
 		foreach($tracklists as $tr) {
                   $mbresult = pg_query_params('
                     SELECT t.artist_credit, tn.name 
@@ -701,10 +721,12 @@ class phpCTDB{
 		}
 
 		foreach($mbmeta as &$r) {
+		  foreach($ids as $id)
+		    if ($id['id'] == $r['mediumid'])
+		      $r['relevance'] = isset($id['distance']) ? (int)(exp(-$id['distance']/6000)*100) : null;
 		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
 		  $r['tracklist'] = $tltl[$r['tracklistno']];
 		  $r['source'] = 'musicbrainz';
-		  $r['relevance'] = isset($r['distance']) ? (int)(exp(-$r['distance']/6000)*100) : null;
 		  $catno = false;
 		  $label = false;
 		  $labelcat = false;
