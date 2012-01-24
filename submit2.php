@@ -118,6 +118,21 @@ if ($confirmid)
   if ($oldrecord['hasparity'] != 't') $needparfile = true;
   if ($oldrecord['syndrome'] == null && $syndromesample != null) $needparfile = true;
   @$oldrecord['trackcrcs'] or $needparfile = true;
+
+  if ($version > 1) {
+    if ($crc32 != $oldrecord['crc32'])
+      submit_error($dbconn, $record3, "crc32 mismatch");
+    if (@$oldrecord['trackcrcs'] && $trackcrcs != $oldrecord['trackcrcs'])
+      submit_error($dbconn, $record3, "trackcrcs mismatch");
+    if ($paritysample != $oldrecord['parity'])
+      submit_error($dbconn, $record3, "parity mismatch");
+    if (@$oldrecord['syndrome']) {
+      $oldsyn = stripcslashes($oldrecord['syndrome']);
+      $synlen = min(strlen($syndromesample), strlen($oldsyn));
+      if (substr($syndromesample, 0, $synlen) != substr($oldsyn, 0, $synlen))
+        submit_error($dbconn, $record3, "syndrome mismatch");
+    }
+  }
 }
 else
 {
