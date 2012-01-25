@@ -53,8 +53,11 @@ pg_free_result($result);
 
 $toc = phpCTDB::toc_toc2s($record);
 $mbid = phpCTDB::tocs2mbid($toc);
-$mbmeta = phpCTDB::mbzlookup(array($toc));
-if (!$mbmeta) $mbmeta = array_merge(phpCTDB::mbzlookup(array($toc), true));
+
+$ids_musicbrainz =  phpCTDB::mbzlookupids(array($toc), false);
+if (!$ids_musicbrainz)
+$ids_musicbrainz = phpCTDB::mbzlookupids(array($toc), true);
+$mbmeta = phpCTDB::mbzlookup($ids_musicbrainz);
 $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(null, $toc));
 $mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmeta)));
 $fbmeta = phpCTDB::freedblookup($toc);

@@ -549,6 +549,47 @@ class phpCTDB{
 		return $res;
 	}
 
+	static function metadataOrder($a, $b)
+	{
+	  $sourceOrder = array('musicbrainz' => 0, 'discogs' => 1, 'freedb' => 2);
+	  if ($a['source'] != $b['source'])
+	    return $sourceOrder[$a['source']] - $sourceOrder[$b['source']];
+	  $aRel = $a['relevance'] ?: 101;
+	  $bRel = $b['relevance'] ?: 101;
+	  if ($aRel != $bRel)
+	    return $bRel - $aRel;
+//          'ORDER BY rgm.first_release_date_year NULLS LAST, r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', $mbids);
+//            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
+	  $aFR = isset($a['first_release_date_year']) ? $a['first_release_date_year'] : 9999;
+	  $bFR = isset($b['first_release_date_year']) ? $b['first_release_date_year'] : 9999;
+	  if ($aFR != $bFR)
+	    return $aFR - $bFR;
+	  $aRD = isset($a['releasedate']) ? strtotime(strpos($a['releasedate'],'-') ? $a['releasedate'] : $a['releasedate'] . '-01-01') : 0;
+	  $bRD = isset($b['releasedate']) ? strtotime(strpos($b['releasedate'],'-') ? $b['releasedate'] : $b['releasedate'] . '-01-01') : 0;
+	  if ($aRD != $bRD)
+	    return $aRD - $bRD;
+	  if ($a['id'] != $b['id'])
+	    return $a['id'] < $b['id'] ? -1 : 1;
+	  return 0;
+	}
+/*
+	static function uniqueids($ids)
+	{
+	  $ret = array();
+	  foreach($ids as $id)
+	    if ($id['relevance'] == null)
+	      $ret[] = $id;
+	  foreach($ids as $id)
+	    if ($id['relevance'] != null) {
+	      $found = false;
+	      foreach ($ret as $id2)
+		$found |= $id2['id'] == $id['id'];
+	      if (!$found)
+		$ret[] = $id;
+	    }
+	  return $ids;
+	}
+*/
 	static function mbzlookupids($tocs, $fuzzy = false, $mbconn = null)
 	{
 	  if (!$tocs) return array();
@@ -594,43 +635,18 @@ class phpCTDB{
 	  return $mbmeta ? $mbmeta : array();
         }
 
-	static function metadataOrder($a, $b)
+	static function mbzlookup($ids)
 	{
-	  $sourceOrder = array('musicbrainz' => 0, 'discogs' => 1, 'freedb' => 2);
-	  if ($a['source'] != $b['source'])
-	    return $sourceOrder[$a['source']] - $sourceOrder[$b['source']];
-	  $aRel = $a['relevance'] ?: 101;
-	  $bRel = $b['relevance'] ?: 101;
-	  if ($aRel != $bRel)
-	    return $bRel - $aRel;
-//          'ORDER BY rgm.first_release_date_year NULLS LAST, r.date_year NULLS LAST, r.date_month NULLS LAST, r.date_day NULLS LAST', $mbids);
-//            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
-	  $aFR = isset($a['first_release_date_year']) ? $a['first_release_date_year'] : 9999;
-	  $bFR = isset($b['first_release_date_year']) ? $b['first_release_date_year'] : 9999;
-	  if ($aFR != $bFR)
-	    return $aFR - $bFR;
-	  $aRD = isset($a['releasedate']) ? strtotime(strpos($a['releasedate'],'-') ? $a['releasedate'] : $a['releasedate'] . '-01-01') : 0;
-	  $bRD = isset($b['releasedate']) ? strtotime(strpos($b['releasedate'],'-') ? $b['releasedate'] : $b['releasedate'] . '-01-01') : 0;
-	  if ($aRD != $bRD)
-	    return $aRD - $bRD;
-	  if ($a['id'] != $b['id'])
-	    return $a['id'] < $b['id'] ? -1 : 1;
-	  return 0;
-	}
-
-	static function mbzlookup($tocs, $fuzzy = false)
-	{
+	  if (!$ids) return array();
           global $ctdbcfg_musicbrainz_db;
-	  if (!$tocs) return array();
 	  $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
 	  if (!$mbconn) return array();
           $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
           pg_free_result($result);
-	  $ids = phpCTDB::mbzlookupids($tocs, $fuzzy, $mbconn);
-	  if (!$ids) return array();
           $mediumids = array();
           foreach($ids as $id)
 	    $mediumids[] = $id['id'];
+	  $mediumids = array_unique($mediumids);
 	  $mbresult = pg_query_params($mbconn,
 	    'SELECT ' .
             'm.id AS mediumid, ' .
@@ -721,9 +737,11 @@ class phpCTDB{
 		}
 
 		foreach($mbmeta as &$r) {
+		  $rel = 0;
 		  foreach($ids as $id)
 		    if ($id['id'] == $r['mediumid'])
-		      $r['relevance'] = isset($id['distance']) ? (int)(exp(-$id['distance']/6000)*100) : null;
+		      $rel = max($rel, isset($id['distance']) ? (int)(exp(-$id['distance']/6000)*100) : 101);
+		  $r['relevance'] = $rel != 101 ? $rel : null;
 		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
 		  $r['tracklist'] = $tltl[$r['tracklistno']];
 		  $r['source'] = 'musicbrainz';
