@@ -284,7 +284,7 @@ class phpCTDB{
 		  $tracklist = null;
 		  if ($tmeta) {
 		    for ($i = 0; $i < count($ids) - 1; $i++)
-		      $tracklist[] = array();
+		      $tracklist[] = array('name' => null, 'artist' => null, 'extra' => null);
 		    foreach ($tmeta as $t) {
 		      $i = $t['number'] - 1;
 		      $tracklist[$i]['name'] = $t['title'];
