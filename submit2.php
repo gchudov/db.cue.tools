@@ -108,6 +108,7 @@ function submit_error($dbconn, $submission, $reason) {
 }
 
 $needparfile = false;
+$neednpar = 8;
 if ($confirmid)
 { 
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE id=$1", array($confirmid))
@@ -115,9 +116,14 @@ if ($confirmid)
   $oldrecord = pg_fetch_array($result)
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   pg_free_result($result);
+  $oldsyn = @$oldrecord['syndrome'] ? stripcslashes($oldrecord['syndrome']) : null;
   if ($oldrecord['hasparity'] != 't') $needparfile = true;
-  if ($oldrecord['syndrome'] == null && $syndromesample != null) $needparfile = true;
-  @$oldrecord['trackcrcs'] or $needparfile = true;
+  if ($oldrecord['trackcrcs'] == null) $needparfile = true;
+  if ($version > 1 && $oldrecord['syndrome'] == null) $needparfile = true;
+  if ($version > 1 && $oldrecord['subcount'] + 1 >= 5 && ($oldsyn == null || strlen($oldsyn) < 16)) {
+    $needparfile = true;
+    $neednpar = 16;
+  }
 
   if ($version > 1) {
     if ($crc32 != $oldrecord['crc32'])
@@ -126,8 +132,7 @@ if ($confirmid)
       submit_error($dbconn, $record3, "trackcrcs mismatch");
     if ($paritysample != $oldrecord['parity'])
       submit_error($dbconn, $record3, "parity mismatch");
-    if (@$oldrecord['syndrome']) {
-      $oldsyn = stripcslashes($oldrecord['syndrome']);
+    if ($oldsyn != null) {
       $synlen = min(strlen($syndromesample), strlen($oldsyn));
       if (substr($syndromesample, 0, $synlen) != substr($oldsyn, 0, $synlen))
         submit_error($dbconn, $record3, "syndrome mismatch");
@@ -137,7 +142,11 @@ if ($confirmid)
 else
 {
   if ($quality < 50) submit_error($dbconn, $record3, "insufficient quality");
-  if ($quality > 95 || $confidence > 1) 
+  $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND trackoffsets = $2 AND subcount > 1", array($tocid, $toc['trackoffsets']))
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
+  $different_entry_confirmed = pg_num_rows($result) > 0;
+  pg_free_result($result);
+  if (($quality > 95 && !$different_entry_confirmed) || $confidence > 1)
     $needparfile = true;
 }
 
@@ -173,7 +182,7 @@ if ($record3['drivename'] != null) {
 }
 
 if (!$parfile && $needparfile)
-  parity_needed(8);
+  parity_needed($neednpar);
 
 if ($confirmid) {
   $record3['entryid'] =  $confirmid;
