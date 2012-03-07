@@ -55,12 +55,13 @@ fi
 UDATA="$( cat <<EOF
 #!/bin/sh
 DEBUG=$DEBUG
-S3CFG=$(gzip -c ~/.s3cfg | base64 -w 0)
+S3CFG=$(gzip -c /root/.s3cfg | base64 -w 0)
 export HOME=/root
 cd /media/ephemeral0
 echo \$S3CFG | base64 -d | gunzip > ~/.s3cfg
 printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (RHEL_6)\ntype=rpm-md\nbaseurl=http://s3tools.org/repo/RHEL_6/\ngpgcheck=1\ngpgkey=http://s3tools.org/repo/RHEL_6/repodata/repomd.xml.key\nenabled=1" > /etc/yum.repos.d/s3tools.repo
 yum -y install php-cli php-xml php-pgsql postgresql-server postgresql-contrib s3cmd mercurial augeas
+#yum -y install http://s3.cuetools.net/RPMS/s3fuse-0.11-1.i386.rpm http://s3.cuetools.net/RPMS/glibmm24-devel-2.22.1-1.el6.i686.rpm http://s3.cuetools.net/RPMS/libsigc%2B%2B20-devel-2.2.4.2-1.el6.i686.rpm http://s3.cuetools.net/RPMS/glibmm24-2.22.1-1.el6.i686.rpm http://s3.cuetools.net/RPMS/libsigc%2B%2B20-2.2.4.2-1.el6.i686.rpm
 yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
 service postgresql initdb
