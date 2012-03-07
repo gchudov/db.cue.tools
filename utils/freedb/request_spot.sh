@@ -1,8 +1,86 @@
+usage()
+{
+cat << EOF
+usage: $0 options
+
+This script will request a spot instance for freedb database conversion.
+
+OPTIONS:
+   -h      Show this message
+   -r      Rerun (skip data dump download)
+   -d      Debug (don't shutdown the instance)
+   -n      Dry run (print script and exit)
+   -p      Maximum price
+EOF
+}
+
+RERUN=
+DEBUG=
+PRINT=
+PRICE=0.20
+while getopts “hrdnp:” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         r)
+             RERUN=1
+             ;;
+         d)
+             DEBUG=1
+             ;;
+         n)
+             PRINT=1
+             ;;
+         p)
+             PRICE=$OPTARG
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
 freedb_rel=freedb-complete-`date +%Y%m01`.tar.bz2
-user_data="/tmp/$(basename $0).$$.tmp"
-wget -q -O $freedb_rel http://ftp.freedb.org/pub/freedb/$freedb_rel
-s3cmd --no-progress --rr put $freedb_rel s3://private.cuetools.net/
-rm $freedb_rel 
-cat $(dirname $0)/ec2init.sh | sed "/^#s3cfg/a echo $(gzip -c ~/.s3cfg | base64 -w 0) | base64 -d | gunzip > ~/.s3cfg" > $user_data
-ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p 0.20 -r one-time -t c1.medium -f $user_data
-rm $user_data
+if [ -z "$RERUN" ]; then
+  echo "Downloading $freedb_rel"
+  user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
+  wget -q -U "$user_agent" -O "/tmp/$freedb_rel" "http://ftp.freedb.org/pub/freedb/$freedb_rel" || exit $?
+  s3cmd --no-progress --rr put "/tmp/$freedb_rel" s3://private.cuetools.net/
+  rm "/tmp/$freedb_rel"
+fi
+UDATA="$( cat <<EOF
+#!/bin/sh
+DEBUG=$DEBUG
+S3CFG=$(gzip -c ~/.s3cfg | base64 -w 0)
+export HOME=/root
+cd /media/ephemeral0
+echo \$S3CFG | base64 -d | gunzip > ~/.s3cfg
+printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (RHEL_6)\ntype=rpm-md\nbaseurl=http://s3tools.org/repo/RHEL_6/\ngpgcheck=1\ngpgkey=http://s3tools.org/repo/RHEL_6/repodata/repomd.xml.key\nenabled=1" > /etc/yum.repos.d/s3tools.repo
+yum -y install php-cli php-xml php-pgsql postgresql-server postgresql-contrib s3cmd mercurial augeas gcc make bzip2-devel
+yum -y upgrade
+sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
+service postgresql initdb
+sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
+service postgresql start
+hg clone https://code.google.com/p/cuetools-database/
+make -C cuetools-database/utils/freedb/
+s3cmd --no-progress get s3://private.cuetools.net/$freedb_rel - | tar vxjO 2>&1 | ./cuetools-database/utils/freedb/freedb 2> freedb.log
+s3cmd --no-progress --rr put freedb_*.sql.bz2 ./cuetools-database/utils/freedb/*.sql /var/log/cloud-init.log freedb.log s3://private.cuetools.net/freedb/`date +%Y%m01`/
+if [ -z "\$DEBUG" ]; then
+  shutdown -h now
+fi
+
+EOF
+)"
+if [ -z "$PRINT" ]; then
+echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
+ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t c1.medium --user-data "$UDATA"
+else
+cat <<EOF
+$UDATA
+EOF
+fi
