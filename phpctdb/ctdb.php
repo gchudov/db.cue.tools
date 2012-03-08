@@ -788,21 +788,15 @@ class phpCTDB{
 		return $mbmeta;
 	}
 
-	static function Hex2Int($hex_word, $signed = false)
+	static function Hex2Int($hex, $signed = false)
 	{
-		$int_value = 0;
-		$byte_wordlen = strlen($hex_word);
-		for ($i = 0; $i < $byte_wordlen; $i++) {
-			sscanf($hex_word{$i}, "%x", $digit);
-			$int_value += $digit * pow(16, ($byte_wordlen - 1 - $i));
-		}
-		if ($signed) {
-				$sign_mask_bit = 0x80 << 24;
-				if ($int_value & $sign_mask_bit) {
-						$int_value = 0 - ($int_value & ($sign_mask_bit - 1));
-				}
-		}
-		return $int_value;
+          $dec = hexdec($hex);
+	  if ($signed) {
+            $max = pow(2, 32);
+            $_dec = $max - $dec;
+            return (int)($dec > $_dec ? -$_dec : $dec);
+	  }
+	  return $dec;
 	}
 
 	static function BigEndian2Int($byte_word, $signed = false) {

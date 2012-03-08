@@ -15,7 +15,7 @@ $options = array(
   XML_SERIALIZER_OPTION_ROOT_ATTRIBS  => array('xmlns'=>"http://db.cuetools.net/ns/mmd-1.0#", 'xmlns:ext'=>"http://db.cuetools.net/ns/ext-1.0#"),
   XML_SERIALIZER_OPTION_XML_ENCODING  => 'UTF-8'
   );
-$serializer = &new XML_Serializer($options);
+$serializer = new XML_Serializer($options);
 
 $version = isset($_POST['ctdb']) ? $_POST['ctdb'] : 1;
 if ($version == 2) header('Content-type: text/xml; charset=UTF-8');
@@ -67,8 +67,12 @@ $syndromesample = isset($_POST['syndrome']) ? base64_decode($_POST['syndrome']) 
 $crc32 = $_POST['crc32'];
 if (!$crc32) fatal_error('crc32 not specified');
 
-$trackcrcs = $_POST['trackcrcs'];
-if (!$trackcrcs) fatal_error('trackcrcs not specified');
+$track_crcs_s = $_POST['trackcrcs'];
+if (!$track_crcs_s) fatal_error('trackcrcs not specified');
+
+$track_crcs = explode(' ', $track_crcs_s);
+foreach($track_crcs as &$track_crc) $track_crc = phpCTDB::Hex2Int($track_crc, true);
+$track_crcs_a = '{' . implode(',', $track_crcs) . '}';
 
 $confidence = $_POST['confidence'];
 if (!$confidence) fatal_error('confidence not specified');
@@ -118,7 +122,7 @@ if ($confirmid)
   pg_free_result($result);
   $oldsyn = @$oldrecord['syndrome'] ? stripcslashes($oldrecord['syndrome']) : null;
   if ($oldrecord['hasparity'] != 't') $needparfile = true;
-  if ($oldrecord['trackcrcs'] == null) $needparfile = true;
+  if ($oldrecord['track_crcs'] == null) $needparfile = true;
   if ($version > 1 && $oldrecord['syndrome'] == null) $needparfile = true;
   if ($version > 1 && $oldrecord['subcount'] + 1 >= 5 && ($oldsyn == null || strlen($oldsyn) < 16)) {
     $needparfile = true;
@@ -128,7 +132,10 @@ if ($confirmid)
   if ($version > 1) {
     if ($crc32 != $oldrecord['crc32'])
       submit_error($dbconn, $record3, "crc32 mismatch");
-    if (@$oldrecord['trackcrcs'] && $trackcrcs != $oldrecord['trackcrcs'])
+    $old_track_crcs = null;
+    if (@$oldrecord['track_crcs'])
+      phpCTDB::pg_array_parse($oldrecord['track_crcs'], $old_track_crcs);
+    if ($old_track_crcs != null && $track_crcs != $old_track_crcs)
       submit_error($dbconn, $record3, "trackcrcs mismatch");
     if ($paritysample != $oldrecord['parity'])
       submit_error($dbconn, $record3, "parity mismatch");
@@ -187,7 +194,7 @@ if (!$parfile && $needparfile)
 if ($confirmid) {
   $record3['entryid'] =  $confirmid;
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, trackcrcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $trackcrcs, $confirmid, $tocid, base64_encode($syndromesample)));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, trackcrcs=$3, track_crcs=$7 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $track_crcs_s, $confirmid, $tocid, base64_encode($syndromesample), $track_crcs_a));
   else
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
   $result or fatal_error('Query failed: ' . pg_last_error($dbconn));
@@ -197,33 +204,14 @@ if ($confirmid) {
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
-  $record = array();
-  $record['trackcount'] = $toc['trackcount'];
-  $record['audiotracks'] = $toc['audiotracks'];
-  $record['firstaudio'] = $toc['firstaudio'];
-  $record['trackoffsets'] = $toc['trackoffsets'];
-  $record['crc32'] = $crc32;
-  $record['trackcrcs'] = $trackcrcs;
-  $record['confidence'] = $record3['confidence'];
-  $record['parity'] = $paritysample;
-  $record['syndrome'] = $syndromesample;
-  $record['artist'] = @$_POST['artist'];
-  $record['title'] = @$_POST['title'];
-  $record['tocid'] = $tocid;
-  if ($parfile) $record['hasparity'] = true;
-
-  if (phpCTDB::toc2tocid($record) != $tocid) submit_error($dbconn, $record3, "tocid mismatch");
-
   $result = pg_query("SELECT nextval('submissions2_id_seq')");
-  $record['id'] =  pg_fetch_result($result,0,0);
+  $record_id =  pg_fetch_result($result,0,0);
   pg_free_result($result);
 
-#  error_log(print_r($record,true));
-#  error_log(base64_encode($syndromesample));
-  pg_insert($dbconn, 'submissions2', $record)
+  $result = pg_query_params($dbconn, "INSERT INTO submissions2 (id,trackcount,audiotracks,firstaudio,trackoffsets,crc32,trackcrcs,track_crcs,confidence,parity,syndrome,artist,title,tocid,hasparity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, decode($11,'base64'), $12, $13, $14, $15)", array($record_id, $toc['trackcount'],$toc['audiotracks'],$toc['firstaudio'],$toc['trackoffsets'],$crc32,$track_crcs_s,$track_crcs_a,$record3['confidence'],$paritysample,base64_encode($syndromesample),@$_POST['artist'],@$_POST['title'],$tocid,(int)$parfile))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
 
-  $record3['entryid'] = $record['id'];
+  $record3['entryid'] = $record_id;
 }
 
 pg_insert($dbconn, 'submissions', $record3)

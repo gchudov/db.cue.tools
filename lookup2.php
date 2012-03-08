@@ -103,6 +103,13 @@ else if ($type == 'xml')
       else
         $parityurl = sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "/parity", $record['id']);
     }
+    $track_crcs_s = null;
+    if ($record['track_crcs'] != null && $ctdbversion > 1) {
+      $track_crcs = null;
+      phpCTDB::pg_array_parse($record['track_crcs'], $track_crcs);
+      foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
+      $track_crcs_s = implode(' ', $track_crcs);
+    }
     $xmlentry[] = array(
       'id' => $record['id'],
       'crc32' => sprintf("%08x", $record['crc32']),
@@ -112,7 +119,7 @@ else if ($type == 'xml')
       'hasparity' => $parityurl,
       'parity' => $record['syndrome'] == null || $ctdbversion == 1 ? $record['parity'] : null,
       'syndrome' => $record['syndrome'] == null || $ctdbversion == 1 ? null : base64_encode($record['syndrome']),
-      'trackcrcs' => $ctdbversion == 1 ? null : $record['trackcrcs'],
+      'trackcrcs' => $track_crcs_s,
       'toc' => phpCTDB::toc_toc2s($record)
     );
   }
@@ -162,7 +169,7 @@ else if ($type == 'xml')
     XML_SERIALIZER_OPTION_ROOT_ATTRIBS  => array('xmlns'=>"http://db.cuetools.net/ns/mmd-1.0#", 'xmlns:ext'=>"http://db.cuetools.net/ns/ext-1.0#"),
     XML_SERIALIZER_OPTION_XML_ENCODING  => 'UTF-8'
     );
-  $serializer = &new XML_Serializer($options);
+  $serializer = new XML_Serializer($options);
   $body = $serializer->serialize($ctdbdata);
   header('Content-type: text/xml; charset=UTF-8');
 }
