@@ -66,7 +66,9 @@ $mbmeta = array_merge($mbmeta, $fbmeta);
 usort($mbmeta, 'phpCTDB::metadataOrder');
 //if (!$mbmeta) $mbmeta = phpCTDB::freedblookup($toc, 300);
 $ids = explode(' ', $record['trackoffsets']);
-$crcs = explode(' ', $record['trackcrcs']);
+$crcs = null;
+if ($record['track_crcs'] != null) phpCTDB::pg_array_parse($record['track_crcs'], $crcs);
+foreach($crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
 $tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;
 
 $json_tracks = false;

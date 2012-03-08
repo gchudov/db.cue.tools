@@ -194,7 +194,7 @@ if (!$parfile && $needparfile)
 if ($confirmid) {
   $record3['entryid'] =  $confirmid;
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, trackcrcs=$3, track_crcs=$7 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $track_crcs_s, $confirmid, $tocid, base64_encode($syndromesample), $track_crcs_a));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, track_crcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $track_crcs_a, $confirmid, $tocid, base64_encode($syndromesample)));
   else
     $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
   $result or fatal_error('Query failed: ' . pg_last_error($dbconn));
@@ -208,7 +208,7 @@ if ($confirmid) {
   $record_id =  pg_fetch_result($result,0,0);
   pg_free_result($result);
 
-  $result = pg_query_params($dbconn, "INSERT INTO submissions2 (id,trackcount,audiotracks,firstaudio,trackoffsets,crc32,trackcrcs,track_crcs,confidence,parity,syndrome,artist,title,tocid,hasparity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, decode($11,'base64'), $12, $13, $14, $15)", array($record_id, $toc['trackcount'],$toc['audiotracks'],$toc['firstaudio'],$toc['trackoffsets'],$crc32,$track_crcs_s,$track_crcs_a,$record3['confidence'],$paritysample,base64_encode($syndromesample),@$_POST['artist'],@$_POST['title'],$tocid,(int)$parfile))
+  $result = pg_query_params($dbconn, "INSERT INTO submissions2 (id,trackcount,audiotracks,firstaudio,trackoffsets,crc32,track_crcs,confidence,parity,syndrome,artist,title,tocid,hasparity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, decode($10,'base64'), $11, $12, $13, $14)", array($record_id, $toc['trackcount'],$toc['audiotracks'],$toc['firstaudio'],$toc['trackoffsets'],$crc32,$track_crcs_a,$record3['confidence'],$paritysample,base64_encode($syndromesample),@$_POST['artist'],@$_POST['title'],$tocid,(int)$parfile))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
 
   $record3['entryid'] = $record_id;
