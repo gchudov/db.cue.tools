@@ -102,9 +102,11 @@
     <div id="submissions"></div>
     <div id="submissions_hourly"></div>
     <div id="submissions_stacked"></div>
-    <span id="drives"></span>
-    <span id="agents"></span>
-    <span id="pregaps"></span>
+    <table border=0 cellpadding=0 cellspacing=0><tr>
+    <td id="drives"></td>
+    <td id="agents"></td>
+    <td id="pregaps"></td>
+    </tr></table>
     </center>
   </body>
 </html>

@@ -52,21 +52,31 @@ if [ -z "$RERUN" ]; then
   s3cmd --no-progress --rr put "/tmp/$discogs_rel" s3://private.cuetools.net/
   rm "/tmp/$discogs_rel"
 fi
+CPFILES=
+for cpfile in /root/.s3cfg /etc/s3fuse/.??* /etc/s3fuse/* /etc/yum.repos.d/cuetools.repo
+do
+  CPFILES=$CPFILES"mkdir -p $(dirname $cpfile); echo $(egrep -v '(^#|^$)' $cpfile | gzip | base64 -w 0) | base64 -d | gunzip > $cpfile; chmod $(stat -c '%a' $cpfile) $cpfile"$'\n'
+done
 UDATA="$( cat <<EOF
 #!/bin/sh
+#files begin
+$CPFILES#files end
 DEBUG=$DEBUG
-S3CFG=$(gzip -c /root/.s3cfg | base64 -w 0)
 export HOME=/root
 cd /media/ephemeral0
-echo \$S3CFG | base64 -d | gunzip > ~/.s3cfg
-printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (RHEL_6)\ntype=rpm-md\nbaseurl=http://s3tools.org/repo/RHEL_6/\ngpgcheck=1\ngpgkey=http://s3tools.org/repo/RHEL_6/repodata/repomd.xml.key\nenabled=1" > /etc/yum.repos.d/s3tools.repo
-yum -y install php-cli php-xml php-pgsql postgresql-server postgresql-contrib s3cmd mercurial augeas
-#yum -y install http://s3.cuetools.net/RPMS/s3fuse-0.11-1.i386.rpm http://s3.cuetools.net/RPMS/glibmm24-devel-2.22.1-1.el6.i686.rpm http://s3.cuetools.net/RPMS/libsigc%2B%2B20-devel-2.2.4.2-1.el6.i686.rpm http://s3.cuetools.net/RPMS/glibmm24-2.22.1-1.el6.i686.rpm http://s3.cuetools.net/RPMS/libsigc%2B%2B20-2.2.4.2-1.el6.i686.rpm
-yum -y upgrade
+yum -y install epel-release
+yum -y install php-cli php-xml php-pgsql postgresql-server postgresql-contrib s3cmd mercurial augeas fuse s3fuse
+#yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
 service postgresql start
+for s3confpath in /etc/s3fuse/*
+do
+  s3conf=\$(basename \$s3confpath)
+  echo "s3fuse /mnt/\$s3conf fuse defaults,noauto,user,allow_other,config=/etc/s3fuse/\$s3conf 0 0" >> /etc/fstab
+  mkdir /mnt/\$s3conf; mount /mnt/\$s3conf
+done
 hg clone https://code.google.com/p/cuetools-database/
 s3cmd --no-progress get s3://private.cuetools.net/$discogs_rel - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
 ./cuetools-database/utils/discogs/create_db.sh
