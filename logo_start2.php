@@ -29,7 +29,8 @@ function updateTotals()
 google.setOnLoadCallback(updateTotals());
 </script>
 <title>CUETools DB</title>
-<link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb12.css" />
+<link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/ctdb.css?id=<?php echo $ctdbcfg_s3_id?>" />
+<!--link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb12.css" /-->
 </head>
 <body>
 <ul id="nav">
