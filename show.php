@@ -108,9 +108,12 @@ if ($mbmeta)
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-    <script type='text/javascript' src="http://s3.cuetools.net/ctdb11.js"></script>
+    <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
+    <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
+    <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
+      Shadowbox.init();
       function drawTable() {
         var data = new google.visualization.DataTable(<?php echo json_encode($json_tracks_table) ?>, 0.6);
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
@@ -142,47 +145,7 @@ if ($mbmeta)
     </script>
 <?php
 include 'logo_start2.php';
-
 printf('<center>');
-
-$vidfound = array();
-if ($mbmeta)
-  foreach ($mbmeta as &$mbr)
-    if (isset($mbr['videos']) && $mbr['videos'] != null)
-      foreach($mbr['videos'] as &$video) {
-        $vidfound[] = $video['uri'];
-      }
-
-//foreach(array_unique($vidfound) as $vid)
-  //printf("%s<br>", $vid);
-
-$imgfound = array();
-$imgfoundlinks = array();
-/*
-if ($mbmeta)
-  foreach ($mbmeta as &$mbr)
-    if (isset($mbr['coverart']) && $mbr['coverart'] != null)
-      foreach ($mbr['coverart'] as &$cover) 
-        if ($cover['primary']) {
-          $img = $cover['uri150'];
-          { // if (!in_array($img, $imgfound)) {
-            $imgfound[] = $img;
-            $imgfoundlinks[$img] = $mbr['info_url'];
-          }
-        }
-*/
-if ($imgfound) {
-  printf('<table class="ctdbbox"><tr><td>' . "\n");
-  foreach(array_unique($imgfound) as $img) {
-    if ($imgfoundlinks[$img] != '') printf('<a target=_blank href="%s">', $imgfoundlinks[$img]);
-    printf('<img border=0 src="%s">', $img);
-    if ($imgfoundlinks[$img] != '') printf('</a>');
-    printf("\n");
-  }
-    //printf('<a target=_blank href="%s"><img height=160 width=160 border=0 src="%s">' . "\n", $imgfoundlinks[$img], $img);
-  printf('</td></tr></table>');
-}
-
 printf("<div id='releases_div'></div>\n");
 if (!$mbmeta && ($record['artist'] != '' || $record['title'] != ''))
   printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
@@ -192,6 +155,45 @@ printf("<div id='tracks_div'></div>\n");
 printf('<br>');
 
 printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
+printf('<tr><td></td><td>');
+$imgfound = array();
+if ($mbmeta)
+  foreach ($mbmeta as &$mbr)
+    if (isset($mbr['coverart']) && $mbr['coverart'] != null)
+      foreach ($mbr['coverart'] as &$cover) 
+        if ($cover['primary']) {
+          $img = $cover['uri'];
+          if (strpos($img, 'http://api.discogs.com/') !== false) $img = $cover['uri150'];
+          if (strpos($img, 'http://images.amazon.com/') !== false) continue;
+          if (in_array($img, $imgfound)) continue;
+          $imgfound[] = $img;
+          //$imgfoundlinks[$img] = $mbr['info_url'];
+          if (count($imgfound) > 1)
+            printf('<span style="display:none;">');
+          printf('<a class="thumbnail" href="%s" rel="shadowbox[covers];player=img">', $img);
+          if (count($imgfound) > 1)
+            printf(' </a></span>' . "\n"); 
+          else
+            printf('<img src="%s"></a>' . "\n", $cover['uri150']);
+        }
+$vidfound = array();
+if ($mbmeta)
+  foreach ($mbmeta as &$mbr)
+    if (isset($mbr['videos']) && $mbr['videos'] != null)
+      foreach($mbr['videos'] as &$video) {
+        $vid = $video['uri'];
+        if (in_array($vid, $vidfound)) continue;
+        $vidfound[] = $vid;
+        $yid = substr($vid,31);
+        if (count($vidfound) > 1)
+          printf('<span style="display:none;">');
+        printf('<a class="thumbnail" href="http://www.youtube.com/v/%s&hl=en&fs=1&rel=0&autoplay=1" rel="shadowbox[vids];height=480;width=700;player=swf">', $yid);
+        if (count($vidfound) > 1)
+          printf(' </a></span>' . "\n"); 
+        else
+          printf('<img src="http://i.ytimg.com/vi/%s/default.jpg"></a>' . "\n", $yid);
+      }
+printf('</td></tr>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");

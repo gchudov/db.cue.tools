@@ -2,3 +2,5 @@
 $ctdbcfg_musicbrainz_db = "dbname=musicbrainz_db user=musicbrainz port=6543";
 $ctdbcfg_discogs_db = "dbname=discogs user=discogs port=6543";
 $ctdbcfg_freedb_db = "dbname=freedb user=freedb_user port=6543";
+$ctdbcfg_s3 = "http://s3.cuetools.net";
+$ctdbcfg_s3_id = "4";

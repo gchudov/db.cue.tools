@@ -656,6 +656,7 @@ class phpCTDB{
 //            '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
             'rca.cover_art_url as coverarturl, ' .
             'rm.info_url, ' .
+            'rm.cover_art_presence, ' .
             'r.gid as id, ' .
             'r.artist_credit, ' .
 //            'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
@@ -762,7 +763,13 @@ class phpCTDB{
 		  $r['label'] = $labelcat;
 
                   $coverart = array();
-                  if (!isset($r['coverarturl']) || $r['coverarturl'] == '')
+                  if ($r['cover_art_presence'] == 'present') {
+                    $coverart[] = array(
+                      'primary' => true,
+                      'uri' => sprintf('http://coverartarchive.org/release/%s/front', $r['id']),
+                      'uri150' => sprintf('http://coverartarchive.org/release/%s/front-250', $r['id']));
+                  }
+                  elseif (!isset($r['coverarturl']) || $r['coverarturl'] == '')
                   if (isset($r['info_url']) && $r['info_url'] != '')
                   if (0 < preg_match("/(http\:\/\/www\.amazon\.)([^\/]*)\/gp\/product\/(.*)/", $r['info_url'], $match))
                   {

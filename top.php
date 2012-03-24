@@ -40,6 +40,7 @@ include 'logo_start2.php';
 <div id='entries_div'></div>
 <br><div id='musicbrainz_div'></div>
 <?php if ($isadmin) { ?><br><div id='submissions_div'></div><?php } ?>
+<?php if ($isadmin) { ?><br><div id='admin_div'></div><?php } ?>
 </center>
 </body>
 </html>
