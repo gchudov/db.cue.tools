@@ -78,6 +78,9 @@ class phpCTDB{
             array('v' => $mbr['id']),
             array('v' => $mbr['source']),
             array('v' => $mbr['relevance']),
+            array('v' => $mbr['coverart']),
+            array('v' => $mbr['videos']),
+            array('v' => $mbr['tracklist']),
             ));
     }
     $json_releases_table = array(
@@ -93,6 +96,9 @@ class phpCTDB{
           array('label' => 'Id', 'type' => 'string'),
           array('label' => 'Source', 'type' => 'string'),
           array('label' => 'Rel', 'type' => 'number'),
+          array('label' => 'Coverart', 'type' => 'object'),
+          array('label' => 'Videos', 'type' => 'object'),
+          array('label' => 'Tracks', 'type' => 'object'),
           ), 
         'rows' => $json_releases);
     return json_encode($json_releases_table);

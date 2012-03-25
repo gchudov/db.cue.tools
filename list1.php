@@ -67,7 +67,7 @@ function drawTable()
         var mbdata = ctdbMetaData(xmlhttp.responseText);
         xmlhttp = null;
         var mbview = new google.visualization.DataView(mbdata);
-        mbview.hideColumns([8,9]); 
+        mbview.hideColumns([8,9,11,12,13]); 
         mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 5, sort: 'disable', showRowNumber: false});
       }
       xmlhttp.send(null);

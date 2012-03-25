@@ -7,7 +7,61 @@ function decimalToHexString(number)
 function pad2(n)
 {
   return (n < 10 ? '0' : '') + n;
-};
+}
+
+function ctdbVideos(vidlist)
+{
+  var html = '';
+  var vidfound = new Object;
+  var vidfoundlen = 0;
+  for (var ivid in vidlist) {
+    var vid = vidlist[ivid].uri;
+    if (vid in vidfound) continue;
+    vidfound[vid] = 1;
+    vidfoundlen ++;
+    if (vidfoundlen > 1)
+      html += '<span style="display:none;">';
+    var yid = vid.substr(31);
+    html += '<a class="thumbnail" href="http://www.youtube.com/v/' + yid + '&hl=en&fs=1&rel=0&autoplay=1" rel="shadowbox[vids];height=480;width=700;player=swf">';
+    if (vidfoundlen > 1)
+      html += ' </a></span>';
+    else
+      html += '<img src="http://i.ytimg.com/vi/' + yid + '/default.jpg"></a>';
+  }
+  return html;
+}
+
+function ctdbCoverart(imglist,primary)
+{
+  var html = '';
+  var imgfound = new Object;
+  var imgfoundlen = 0;
+  for (var prim = 1; prim <= (primary ? 1 : 2); prim++)
+  {
+  for (var iimg in imglist) {
+    if (prim != (imglist[iimg].primary ? 1 : 2)) continue;
+    var img = imglist[iimg].uri;
+    if (img.indexOf('http://api.discogs.com/') != -1) img = imglist[iimg].uri150;
+    if (img.indexOf('http://images.amazon.com/') != -1) continue;
+    if (img in imgfound) continue;
+    imgfound[img] = 1;
+    imgfoundlen ++;
+    if (imgfoundlen > 1)
+      html += '<span style="display:none;">';
+    var sz = '';
+    if (img == imglist[iimg].uri) {
+      if ('height' in imglist[iimg]) sz += ";height=" + imglist[iimg].height;
+      if ('width' in imglist[iimg]) sz += ";width=" + imglist[iimg].width;
+    }
+    html += '<a class="thumbnail" href="' + img + '" rel="shadowbox[covers];player=img' + sz + '">';
+    if (imgfoundlen > 1)
+      html += ' </a></span>';
+    else
+      html += '<img src="' + imglist[iimg].uri150 + '"></a>';
+  }
+  }
+  return html;
+}
 
 function ctdbEntryData(json)
 {

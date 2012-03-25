@@ -1,3 +1,4 @@
+<?php require_once 'ctdbcfg.php';?>
 <script>
 
 window.onblur = function() { window.ctdb_blurred = true; };
