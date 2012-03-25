@@ -53,23 +53,10 @@ pg_free_result($result);
 
 $toc = phpCTDB::toc_toc2s($record);
 $mbid = phpCTDB::tocs2mbid($toc);
-
-$ids_musicbrainz =  phpCTDB::mbzlookupids(array($toc), false);
-if (!$ids_musicbrainz)
-$ids_musicbrainz = phpCTDB::mbzlookupids(array($toc), true);
-$mbmeta = phpCTDB::mbzlookup($ids_musicbrainz);
-$mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(null, $toc));
-$mbmeta = array_merge($mbmeta, phpCTDB::discogslookup(phpCTDB::discogsids($mbmeta)));
-$fbmeta = phpCTDB::freedblookup($toc);
-if (!$fbmeta) $fbmeta = phpCTDB::freedblookup($toc, 300);
-$mbmeta = array_merge($mbmeta, $fbmeta);
-usort($mbmeta, 'phpCTDB::metadataOrder');
-//if (!$mbmeta) $mbmeta = phpCTDB::freedblookup($toc, 300);
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = null;
 if ($record['track_crcs'] != null) phpCTDB::pg_array_parse($record['track_crcs'], $crcs);
 foreach($crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
-$tracklist = $mbmeta ? $mbmeta[0]['tracklist'] : false;
 
 $json_tracks = false;
 for ($tr = 0; $tr < count($ids) - 1; $tr++)
@@ -82,9 +69,8 @@ for ($tr = 0; $tr < count($ids) - 1; $tr++)
   $trlenmsf = TimeToString($trend + 1 - $trstart);
   $trmod = $tr + 1 - $record['firstaudio'];
   $trcrc = $trmod >= 0 && $trmod < count($crcs) ? $crcs[$trmod] : "";
-  $trname = $tracklist ? ($tr < count($tracklist) ? $tracklist[$tr]['name'] : "[data track]") : "";
   $json_tracks[] = array('c' => array(
-    array('v' => $trname), 
+    array('v' => ''), 
     array('v' => $trstartmsf), 
     array('v' => $trlenmsf), 
     array('v' => $trstart), 
@@ -100,9 +86,6 @@ $json_tracks_table = array('cols' => array(
   array('label' => 'End', 'type' => 'number'),
   array('label' => 'CRC', 'type' => 'string'),
 ), 'rows' => $json_tracks);
-
-if ($mbmeta)
-  $json_releases = phpCTDB::musicbrainz2json($mbmeta);
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -113,7 +96,6 @@ if ($mbmeta)
     <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
-      Shadowbox.init();
       function drawTable() {
         var data = new google.visualization.DataTable(<?php echo json_encode($json_tracks_table) ?>, 0.6);
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
@@ -126,77 +108,84 @@ if ($mbmeta)
           data.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
         }
         table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
-        <?php if ($mbmeta) { ?>
-        var mbdata = ctdbMetaData(<?php echo $json_releases ?>);
+
         var mbdiv = document.getElementById('releases_div');
-        var mbview = new google.visualization.DataView(mbdata);
-        mbview.hideColumns([8,9]); 
-        var mbtable = new google.visualization.Table(mbdiv);
-        mbtable.draw(mbview, {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false});
-        google.visualization.events.addListener(mbtable, 'select', function() {
-          if (mbtable.getSelection().length > 0 && document.getElementById('set_artist') != null) {
-            var srow = mbtable.getSelection()[0].row;
-            document.getElementById('set_artist').value = mbdata.getValue(srow,1);
-            document.getElementById('set_title').value = mbdata.getValue(srow,2) + (mbdata.getValue(srow,3) != '' ? ' (disc ' + mbdata.getValue(srow,3) + ')' : '');
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>', true);
+        mbdiv.innerHTML += '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
+        xmlhttp.onreadystatechange=function() {
+          if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
+          if (xmlhttp.status != 200) {
+            mbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
+            xmlhttp = null;
+            return;
           }
-        });
-        <?php } ?>
+          if (xmlhttp.responseText == 'null') {
+            mbdiv.innerHTML = '<img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found">';
+            xmlhttp = null;
+            return;
+          }
+          var mbdata = ctdbMetaData(xmlhttp.responseText);
+          xmlhttp = null;
+          var mbview = new google.visualization.DataView(mbdata);
+          mbview.hideColumns([8,9,11,12,13]);
+          var mbtable = new google.visualization.Table(mbdiv);
+          mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 10, sort: 'disable', showRowNumber: false});
+          var imglist1 = new Array();
+          var vidlist1 = new Array();
+          for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
+            var imglist2 = mbdata.getValue(row, 11);
+            if (imglist2 != null) imglist1 = imglist1.concat(imglist2);
+            var vidlist2 = mbdata.getValue(row, 12);
+            if (vidlist2 != null) vidlist1 = vidlist1.concat(vidlist2);
+          }
+          var coverartElement = document.getElementById('coverart');
+          var videosElement = document.getElementById('videos');
+          function resetCoverart() {
+            if (coverartElement != null && videosElement != null) {
+              var tracklist = mbdata.getValue(mbtable.getSelection().length > 0 ? mbtable.getSelection()[0].row : 0,13);
+              for(var tr=0; tr < data.getNumberOfRows(); tr++)
+                data.setValue(tr,0,tr in tracklist ? tracklist[tr].name : '' /*'[data track]'*/);
+              table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
+              Shadowbox.teardown('a.thumbnail');
+              var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
+              coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0);
+              var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
+              videosElement.innerHTML = ctdbVideos(vidlist);
+              Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
+            }
+          }
+          resetCoverart();
+          google.visualization.events.addListener(mbtable, 'select', function() {
+            resetCoverart();
+            if (mbtable.getSelection().length > 0 && document.getElementById('set_artist') != null) {
+              var srow = mbtable.getSelection()[0].row;
+              document.getElementById('set_artist').value = mbdata.getValue(srow,1);
+              document.getElementById('set_title').value = mbdata.getValue(srow,2) + (mbdata.getValue(srow,3) != '' ? ' (disc ' + mbdata.getValue(srow,3) + ')' : '');
+            }
+          });
+        }
+        Shadowbox.init();
+        xmlhttp.send(null);
       }
     </script>
 <?php
 include 'logo_start2.php';
 printf('<center>');
-printf("<div id='releases_div'></div>\n");
-if (!$mbmeta && ($record['artist'] != '' || $record['title'] != ''))
+printf("<div id='releases_div'>\n");
+if ($record['artist'] != '' || $record['title'] != '')
   printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
-else
-  printf('<br>');
+printf("</div>\n");
 printf("<div id='tracks_div'></div>\n");
 printf('<br>');
 
 printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
-printf('<tr><td></td><td>');
-$imgfound = array();
-if ($mbmeta)
-  foreach ($mbmeta as &$mbr)
-    if (isset($mbr['coverart']) && $mbr['coverart'] != null)
-      foreach ($mbr['coverart'] as &$cover) 
-        if ($cover['primary']) {
-          $img = $cover['uri'];
-          if (strpos($img, 'http://api.discogs.com/') !== false) $img = $cover['uri150'];
-          if (strpos($img, 'http://images.amazon.com/') !== false) continue;
-          if (in_array($img, $imgfound)) continue;
-          $imgfound[] = $img;
-          //$imgfoundlinks[$img] = $mbr['info_url'];
-          if (count($imgfound) > 1)
-            printf('<span style="display:none;">');
-          printf('<a class="thumbnail" href="%s" rel="shadowbox[covers];player=img">', $img);
-          if (count($imgfound) > 1)
-            printf(' </a></span>' . "\n"); 
-          else
-            printf('<img src="%s"></a>' . "\n", $cover['uri150']);
-        }
-$vidfound = array();
-if ($mbmeta)
-  foreach ($mbmeta as &$mbr)
-    if (isset($mbr['videos']) && $mbr['videos'] != null)
-      foreach($mbr['videos'] as &$video) {
-        $vid = $video['uri'];
-        if (in_array($vid, $vidfound)) continue;
-        $vidfound[] = $vid;
-        $yid = substr($vid,31);
-        if (count($vidfound) > 1)
-          printf('<span style="display:none;">');
-        printf('<a class="thumbnail" href="http://www.youtube.com/v/%s&hl=en&fs=1&rel=0&autoplay=1" rel="shadowbox[vids];height=480;width=700;player=swf">', $yid);
-        if (count($vidfound) > 1)
-          printf(' </a></span>' . "\n"); 
-        else
-          printf('<img src="http://i.ytimg.com/vi/%s/default.jpg"></a>' . "\n", $yid);
-      }
+printf('<tr><td></td><td id="coverart">');
+printf('</td></tr><tr><td></td><td id="videos">');
 printf('</td></tr>');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a> (%s)</tr>', phpCTDB::toc2mbtoc($record), $mbid, $mbmeta ? count($mbmeta) : "-");
+printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a></tr>', phpCTDB::toc2mbtoc($record), $mbid);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
 if ($isadmin)
