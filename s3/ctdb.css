@@ -60,7 +60,7 @@ a.thumbnail img {
     border-style: solid;
     border-width: 1px;
     color: black;
-    margin: 1ex 1ex 0 0;
+    margin: 0 1ex 1ex 0;
     overflow: auto;
     padding: 1ex;
     box-shadow: 3px 3px 5px #DFDFDF;
@@ -109,10 +109,15 @@ a.thumbnail img {
     background: url("http://s3.cuetools.net/icons/cueripper.png") no-repeat scroll 0 0 transparent;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
 #nav {
 	float: left;
 	width: 100%;
-	margin: 0;
+	margin: 0 0 1em 0;
 	padding: 0;
 	list-style: none;
 	background: #f5f5f5;

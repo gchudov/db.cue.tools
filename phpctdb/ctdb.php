@@ -476,7 +476,7 @@ class phpCTDB{
 		$relids =  pg_fetch_all($result);
                 pg_free_result($result);
 		$result = pg_query_params($conn,
-		  'SELECT rv.release_id, v.src ' . 
+		  'SELECT rv.release_id, v.src, v.title ' . 
 		  'FROM releases_videos rv ' .
 		  'INNER JOIN video v ON v.id = rv.video_id ' .
 		  'WHERE rv.release_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
@@ -523,7 +523,7 @@ class phpCTDB{
 		  if ($videos)
 		  foreach ($videos as &$video)
 		    if ($video['release_id'] == $r['discogs_id'])
-		      $rvideos[] = array('uri' => 'http://www.youtube.com/watch?v=' . $video['src']);
+		      $rvideos[] = array('uri' => 'http://www.youtube.com/watch?v=' . $video['src'], 'title' => $video['title']);
 		  $rimages = array();
 #		  error_log(print_r($images,true));
                   if ($images)

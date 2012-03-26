@@ -30,6 +30,7 @@ function updateTotals()
 google.setOnLoadCallback(updateTotals());
 </script>
 <title>CUETools DB</title>
+<link rel="shortcut icon" href="<?php echo $ctdbcfg_s3?>/favicon.ico" type="image/x-icon">
 <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/ctdb.css?id=<?php echo $ctdbcfg_s3_id?>" />
 <!--link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb12.css" /-->
 </head>
@@ -46,5 +47,4 @@ google.setOnLoadCallback(updateTotals());
 	<li id="nav-8"><a href="http://www.cuetools.net/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a></li>
 	<li id="nav-0"><a href="http://www.cuetools.net/wiki/CUETools" target="_blank">CUETools</a></li>
 	<li id="nav-11"><a><span id=totals_span></span></a></li>
-</ul>
-<br clear=all>
+</ul><br clear=all>
