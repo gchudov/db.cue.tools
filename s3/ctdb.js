@@ -22,7 +22,7 @@ function ctdbVideos(vidlist)
     if (vidfoundlen > 1)
       html += '<span style="display:none;">';
     var yid = vid.substr(31);
-    html += '<a class="thumbnail" href="http://www.youtube.com/v/' + yid + '&hl=en&fs=1&rel=0&autoplay=1" rel="shadowbox[vids];height=480;width=700;player=swf">';
+    html += '<a class="thumbnail" title="' + vidlist[ivid].title + '" href="http://www.youtube.com/v/' + yid + '&hl=en&fs=1&rel=0&autoplay=1" rel="shadowbox[vids];height=480;width=700;player=swf">';
     if (vidfoundlen > 1)
       html += ' </a></span>';
     else
@@ -95,8 +95,14 @@ function ctdbMetaData(json)
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
     if (mbdata.getValue(row, 9) == 'freedb')
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
-    if (mbdata.getValue(row, 4) != null)
-    mbdata.setFormattedValue(row, 4, '<img width=16 height=11 border=0 src="http://s3.cuetools.net/flags/' + mbdata.getValue(row, 4).toLowerCase() + '.png" alt="' +  mbdata.getValue(row, 4) + '">');
+    if (mbdata.getValue(row, 4) != null) {
+    var flags = new Array('us','gb','xe');
+    var flagno = flags.indexOf(mbdata.getValue(row, 4).toLowerCase());
+    if (flagno < 0)
+    mbdata.setFormattedValue(row, 4, '<div style="padding: 0; width: 16px; height: 11px; background: url(&quot;http://s3.cuetools.net/flags/' + mbdata.getValue(row, 4).toLowerCase() + '.png&quot;) no-repeat scroll 0 0 transparent">');
+    else
+    mbdata.setFormattedValue(row, 4, '<div style="padding: 0; width: 16px; height: 11px; background: url(&quot;http://s3.cuetools.net/flags/flags.png?id=2&quot;) no-repeat scroll 0 -' + flagno * 11 + 'px transparent">');
+    }
     mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
     mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');

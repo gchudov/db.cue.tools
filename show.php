@@ -107,7 +107,7 @@ $json_tracks_table = array('cols' => array(
           data.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
           data.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
         }
-        table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
+        table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
 
         var mbdiv = document.getElementById('releases_div');
         var xmlhttp = new XMLHttpRequest();
@@ -146,7 +146,7 @@ $json_tracks_table = array('cols' => array(
               var tracklist = mbdata.getValue(mbtable.getSelection().length > 0 ? mbtable.getSelection()[0].row : 0,13);
               for(var tr=0; tr < data.getNumberOfRows(); tr++)
                 data.setValue(tr,0,tr in tracklist ? tracklist[tr].name : '' /*'[data track]'*/);
-              table.draw(data, {allowHtml: true, width: 900, sort: 'disable', showRowNumber: true});
+              table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
               Shadowbox.teardown('a.thumbnail');
               var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
               coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0);
@@ -176,13 +176,11 @@ printf("<div id='releases_div'>\n");
 if ($record['artist'] != '' || $record['title'] != '')
   printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
 printf("</div>\n");
+printf('<table border=0 cellspacing=5 cellpadding=0 width=1200>');
+printf('<tr><td valign=top width=800>');
 printf("<div id='tracks_div'></div>\n");
-printf('<br>');
-
-printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6>');
-printf('<tr><td></td><td id="coverart">');
-printf('</td></tr><tr><td></td><td id="videos">');
-printf('</td></tr>');
+printf('</td><td valign=top>');
+printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6 width="100%%">');
 //printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a></tr>', phpCTDB::toc2mbtoc($record), $mbid);
@@ -197,7 +195,7 @@ if ($isadmin)
   printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="http://s3.cuetools.net/icons/ar.png"></td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
 }
 printf('<tr><td class=td_album>CRC32</td><td class=td_discid>%08X</td></tr>', $record['crc32']);
-printf('<tr><td class=td_album>Confidence</td><td class=td_discid>%d</td></tr>' . "\n", $record['confidence']);
+printf('<tr><td class=td_album>Conf.</td><td class=td_discid>%d</td></tr>' . "\n", $record['confidence']);
 if ($isadmin)
 {
   printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
@@ -205,12 +203,15 @@ if ($isadmin)
   $parityfile = $record['id'];
   printf('<tr><td class=td_album>Parity file</td><td class=td_discid><a href="http://p.cuetools.net/%s">%s</a></td></tr>' . "\n", urlencode($parityfile), $record['hasparity'] == 't' ? ($record['s3'] == 't' ? "s3" : "pending") : "none");
   printf('<tr><td colspan=2 align=center></td></tr>');
-  printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=50 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
-  printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=50 type="Text" name="set_title" id="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
+  printf('<tr><td class=td_album>Artist</td><td class=td_album><input maxlength=200 size=40 type="Text" name="set_artist" id="set_artist" value="%s" \></td></tr>' . "\n", $record['artist']);
+  printf('<tr><td class=td_album>Title</td><td><input maxlength=200 size=40 type="Text" name="set_title" id="set_title" value="%s" \></td></tr>' . "\n", $record['title']);
   printf('<tr><td class=td_album><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
 }
 ?>
+<tr><td></td><td id="coverart"></td></tr>
+<tr><td></td><td id="videos"></td></tr>
 </table>
+</td></tr></table>
 <?php 
 if ($isadmin) {
 	printf('<br>');
