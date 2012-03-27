@@ -9,7 +9,7 @@ function pad2(n)
   return (n < 10 ? '0' : '') + n;
 }
 
-function ctdbVideos(vidlist)
+function ctdbVideos(vidlist, vis)
 {
   var html = '';
   var vidfound = new Object;
@@ -19,11 +19,11 @@ function ctdbVideos(vidlist)
     if (vid in vidfound) continue;
     vidfound[vid] = 1;
     vidfoundlen ++;
-    if (vidfoundlen > 1)
+    if (vidfoundlen > vis)
       html += '<span style="display:none;">';
     var yid = vid.substr(31);
     html += '<a class="thumbnail" title="' + vidlist[ivid].title + '" href="http://www.youtube.com/v/' + yid + '&hl=en&fs=1&rel=0&autoplay=1" rel="shadowbox[vids];height=480;width=700;player=swf">';
-    if (vidfoundlen > 1)
+    if (vidfoundlen > vis)
       html += ' </a></span>';
     else
       html += '<img src="http://i.ytimg.com/vi/' + yid + '/default.jpg"></a>';
@@ -31,7 +31,7 @@ function ctdbVideos(vidlist)
   return html;
 }
 
-function ctdbCoverart(imglist,primary)
+function ctdbCoverart(imglist,primary,vis)
 {
   var html = '';
   var imgfound = new Object;
@@ -46,7 +46,7 @@ function ctdbCoverart(imglist,primary)
     if (img in imgfound) continue;
     imgfound[img] = 1;
     imgfoundlen ++;
-    if (imgfoundlen > 1)
+    if (imgfoundlen > vis)
       html += '<span style="display:none;">';
     var sz = '';
     if (img == imglist[iimg].uri) {
@@ -54,7 +54,7 @@ function ctdbCoverart(imglist,primary)
       if ('width' in imglist[iimg]) sz += ";width=" + imglist[iimg].width;
     }
     html += '<a class="thumbnail" href="' + img + '" rel="shadowbox[covers];player=img' + sz + '">';
-    if (imgfoundlen > 1)
+    if (imgfoundlen > vis)
       html += ' </a></span>';
     else
       html += '<img src="' + imglist[iimg].uri150 + '"></a>';

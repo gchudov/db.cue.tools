@@ -149,9 +149,9 @@ $json_tracks_table = array('cols' => array(
               table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
               Shadowbox.teardown('a.thumbnail');
               var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
-              coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0);
+              coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4);
               var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
-              videosElement.innerHTML = ctdbVideos(vidlist);
+              videosElement.innerHTML = ctdbVideos(vidlist, 3);
               Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
             }
           }
@@ -171,18 +171,12 @@ $json_tracks_table = array('cols' => array(
     </script>
 <?php
 include 'logo_start2.php';
-printf('<center>');
-printf("<div id='releases_div'>\n");
-if ($record['artist'] != '' || $record['title'] != '')
-  printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
-printf("</div>\n");
-printf('<table border=0 cellspacing=5 cellpadding=0 width=1200>');
-printf('<tr><td valign=top width=800>');
-printf("<div id='tracks_div'></div>\n");
-printf('</td><td valign=top>');
-printf('<table class="ctdbbox" border=0 cellspacing=0 cellpadding=6 width="100%%">');
-//printf('<tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=%s">%s</a></td></tr>', phpCTDB::toc_toc2s($record), $record['tocid']);
+?>
+<center>
+<table class="ctdbbox" border=0 cellspacing=0 cellpadding=0 width="1200">
+<!--tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));-->
+<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid width=50%><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=<?php echo phpCTDB::toc_toc2s($record); ?>"><?php echo $record['tocid']; ?></a></td><td rowspan=10><div id='tracks_div'></div></td></tr>
+<?php
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a></tr>', phpCTDB::toc2mbtoc($record), $mbid);
 printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
@@ -211,7 +205,12 @@ if ($isadmin)
 <tr><td></td><td id="coverart"></td></tr>
 <tr><td></td><td id="videos"></td></tr>
 </table>
-</td></tr></table>
+<div id='releases_div'>
+<?php
+if ($record['artist'] != '' || $record['title'] != '')
+  printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
+?>
+</div>
 <?php 
 if ($isadmin) {
 	printf('<br>');
