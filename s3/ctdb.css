@@ -5,7 +5,7 @@ a.thumbnail {
   color: Black;
 }
 a.thumbnail img { 
-  /*max-width: 160px;*/
+/*  max-width: 120px;*/
   max-height: 60px;
   box-shadow: 2px 2px 2px #bfbfbf;
   margin: 0px 4px 4px 0;
@@ -37,16 +37,16 @@ a.thumbnail img {
 }
 .td_discid {
   padding: 1px 4px;
-	font-family: Courier;
+  font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
 }
 .td_ctdbid {
   padding: 1px 4px;
-	font-family: Courier;
+  font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
 }
 .td_ar {
   padding: 1px 4px;
   text-align: right;
-	font-family: Courier;
+  font-family: Consolas,'Lucida Console','DejaVu Sans Mono',monospace;
 }
 .classy_table {
   border-style:none;
@@ -65,6 +65,19 @@ a.thumbnail img {
     overflow: auto;
     padding: 1ex;
     box-shadow: 3px 3px 5px #DFDFDF;
+}
+
+.google-visualization-table-td-nowrap {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.google-visualization-table-td-ctdb {
+  white-space: nowrap;
 }
 
 .google-visualization-table-td-consolas-left {
@@ -115,49 +128,51 @@ html, body {
   padding: 0;
 }
 
-#nav {
-	float: left;
-	width: 100%;
-	margin: 0 0 1em 0;
-	padding: 0;
-	list-style: none;
-	background: #f5f5f5;
-	border-bottom: 1px solid #999;
-	}
+#ctdbheader {
+  padding: 0.3em 0 0 64px;
+  margin: 0;
+  background: url(http://s3.cuetools.net/ctdb64.png) no-repeat scroll 0 0 #f5f5f5; 
+  border-bottom: 1px solid #999; 
+  min-height: 64px;
+  min-width: 1280px;
+}
 
-#nav li { 
-	float: left;
-	margin: 0;
-	padding: 0;
-	}
+#ctdbmenu {
+  margin: 0 1em 0 1em;
+}
 
-#nav a {
-	float: left;
-	display: block;
-	padding: 6px 30px 6px 5px;
-	text-decoration: none;
-	font-weight: bold;
-	font-size: 90%;
-	color: #666;
-	background: #f5f5f5 url(http://s3.cuetools.net/slant.gif) no-repeat top right;
-	}
+#ctdbmenu a {
+  padding: 5px 30px 5px 5px; 
+  text-decoration: none; 
+  font-weight: bold; 
+  font-size: 90%; 
+  color: #666; 
+  background: #f5f5f5 url(http://s3.cuetools.net/slant.gif) no-repeat top right;
+}
 
-#nav #nav-1 a {
-	padding-left: 30px;
-	}
-#nav #nav-0 a {
-	padding: 6px 20px 6px 5px;
-	background: #f5f5f5;
-	}
-#nav #nav-11 a {
-	padding: 6px 20px 6px 5px;
-	color: #555;
-	background: none;
-	}
-#nav #nav-11 {
-	float: right;
-	}
+#ctdbmenu a:hover {
+  color: #000;
+}
 
-#nav a:hover {
-	color: #000;
-	}
+#ctdbmenu #ctdbmenu09 {
+  padding: 6px 20px 6px 5px;
+  background: none;
+}
+
+#ctdbtotals {
+  padding: 6px 20px 6px 5px; 
+  color: #555; 
+  background: none; 
+  float: right; 
+  display: block; 
+  text-decoration: none; 
+  font-weight: bold; 
+  font-size: 90%;
+}
+
+#ctdbtitle {
+  padding: 0.3em 0 0 0;
+  margin-right: 10em;
+  text-align: center;
+  font-weight: bold; 
+}

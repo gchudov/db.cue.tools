@@ -11,7 +11,7 @@ totals_http.onreadystatechange=function() {
   if (totals_http.status == 200)
   {
     var totals_val = JSON.parse(totals_http.responseText);
-    document.getElementById('totals_span').innerHTML = 'CUETools DB:<br><span style="font-family: Consolas,\'Lucida Console\',\'DejaVu Sans Mono\',monospace;">' + totals_val.unique_tocs + '</span> discs<br><span style="font-family: Consolas,\'Lucida Console\',\'DejaVu Sans Mono\',monospace;">' + totals_val.submissions + '</span> rips';
+    document.getElementById('ctdbtotals').innerHTML = 'CUETools DB:<br><span style="font-family: Consolas,\'Lucida Console\',\'DejaVu Sans Mono\',monospace;">' + totals_val.unique_tocs + '</span> discs<br><span style="font-family: Consolas,\'Lucida Console\',\'DejaVu Sans Mono\',monospace;">' + totals_val.submissions + '</span> rips';
   }
   totals_timer = setTimeout("updateTotals()",5000);
 };
@@ -35,16 +35,19 @@ google.setOnLoadCallback(updateTotals());
 <!--link rel="stylesheet" type="text/css" href="http://s3.cuetools.net/ctdb12.css" /-->
 </head>
 <body>
-<ul id="nav">
-  <li><img width=64 height=64 border=0 alt="" src="http://s3.cuetools.net/ctdb64.png"></li>
-  <li id="nav-1"><a href="/">Home</a></li>
-  <li id="nav-2"><a href="/top.php">Popular</a></li>
-  <li id="nav-6"><a href="/stats.php">Stats</a></li>
-  <li id="nav-3"><a href="http://www.cuetools.net/wiki/CUETools_Database" target="_blank">About</a></li>
-	<li id="nav-4"><a href="http://www.hydrogenaudio.org/forums/index.php?showtopic=79882" target="_blank">Forum</a></li>
-	<?php if ($isadmin) { ?><li id="nav-6"><a href="/recent.php">Recent</a></li><?php }?>
-	<?php if ($isadmin) { ?><li id="nav-7"><a href="/?logout=1">Logout</a></li><?php }?>
-	<li id="nav-8"><a href="http://www.cuetools.net/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a></li>
-	<li id="nav-0"><a href="http://www.cuetools.net/wiki/CUETools" target="_blank">CUETools</a></li>
-	<li id="nav-11"><a><span id=totals_span></span></a></li>
-</ul><br clear=all>
+<div id="ctdbheader">
+<span id="ctdbtotals"></span>
+<div id="ctdbmenu">
+<a class="ctdbmenu01" href="/">Home</a>
+<a class="ctdbmenu02" href="/top.php">Popular</a>
+<a class="ctdbmenu03" href="/stats.php">Stats</a>
+<a class="ctdbmenu04" href="http://www.cuetools.net/wiki/CUETools_Database" target="_blank">About</a>
+<a class="ctdbmenu05" href="http://www.hydrogenaudio.org/forums/index.php?showtopic=79882" target="_blank">Forum</a>
+<?php if ($isadmin) { ?><a class="ctdbmenu06" href="/recent.php">Recent</a><?php }?>
+<?php if ($isadmin) { ?><a class="ctdbmenu07" href="/?logout=1">Logout</a><?php }?>
+<a class="ctdbmenu08" href="http://www.cuetools.net/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a>
+<a id="ctdbmenu09" href="http://www.cuetools.net/wiki/CUETools" target="_blank">CUETools</a>
+</div>
+<div id="ctdbtitle"><?php echo $ctdb_page_title;?></div>
+</div>
+<br clear=all>

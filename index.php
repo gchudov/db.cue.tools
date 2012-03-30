@@ -4,7 +4,7 @@ require_once( 'phpctdb/ctdb.php' );
 
 if ((@$_GET['login'] && !$userinfo) || (@$_GET['logout'] && $userinfo)) makeAuth1($realm, 'Login requested');
 
-$count = 20;
+$count = 10;
 $query = 'SELECT * FROM submissions2';
 $term = ' WHERE ';
 $url = '';
@@ -30,11 +30,14 @@ $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);
 if ($json_entries == '') die('nothing found');
 
+$ctdb_page_title = 'Recent additions';
+
 include 'list1.php';
 include 'logo_start2.php';
 ?>
-<center><h3>CUETools Database: recent additions</h3>
+<center>
 <div id='entries_div'></div>
+<br><?php include 'ctdbbox.php';?>
 <br><div id='musicbrainz_div'></div>
 <?php if ($isadmin) { ?><br><div id='submissions_div'></div><br><div id='admin_div'></div><?php } ?>
 </center>
