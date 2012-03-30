@@ -2,7 +2,7 @@
 include 'logo_start1.php'; 
 require_once( 'phpctdb/ctdb.php' );
 
-$count = 20;
+$count = 10;
 $query = 'SELECT * FROM submissions2';
 $term = ' WHERE ';
 $url = '';
@@ -33,14 +33,18 @@ $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);
 if ($json_entries == '') die('nothing found');
 
+$ctdb_page_title = 'Popular discs';
+
 include 'list1.php';
 include 'logo_start2.php';
 ?>
-<center><h3>CUETools Database: popular discs</h3>
+<center>
 <div id='entries_div'></div>
+<br><?php include 'ctdbbox.php';?>
 <br><div id='musicbrainz_div'></div>
 <?php if ($isadmin) { ?><br><div id='submissions_div'></div><?php } ?>
 <?php if ($isadmin) { ?><br><div id='admin_div'></div><?php } ?>
+<br>
 </center>
 </body>
 </html>

@@ -27,6 +27,13 @@ class phpCTDB{
         (($record['audiotracks'] < $record['trackcount'])
          ? ($record['audiotracks'] . '+1')
          : $record['audiotracks']);
+      $track_crcs_s = null;
+      if ($record['track_crcs'] != null) {
+        $track_crcs = null;
+        phpCTDB::pg_array_parse($record['track_crcs'], $track_crcs);
+        foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
+        $track_crcs_s = implode(' ', $track_crcs);
+      }
       $json_entries[] = array('c' => array(
             array('v' => $record['artist']),
             array('v' => $record['title']),
@@ -36,6 +43,7 @@ class phpCTDB{
             array('v' => (int)$record['subcount']),
             array('v' => (int)$record['crc32']),
             array('v' => phpCTDB::toc_toc2s($record)),
+            array('v' => $track_crcs_s),
             ));
     }
     $json_entries_table = array('cols' => array(
@@ -47,6 +55,7 @@ class phpCTDB{
           array('label' => 'Cf', 'type' => 'number'),
           array('label' => 'CRC32', 'type' => 'number'),
           array('label' => 'TOC', 'type' => 'string'),
+          array('label' => 'Track CRCs', 'type' => 'string'),
           ), 'rows' => $json_entries);
 
     return json_encode($json_entries_table);

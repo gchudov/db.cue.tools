@@ -101,6 +101,7 @@ $json_tracks_table = array('cols' => array(
         var table = new google.visualization.Table(document.getElementById('tracks_div'));
         for (var row = 0; row < data.getNumberOfRows(); row++)
         {
+          data.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-nowrap');
           data.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
           data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
           data.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
@@ -112,7 +113,7 @@ $json_tracks_table = array('cols' => array(
         var mbdiv = document.getElementById('releases_div');
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>', true);
-        mbdiv.innerHTML += '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
+        mbdiv.innerHTML += '<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>';
         xmlhttp.onreadystatechange=function() {
           if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
           if (xmlhttp.status != 200) {
@@ -121,7 +122,7 @@ $json_tracks_table = array('cols' => array(
             return;
           }
           if (xmlhttp.responseText == 'null') {
-            mbdiv.innerHTML = '<img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found">';
+            mbdiv.innerHTML = '<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>';
             xmlhttp = null;
             return;
           }
@@ -172,13 +173,12 @@ $json_tracks_table = array('cols' => array(
 <?php
 include 'logo_start2.php';
 ?>
-<center>
+<div style="margin:auto; width:1210px;">
 <table class="ctdbbox" border=0 cellspacing=0 cellpadding=0 width="1200">
-<!--tr><td>TOC ID</td><td>%s</td></tr>', phpCTDB::toc2tocid($record));-->
-<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid width=50%><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=<?php echo phpCTDB::toc_toc2s($record); ?>"><?php echo $record['tocid']; ?></a></td><td rowspan=10><div id='tracks_div'></div></td></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid width=50%><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=<?php echo phpCTDB::toc_toc2s($record); ?>"><?php echo $record['tocid']; ?></a></td><td rowspan=10 style="vertical-align: top;"><div id='tracks_div'></div></td></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=<?php echo phpCTDB::toc2mbtoc($record);?>"><?php echo $mbid;?></a></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="<?php echo phpCTDB::toc2cddbid($record);?>"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;"><?php echo phpCTDB::toc2cddbid($record);?></a></td></tr>
 <?php
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=%s">%s</a></tr>', phpCTDB::toc2mbtoc($record), $mbid);
-printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="%s"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;">%s</a></td></tr>', phpCTDB::toc2cddbid($record), phpCTDB::toc2cddbid($record));
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
 if ($isadmin)
 {
@@ -188,8 +188,10 @@ if ($isadmin)
 {
   printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="http://s3.cuetools.net/icons/ar.png"></td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
 }
-printf('<tr><td class=td_album>CRC32</td><td class=td_discid>%08X</td></tr>', $record['crc32']);
-printf('<tr><td class=td_album>Conf.</td><td class=td_discid>%d</td></tr>' . "\n", $record['confidence']);
+?>
+<tr><td class=td_album>CRC32</td><td class=td_discid><?php printf('%08X', $record['crc32']);?></td></tr>
+<tr><td class=td_album>Conf.</td><td class=td_discid><?php echo $record['confidence'];?></td></tr>
+<?php
 if ($isadmin)
 {
   printf('<form enctype="multipart/form-data" action="%s" method="POST">', $_SERVER['PHP_SELF']);
@@ -202,14 +204,15 @@ if ($isadmin)
   printf('<tr><td class=td_album><input type="checkbox" name="delete" value="delete">Delete</td><td colspan=1 align=left><input type="submit" name="update" value="Update" /></td></tr>');
 }
 ?>
-<tr><td></td><td id="coverart"></td></tr>
-<tr><td></td><td id="videos"></td></tr>
+<tr><td></td><td height=64 id="coverart"></td></tr>
+<tr><td></td><td height=64 id="videos"></td></tr>
 </table>
 <div id='releases_div'>
 <?php
 if ($record['artist'] != '' || $record['title'] != '')
-  printf("<h3>%s - %s</h3>\n", $record['artist'], $record['title']);
+  printf("<center><h3>%s - %s</h3></center>\n", $record['artist'], $record['title']);
 ?>
+</div>
 </div>
 <?php 
 if ($isadmin) {
@@ -230,6 +233,5 @@ if ($isadmin) {
 	printf('</td></tr></table>');
 }
 ?>
-</center>
 </body>
 </html>
