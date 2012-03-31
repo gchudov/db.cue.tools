@@ -2,6 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
 <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
@@ -15,14 +16,16 @@ function drawTable()
   var start = <?php echo $start?>;
   var prev = start != 0;
   var next = data.getNumberOfRows() >= <?php echo $count?>;
-  var mbdiv = document.getElementById('musicbrainz_div');
-  var mbtable = mbdiv == null ? null : new google.visualization.Table(mbdiv);
+  var mbdiv = $('#musicbrainz_div');
+  var mbtable = mbdiv.length == 0 ? null : new google.visualization.Table(mbdiv[0]);
   var sbdiv = document.getElementById('submissions_div');
   var sbtable = sbdiv == null ? null :  new google.visualization.Table(sbdiv);
   var trdiv = document.getElementById('tracks_div');
   var trtable = trdiv == null ? null : new google.visualization.Table(trdiv);
   var trdata = new google.visualization.DataTable();
   var mbdata = new google.visualization.DataTable();
+
+//  mbdiv.each(function() { $(this).data('gvtable', new google.visualization.Table($(this)[0])); });
 
   Shadowbox.init();
 
@@ -55,16 +58,14 @@ function drawTable()
     var view = new google.visualization.DataView(data);
     view.hideColumns([6,7,8]);
     table.draw(view, opts);
-    if (mbdiv != null) mbdiv.innerHTML = '';
+    mbdiv.hide();
     if (sbdiv != null) sbdiv.innerHTML = '';
   });
-  var coverartElement = document.getElementById('coverart');
-  var videosElement = document.getElementById('videos');
-  var ctdbbox_div = document.getElementById('ctdbbox_div');
+  var ctdbbox_div = $('#ctdbbox_div');
+
   function resetCoverart() {
-    if (ctdbbox_div == null) return;
     if (table.getSelection().length == 0) {
-      ctdbbox_div.style.display = 'none';
+      ctdbbox_div.hide();
       return;
     }
 
@@ -76,21 +77,25 @@ function drawTable()
     var crcs_s = data.getValue(srow, 8);
     var crcs = crcs_s != null ? crcs_s.split(' ') : new Array();
     var ntracks = toc.length - 1;
-    ctdbbox_div.style.display = 'inherit';
-    document.getElementById('ctdbbox_div_mbi').innerHTML = tocs2mbid(toc_s);
-    document.getElementById('ctdbbox_div_mbi').attributes.href.value = 'http://musicbrainz.org/bare/cdlookup.html?toc=' + tocs2mbtoc(toc_s);
-    document.getElementById('ctdbbox_div_crc').innerHTML = decimalToHexString(crc);
-    document.getElementById('ctdbbox_div_cnf').innerHTML = cnf;
-    document.getElementById('ctdbbox_div_tid').innerHTML = data.getValue(srow, 2);
-    document.getElementById('ctdbbox_div_tid').attributes.href.value = '/lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=' + toc_s;
-    document.getElementById('ctdbbox_div_fdb').innerHTML = tocs2cddbid(toc_s);
-    document.getElementById('ctdbbox_div_ari').innerHTML = tocs2arid(toc_s);
+    var tracklist_row = mbtable.getSelection().length > 0 ? mbtable.getSelection()[0].row : 0;
+    var artist = mbdata.getNumberOfRows() > tracklist_row ? mbdata.getValue(tracklist_row,1) : data.getValue(srow, 0);
+    var title = mbdata.getNumberOfRows() > tracklist_row ? mbdata.getValue(tracklist_row,2) : data.getValue(srow, 1);
+
+    $('#ctdbbox_div_mbi').text(tocs2mbid(toc_s));
+    $('#ctdbbox_div_mbi').attr('href', 'http://musicbrainz.org/bare/cdlookup.html?toc=' + tocs2mbtoc(toc_s));
+    $('#ctdbbox_div_crc').text(decimalToHexString(crc));
+    $('#ctdbbox_div_cnf').text(cnf);
+    $('#ctdbbox_div_tid').text(data.getValue(srow, 2));
+    $('#ctdbbox_div_tid').attr('href', '/lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=' + toc_s);
+    $('#ctdbbox_div_fdb').text(tocs2cddbid(toc_s));
+    $('#ctdbbox_div_ari').text(tocs2arid(toc_s));
+    <?php if (isset($where_id)) { ?>
+    $('#ctdbtitle').text(artist != null && title != null ? artist + ' - ' + title : '');
+    <?php } ?>
     if (trdiv != null) {
       trdata.removeRows(0, trdata.getNumberOfRows());
       trdata.addRows(ntracks);
-      var tracklist_row = mbtable.getSelection().length > 0 ? mbtable.getSelection()[0].row : 0;
       var tracklist = mbdata.getNumberOfRows() > tracklist_row ? mbdata.getValue(tracklist_row,13) : new Array();
-      var artist = mbdata.getNumberOfRows() > tracklist_row ? mbdata.getValue(tracklist_row,1) : null;
       var trmod = 0;
       for(var tr=0; tr < trdata.getNumberOfRows(); tr++) {
         var trstart = 150 + Math.abs(Number(toc[tr]));
@@ -98,7 +103,7 @@ function drawTable()
         if (toc[tr+1][0] == '-') trend -= 11400;
         var trcrc = toc[tr][0] != '-' && trmod >= 0 && trmod < crcs.length ? crcs[trmod] : '';
         if (toc[tr][0] != '-') trmod ++;
-        trdata.setValue(tr, 0, tr in tracklist ? '<span>' + tracklist[tr].name + '</span>' + (tracklist[tr].artist == null || tracklist[tr].artist == artist ? '' : '<span style="margin:0; color:#888;"> (' + tracklist[tr].artist + ')</span>')  : toc[tr][0] == '-' ? '[data track]' : '');
+        trdata.setValue(tr, 0, tr in tracklist ? (toc[tr][0] == '-' ? '<span style="color:#A88;">' : '<span>') + tracklist[tr].name + '</span>' + (tracklist[tr].artist == null || tracklist[tr].artist == artist ? '' : '<span style="margin:0; color:#888;"> (' + tracklist[tr].artist + ')</span>')  : toc[tr][0] == '-' ? '<span style="color:#A88;">[data track]</span>' : '');
         trdata.setValue(tr, 1, TimeToString(trstart));
         trdata.setValue(tr, 2, TimeToString(trend + 1 - trstart));
         trdata.setValue(tr, 3, trstart);
@@ -114,77 +119,63 @@ function drawTable()
       var tropts = {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true, page: 'enable', pageSize: 13};
       trtable.draw(trdata, tropts);
     } 
-    if (coverartElement != null && videosElement != null) {
-      Shadowbox.teardown('a.thumbnail');
-      var imglist1 = new Array();
-      var vidlist1 = new Array();
-      for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
-        var imglist2 = mbdata.getValue(row, 11);
-        if (imglist2 != null) imglist1 = imglist1.concat(imglist2);
-        var vidlist2 = mbdata.getValue(row, 12);
-        if (vidlist2 != null) vidlist1 = vidlist1.concat(vidlist2);
-      }
-      var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
-      coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4);
-      var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
-      videosElement.innerHTML = ctdbVideos(vidlist, 3);
-      Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
+    Shadowbox.teardown('a.thumbnail');
+    var imglist1 = new Array();
+    var vidlist1 = new Array();
+    for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
+      var imglist2 = mbdata.getValue(row, 11);
+      if (imglist2 != null) imglist1 = imglist1.concat(imglist2);
+      var vidlist2 = mbdata.getValue(row, 12);
+      if (vidlist2 != null) vidlist1 = vidlist1.concat(vidlist2);
     }
+    var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
+    $("#coverart").html(ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4));
+    var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
+    $("#videos").html(ctdbVideos(vidlist, 3));
+    Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
+    ctdbbox_div.show();
   }
-  if (mbdiv != null)
-    google.visualization.events.addListener(table, 'select', function() {
-//      mbtable.setSelection();
-      //if (mbtable.getSelection().length > 0)
-      if (mbdata.getNumberOfRows() > 0) {
-        mbtable.setSelection();
-        mbdata.removeRows(0, mbdata.getNumberOfRows());
-      }
-      resetCoverart();
-      if (table.getSelection().length == 0) {
-        mbdiv.innerHTML = '';
-        return;
-      }
-      var srow = table.getSelection()[0].row;
-      var xmlhttp = new XMLHttpRequest();
-      xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&metadata=default&fuzzy=1&toc=' + data.getValue(srow, 7), true);
-      mbdiv.innerHTML = '<img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata...">';
-      xmlhttp.onreadystatechange=function() {
-        if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
-        if (xmlhttp.status != 200) {
-          mbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
-          xmlhttp = null;
+
+  function resetMetadata() {
+    if (mbdata.getNumberOfRows() > 0) {
+      mbtable.setSelection();
+      mbdata.removeRows(0, mbdata.getNumberOfRows());
+    }
+    resetCoverart();
+    if (table.getSelection().length == 0) {
+      mbdiv.hide();
+      return;
+    }
+    var srow = table.getSelection()[0].row;
+    mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
+    mbdiv.show();
+    $.ajax({
+      url: "http://db.cuetools.net/lookup2.php?ctdb=0&metadata=<?php echo @$_GET['metadata']=='extensive' ? 'extensive' : 'default'; ?>&fuzzy=1&jsonp=?",
+      cache: true,
+      data: {toc : data.getValue(srow, 7)},
+      dataType: "jsonp",
+      jsonpCallback: "ctdbajax",
+      error: function() {
+        mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
+      },
+      success: function(json) {
+        if (json == null) {
+          mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
           return;
         }
-        if (xmlhttp.responseText == 'null') {
-          mbdiv.innerHTML = '<img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found">';
-          xmlhttp = null;
-          return;
-        }
-        mbdata = ctdbMetaData(xmlhttp.responseText);
-        xmlhttp = null;
+        mbdata = ctdbMetaData(json);
         var mbview = new google.visualization.DataView(mbdata);
         mbview.hideColumns([8,9,11,12,13]); 
-        mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 5, sort: 'disable', showRowNumber: false});
+        mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: <?php echo isset($where_id) ? 10 : 5; ?>, sort: 'disable', showRowNumber: false});
         resetCoverart();
       }
-      xmlhttp.send(null);
     });
-  if (mbdiv != null)
-    google.visualization.events.addListener(mbtable, 'select', function() {
-      resetCoverart();
-    /*  var admdiv = document.getElementById('admin_div');
-      admdiv.innerHTML = '';
-      if (mbtable.getSelection().length == 0)
-        return;
-      var srow = mbtable.getSelection()[0].row;
-      //var set = new Image();
-      //set.src = "http://s3.cuetools.net/face-sad.png";
-      //set.id = "set_metadata";
-      //admdiv.appendChild(set);
-      //admdiv.setAttribute("onClick", "setMetadata()");
-      admargs = { "entry" : table.getSelection(), "release" : mbtable.getSelection() };
-      admdiv.innerHTML = '<a onClick="setMetadata(&quot;' + encodeURIComponent(JSON.stringify(admargs)) +  '&quot;)">set</a>';*/
-    });
+  }
+
+  if (mbdiv.length) {
+    google.visualization.events.addListener(table, 'select', resetMetadata); 
+    google.visualization.events.addListener(mbtable, 'select', resetCoverart);
+  }
 
   if (sbdiv != null)
      google.visualization.events.addListener(table, 'select', function() {
@@ -220,6 +211,12 @@ function drawTable()
   var view = new google.visualization.DataView(data);
   view.hideColumns([6,7,8]);
   table.draw(view, opts);
+  //document.getElementById('entries_div').children[0].children[0].style["box-shadow"] = "rgb(204, 204, 204) 3px 3px 5px";
+  <?php if (isset($where_id)) { ?>
+  table.setSelection([{row:0}]);
+  resetMetadata();
+  $("#entries_div").hide();
+  <?php } ?>
 };
 function setMetadata(strargs) {
   var admdiv = document.getElementById('admin_div');

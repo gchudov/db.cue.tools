@@ -7,3 +7,4 @@ Disallow: /confirm.php
 Disallow: /show.php
 Disallow: /top.php
 Disallow: /parity/
+Disallow: /cd/

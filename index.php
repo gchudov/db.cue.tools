@@ -8,6 +8,13 @@ $count = 10;
 $query = 'SELECT * FROM submissions2';
 $term = ' WHERE ';
 $url = '';
+$where_id=@$_GET['id'];
+if ($where_id != '')
+{
+  $query = $query . $term . "id=" . pg_escape_string($where_id);
+  $term = ' AND ';
+  $url = $url . '&id=' . urlencode($where_id);
+}
 $where_discid=@$_GET['tocid'];
 if ($where_discid != '')
 {
@@ -30,16 +37,16 @@ $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);
 if ($json_entries == '') die('nothing found');
 
-$ctdb_page_title = 'Recent additions';
+$ctdb_page_title = isset($where_id) ? '' : 'Recent additions';
 
 include 'list1.php';
 include 'logo_start2.php';
 ?>
-<center>
-<div id='entries_div'></div>
-<br><?php include 'ctdbbox.php';?>
-<br><div id='musicbrainz_div'></div>
+<div style="margin:auto; width:1210px;">
+<div id='entries_div' style='margin: 0 0 1em 0;'></div>
+<?php include 'ctdbbox.php';?>
+<div id='musicbrainz_div'></div>
 <?php if ($isadmin) { ?><br><div id='submissions_div'></div><br><div id='admin_div'></div><?php } ?>
-</center>
+</div>
 </body>
 </html>
