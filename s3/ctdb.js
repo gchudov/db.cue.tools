@@ -1,3 +1,5 @@
+/* CTDB */
+
 function str_pad(num, len, pad_string, pad_type)
 {
   var str_pad_repeater = function (s, len) {
@@ -106,7 +108,7 @@ function ctdbEntryData(json)
     data.setFormattedValue(row, 1, title.substring(0,60));
     var toc = data.getValue(row, 2);
     data.setFormattedValue(row, 2, '<a href="?tocid=' + toc + '">' + toc + '</a>');
-    data.setFormattedValue(row, 4, '<a href="show.php?id=' + data.getValue(row, 4).toString(10) + '">' + decimalToHexString(data.getValue(row, 6)) + '</a>');
+    data.setFormattedValue(row, 4, '<a href="/cd/' + data.getValue(row, 4).toString(10) + '">' + decimalToHexString(data.getValue(row, 6)) + '</a>');
     data.setProperty(row, 0, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
     data.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-nowrap');
     data.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
@@ -127,12 +129,13 @@ function ctdbMetaData(json)
     mbdata.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
     mbdata.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
     mbdata.setProperty(row, 6, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
+    var title = $('<div/>').text(mbdata.getValue(row, 2)).html();
     if (mbdata.getValue(row, 9) == 'musicbrainz')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
     if (mbdata.getValue(row, 9) == 'discogs')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
     if (mbdata.getValue(row, 9) == 'freedb')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + mbdata.getValue(row, 2) + '</a></div>');
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
     if (mbdata.getValue(row, 4) != null) {
     var flags = new Array('us','gb','xe');
     var flagno = flags.indexOf(mbdata.getValue(row, 4).toLowerCase());
@@ -195,7 +198,7 @@ function ctdbSubmissionData(json)
     data.setFormattedValue(row, 7, '<a href="?tocid=' + toc + '">' + toc.substring(0,7) + '</a>');
     data.setProperty(row, 8, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setProperty(row, 9, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    data.setFormattedValue(row, 9, '<a href="show.php?id=' + data.getValue(row, 9).toString(10) + '">' + decimalToHexString(data.getValue(row, 11)) + '</a>');
+    data.setFormattedValue(row, 9, '<a href="/cd/' + data.getValue(row, 9).toString(10) + '">' + decimalToHexString(data.getValue(row, 11)) + '</a>');
     data.setProperty(row, 10, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setProperty(row, 13, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
     data.setProperty(row, 14, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');

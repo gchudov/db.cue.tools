@@ -91,9 +91,11 @@ $json_tracks_table = array('cols' => array(
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
+    <!--script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.min.js?id=<?php echo $ctdbcfg_s3_id?>"></script-->
     <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
+    <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
       function drawTable() {
@@ -110,27 +112,27 @@ $json_tracks_table = array('cols' => array(
         }
         table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
 
-        var mbdiv = document.getElementById('releases_div');
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", '/lookup2.php?type=json&ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>', true);
-        mbdiv.innerHTML += '<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>';
-        xmlhttp.onreadystatechange=function() {
-          if (xmlhttp.readyState != 4 || xmlhttp.status == 0) return;
-          if (xmlhttp.status != 200) {
-            mbdiv.innerHTML = xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText;
-            xmlhttp = null;
+        Shadowbox.init();
+        var mbdiv = $('#releases_div');
+        mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
+        $.ajax({
+          url: "http://db.cuetools.net/lookup2.php?ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>&jsonp=?",
+          cache: true,
+          dataType: "jsonp",
+          jsonpCallback: "jQuery17108581121710594743_1333124620119",
+          error: function() {
+            mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
+          },
+          success: function(json) {
+          if (json == null) {
+            mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
             return;
           }
-          if (xmlhttp.responseText == 'null') {
-            mbdiv.innerHTML = '<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>';
-            xmlhttp = null;
-            return;
-          }
-          var mbdata = ctdbMetaData(xmlhttp.responseText);
+          var mbdata = ctdbMetaData(json);
           xmlhttp = null;
           var mbview = new google.visualization.DataView(mbdata);
           mbview.hideColumns([8,9,11,12,13]);
-          var mbtable = new google.visualization.Table(mbdiv);
+          var mbtable = new google.visualization.Table(mbdiv[0]);
           mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 10, sort: 'disable', showRowNumber: false});
           var imglist1 = new Array();
           var vidlist1 = new Array();
@@ -165,9 +167,8 @@ $json_tracks_table = array('cols' => array(
               document.getElementById('set_title').value = mbdata.getValue(srow,2) + (mbdata.getValue(srow,3) != '' ? ' (disc ' + mbdata.getValue(srow,3) + ')' : '');
             }
           });
-        }
-        Shadowbox.init();
-        xmlhttp.send(null);
+          }
+        });
       }
     </script>
 <?php
