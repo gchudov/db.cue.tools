@@ -147,18 +147,22 @@ function drawTable()
       return;
     }
     var srow = table.getSelection()[0].row;
+    var toc_s = data.getValue(srow, 7);
+    var toc_id = data.getValue(srow, 4);
     mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
     mbdiv.show();
     $.ajax({
       url: "http://db.cuetools.net/lookup2.php?ctdb=0&metadata=<?php echo @$_GET['metadata']=='extensive' ? 'extensive' : 'default'; ?>&fuzzy=1&jsonp=?",
       cache: true,
-      data: {toc : data.getValue(srow, 7)},
+      data: {toc : toc_s},
       dataType: "jsonp",
-      jsonpCallback: "ctdbajax",
+      jsonpCallback: "ctdbajax" + toc_id,
       error: function() {
         mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
       },
       success: function(json) {
+        if (table.getSelection().length == 0 || toc_id != data.getValue(table.getSelection()[0].row, 4))
+          return;
         if (json == null) {
           mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
           return;
@@ -172,6 +176,33 @@ function drawTable()
     });
   }
 
+  google.visualization.events.addListener(table, 'page', function(e) {
+    var xmlhttp = new XMLHttpRequest();
+    var shift = <?php echo $count?> * e['page'];
+    xmlhttp.open("GET", '?json=1&start=' + (start + shift) + '<?php echo $url?>', false); // true
+    xmlhttp.send(null);
+    if (xmlhttp.readyState != 4) {
+      alert('error ' + xmlhttp.readyState);
+      return;
+    }
+    if (xmlhttp.status != 200) {
+      alert(xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText);
+      return;
+    }
+    table.setSelection();
+    resetMetadata();
+    data = ctdbEntryData(xmlhttp.responseText);
+    start += shift;
+    prev = start != 0;
+    next = data.getNumberOfRows() >= <?php echo $count?>;
+    opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
+    var view = new google.visualization.DataView(data);
+    view.hideColumns([6,7,8]);
+    table.draw(view, opts);
+    mbdiv.hide();
+    if (sbdiv != null) sbdiv.innerHTML = '';
+  });
+ 
   if (mbdiv.length) {
     google.visualization.events.addListener(table, 'select', resetMetadata); 
     google.visualization.events.addListener(mbtable, 'select', resetCoverart);
