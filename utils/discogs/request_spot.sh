@@ -65,7 +65,7 @@ DEBUG=$DEBUG
 export HOME=/root
 cd /media/ephemeral0
 yum -y install epel-release
-yum -y install php-cli php-xml php-pgsql postgresql-server postgresql-contrib s3cmd mercurial augeas fuse s3fuse
+yum -y install php-cli php-xml php-pgsql postgresql8-server postgresql8-contrib s3cmd mercurial augeas fuse s3fuse
 #yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
 service postgresql initdb
@@ -89,7 +89,8 @@ EOF
 )"
 if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
-ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t c1.medium --user-data "$UDATA"
+#ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t c1.medium --user-data "$UDATA"
+ec2rsi -region us-east-1 ami-f565ba9c -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t m1.medium --user-data "$UDATA"
 else
 cat <<EOF
 $UDATA
