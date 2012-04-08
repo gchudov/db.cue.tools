@@ -64,10 +64,10 @@ $CPFILES#files end
 DEBUG=$DEBUG
 export HOME=/root
 cd /media/ephemeral0
-yum -y install epel-release
-yum -y install php-cli php-xml php-pgsql postgresql8-server postgresql8-contrib s3cmd mercurial augeas fuse s3fuse
+yum -y install postgresql8-server postgresql8-contrib
+yum -y --enablerepo=epel install php-cli php-xml php-pgsql s3cmd mercurial augeas fuse s3fuse
 #yum -y upgrade
-sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
+sed -i 's/memory_limit = [0-9]*M/memory_limit = 3000M/g' /etc/php.ini
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
 service postgresql start

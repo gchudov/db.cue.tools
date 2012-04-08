@@ -232,7 +232,7 @@ function drawTable()
         }
         var sbdata = ctdbSubmissionData(xmlhttp.responseText);
         xmlhttp = null;
-        var sbopts = {allowHtml: true, width: 800, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 5};
+        var sbopts = {allowHtml: true, width: 1200, sort: 'disable', showRowNumber: false, page: 'enable', pageSize: 5};
         var sbview = new google.visualization.DataView(sbdata);
         sbview.hideColumns([5,6,7,8,11,12]);
         sbtable.draw(sbview, sbopts);
