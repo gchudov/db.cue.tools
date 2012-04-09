@@ -37,30 +37,6 @@ function drawTable()
   trdata.addColumn('string', 'CRC');
 
   opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
-  google.visualization.events.addListener(table, 'page', function(e) {
-    var xmlhttp = new XMLHttpRequest();
-    var shift = <?php echo $count?> * e['page'];
-    xmlhttp.open("GET", '?json=1&start=' + (start + shift) + '<?php echo $url?>', false); // true
-    xmlhttp.send(null);
-    if (xmlhttp.readyState != 4) {
-      alert('error ' + xmlhttp.readyState);
-      return;
-    }
-    if (xmlhttp.status != 200) {
-      alert(xmlhttp.responseText != '' ? xmlhttp.responseText : xmlhttp.statusText);
-      return;
-    }
-    data = ctdbEntryData(xmlhttp.responseText);
-    start += shift;
-    prev = start != 0;
-    next = data.getNumberOfRows() >= <?php echo $count?>;
-    opts['pagingButtonsConfiguration'] = prev && next ? 'both' : prev ? 'prev' : next ? 'next' : 'none';
-    var view = new google.visualization.DataView(data);
-    view.hideColumns([6,7,8]);
-    table.draw(view, opts);
-    mbdiv.hide();
-    if (sbdiv != null) sbdiv.innerHTML = '';
-  });
   var ctdbbox_div = $('#ctdbbox_div');
 
   function resetCoverart() {

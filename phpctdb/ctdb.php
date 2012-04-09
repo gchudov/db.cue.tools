@@ -87,8 +87,8 @@ class phpCTDB{
             array('v' => $mbr['id']),
             array('v' => $mbr['source']),
             array('v' => $mbr['relevance']),
-            array('v' => $mbr['coverart']),
-            array('v' => $mbr['videos']),
+            array('v' => @$mbr['coverart']),
+            array('v' => @$mbr['videos']),
             array('v' => $mbr['tracklist']),
             ));
     }
