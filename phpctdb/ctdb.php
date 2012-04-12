@@ -407,6 +407,7 @@ class phpCTDB{
 		    '  r.country, ' . 
 		    '  r.released, ' .
 		    '  r.artist_credit, ' .
+		    '  r.notes, ' .
 		    '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
 		    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
 		    'FROM release r ' .
@@ -425,6 +426,7 @@ class phpCTDB{
                     '  r.country, ' .
                     '  r.released, ' .
                     '  r.artist_credit, ' .
+                    '  r.notes, ' .
                     '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
                     '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
 		    'FROM toc t ' .
@@ -546,7 +548,7 @@ class phpCTDB{
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => ($r['year'] != null ? $r['year'] : substr($r['released'],0,4)),
 		    'genre' => null, //$r['genre'],
-		    'extra' => null, //$r['extra'],
+		    'extra' => $r['notes'],
 		    'tracklist' => $tracklist,
 		    'label' => $label,
 		    'discnumber' => $r['disc'],
