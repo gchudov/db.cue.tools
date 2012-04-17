@@ -165,9 +165,16 @@ else if ($type == 'xml')
   else
     $ctdbdata = array('entry' => $xmlentry, 'musicbrainz' => $xmlmbmeta);
   $options = array(
-    XML_SERIALIZER_OPTION_INDENT        => '  ',
+    XML_SERIALIZER_OPTION_INDENT        => ' ',
     XML_SERIALIZER_OPTION_RETURN_RESULT => true,
-    XML_SERIALIZER_OPTION_SCALAR_AS_ATTRIBUTES => true,
+    XML_SERIALIZER_OPTION_SCALAR_AS_ATTRIBUTES => $ctdbversion == 2 ?
+      array(
+        "entry" => array("id", "crc32", "confidence", "npar", "stride", "hasparity", "parity", "syndrome", "trackcrcs", "toc"),
+        "metadata" => array("source", "id", "artist", "album", "year", "releasedate", "country", "discnumber", "disccount", "infourl", "barcode", "discogs_id", "genre", "relevance"),
+        "track" => array("name", "artist"),
+        "label" => array("name", "catno"),
+        "coverart" => array("uri", "uri150", "width", "height", "primary"),
+      ) : true,
     XML_SERIALIZER_OPTION_MODE          => XML_SERIALIZER_MODE_SIMPLEXML,
     XML_SERIALIZER_OPTION_IGNORE_NULL   => true,
     XML_SERIALIZER_OPTION_ROOT_NAME     => 'ctdb',
