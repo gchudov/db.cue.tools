@@ -328,7 +328,7 @@ void output()
     char* t_title[100];
     int va = -1;
     int num = -1;
-    char buf_offsets[100*7];
+    char buf_offsets[100*8];
     int i_offsets = 0;
 
     for (i = 0; i < c_title; i++)
