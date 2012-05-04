@@ -184,6 +184,8 @@ function parseCredits($artists)
       'tracks' => escapeNode($art->tracks));
     $artist_name .= ($art->anv != '' ? $art->anv : $art->name) . ($art->join != '' ? ' ' . $art->join . ' ' : '');
   }
+  $artist_name_id = parseArtistName($artist_name);
+  if ($artist_name_id == "\\N") return "\\N";
   global $seqid_credit;
   global $known_credits;
   $key = '';
@@ -194,7 +196,7 @@ function parseCredits($artists)
   $artist_credit = $seqid_credit++;
   printInsert('artist_credit', array(
     'id' => $artist_credit,
-    'name' => parseArtistName($artist_name),
+    'name' => $artist_name_id,
     'count' => count($ac)));
   foreach($ac as $acn) {
     $acn['artist_credit'] = $artist_credit;
