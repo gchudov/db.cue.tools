@@ -79,7 +79,8 @@ do
 done
 hg clone https://code.google.com/p/cuetools-database/
 s3cmd --no-progress get s3://private.cuetools.net/$discogs_rel - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
-./cuetools-database/utils/discogs/create_db.sh
+./cuetools-database/utils/discogs/create_db.sh > ./discogs.log 2>&1
+s3cmd --no-progress --rr put discogs.log s3://private.cuetools.net/discogs/`date +%Y%m01`/
 s3cmd --no-progress --rr put discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
 if [ -z "\$DEBUG" ]; then
   shutdown -h now
