@@ -59,7 +59,7 @@ function ctdbVideos(vidlist, vis)
     if (vidfoundlen > vis)
       html += ' </a></span>';
     else
-      html += '<img src="http://i.ytimg.com/vi/' + yid + '/default.jpg"></a>';
+      html += '<img src="http://i.ytimg.com/vi/' + yid + '/default.jpg" class="coverart-thumbnail"></a>';
   }
   return html;
 }
@@ -89,8 +89,12 @@ function ctdbCoverart(imglist,primary,vis)
     html += '<a class="thumbnail" href="' + img + '" rel="shadowbox[covers];player=img' + sz + '">';
     if (imgfoundlen > vis)
       html += ' </a></span>';
-    else
-      html += '<img src="' + imglist[iimg].uri150 + '"></a>';
+    else {
+      var source = null;
+      if (img.indexOf('http://api.discogs.com/') != -1) source = 'discogs';
+      if (img.indexOf('http://coverartarchive.org/') != -1) source = 'musicbrainz';
+      html += '<img src="' + imglist[iimg].uri150 + '" class="coverart-thumbnail">' + (source == null ? '' : '<span class="coverart-source"><img src="http://s3.cuetools.net/icons/' + source + '.png" width=16 height=16 border=0 alt="' + source + '"></span>') + '</a>';
+    }
   }
   }
   return html;
