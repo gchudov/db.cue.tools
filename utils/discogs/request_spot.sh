@@ -18,6 +18,10 @@ RERUN=
 DEBUG=
 PRINT=
 PRICE=0.20
+IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
+export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
+export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
+
 while getopts “hrdnp:” OPTION
 do
      case $OPTION in
@@ -48,7 +52,7 @@ discogs_rel=discogs_`date +%Y%m01`_releases.xml.gz
 if [ -z "$RERUN" ]; then
   echo "Downloading $discogs_rel"
   user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
-  wget -q -U "$user_agent" -O "/tmp/$discogs_rel" "http://www.discogs.com/data/$discogs_rel" || exit $?
+  wget -nv -U "$user_agent" -O "/tmp/$discogs_rel" "http://www.discogs.com/data/$discogs_rel" || exit $?
   s3cmd --no-progress --rr put "/tmp/$discogs_rel" s3://private.cuetools.net/
   rm "/tmp/$discogs_rel"
 fi
@@ -90,8 +94,8 @@ EOF
 )"
 if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
-#ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t c1.medium --user-data "$UDATA"
-ec2rsi -region us-east-1 ami-f565ba9c -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t m1.medium --user-data "$UDATA"
+source /etc/profile.d/aws-apitools-common.sh
+$EC2_HOME/bin/ec2-request-spot-instances -region "us-east-1" ami-f565ba9c --group "sg-b81154d1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m1.medium --user-data "$UDATA"
 else
 cat <<EOF
 $UDATA

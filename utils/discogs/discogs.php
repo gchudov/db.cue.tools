@@ -4,6 +4,9 @@ function parseDuration($dur)
   if ($dur == null || $dur == "") return "\\N";
   if (!preg_match( "/([0-9]*)[:'\.]([0-9]+)/", $dur, $match))
     return "\\N";
+  if ($match[1] >= 2147483647 || $match[1] < -2147483648 ||
+      $match[2] >= 2147483647 || $match[2] < -2147483648)
+    return "\\N";
 //    die("Invalid duration $dur");
   return ($match[1] == '' ? $match[2] : $match[1] * 60 + $match[2]);
 }
@@ -294,9 +297,9 @@ function parseRelease($rel)
       foreach ($fmt->descriptions->children() as $des)
         $known_descriptions[(string)$des] = true;
     printInsert('releases_formats', array(
-      'release_id' => $rel['id'],
+      'release_id' => $rel['id'] + 0,
       'format_name' => escapeNode($fmt['name']),
-      'qty' => $fmt['qty'],
+      'qty' => $fmt['qty'] + 0,
       'descriptions' => escapeNodes($fmt->descriptions, 'description_t')));
   }
   if ($iscd && end(array_keys($toc)) == count($toc))
