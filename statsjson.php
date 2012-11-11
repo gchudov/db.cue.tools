@@ -25,13 +25,16 @@ $json_entries = false;
 $stattype = $_GET['type'];
 if ($stattype == 'totals')
 {
-  $result = pg_query($dbconn, "SELECT val+(SELECT count(DISTINCT tocid) FROM submissions2 WHERE id > maxid) AS val FROM stats_totals WHERE kind='unique_tocs'") or die('Query failed: ' . pg_last_error());
+  $result = pg_query($dbconn, "SELECT val, maxid FROM stats_totals WHERE kind='unique_tocs'") or die('Query failed: ' . pg_last_error());
   $rec = pg_fetch_all($result);
+  pg_free_result($result);
+  $result = pg_query_params($dbconn, "SELECT count(DISTINCT tocid) as val FROM submissions2 WHERE id > $1", array($rec[0]['maxid'])) or die('Query failed: ' . pg_last_error());
+  $rec2 = pg_fetch_all($result);
   pg_free_result($result);
   $result = pg_query($dbconn, "SELECT val+(SELECT count(*) FROM submissions WHERE subid > maxid) AS val FROM stats_totals WHERE kind='submissions'") or die('Query failed: ' . pg_last_error());
   $rec1 = pg_fetch_all($result);
   pg_free_result($result);
-  $json_entries_table = array('unique_tocs' => $rec[0]['val'], 'submissions' => $rec1[0]['val']);
+  $json_entries_table = array('unique_tocs' => $rec[0]['val'] + $rec2[0]['val'], 'submissions' => (int)$rec1[0]['val']);
 }
 else if ($stattype == 'drives')
   $json_entries_table = simpleQuery($dbconn, "SELECT * FROM stats_drives ORDER BY cnt DESC LIMIT 100");

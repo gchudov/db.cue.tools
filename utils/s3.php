@@ -11,8 +11,8 @@ $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
 $s3 = new AmazonS3();
 $s3->set_region(AmazonS3::REGION_US_E1);
-//$s3->enable_path_style();
-$s3->disable_ssl();
+$s3->enable_path_style();
+//$s3->disable_ssl();
 //$s3->adjust_offset(60*60);
 while (true)
 {
