@@ -120,7 +120,7 @@ if ($confirmid)
   $oldrecord = pg_fetch_array($result)
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   pg_free_result($result);
-  $oldsyn = @$oldrecord['syndrome'] ? stripcslashes($oldrecord['syndrome']) : null;
+  $oldsyn = phpCTDB::bytea_to_string(@$oldrecord['syndrome']);
   if ($oldrecord['hasparity'] != 't') $needparfile = true;
   if ($oldrecord['track_crcs'] == null) $needparfile = true;
   if ($version > 1 && $oldrecord['syndrome'] == null) $needparfile = true;

@@ -31,7 +31,7 @@ class phpCTDB{
       if ($record['track_crcs'] != null) {
         $track_crcs = null;
         phpCTDB::pg_array_parse($record['track_crcs'], $track_crcs);
-        foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
+        foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc&0xffffffff);
         $track_crcs_s = implode(' ', $track_crcs);
       }
       $json_entries[] = array('c' => array(
@@ -59,6 +59,13 @@ class phpCTDB{
           ), 'rows' => $json_entries);
 
     return json_encode($json_entries_table);
+  }
+
+  static function bytea_to_string($str)
+  {
+      if ($str == null) return null;     
+      if ($str[0] == '\\' && $str[1]=='x') return pack("H*",substr($str,2));
+      return stripcslashes($str);
   }
 
   static function musicbrainz2json($mbmeta)
@@ -274,7 +281,7 @@ class phpCTDB{
 		  $result = pg_query_params($freedbconn,
 		    'SELECT e.id, e.freedbid, e.category, e.year, e.title, e.extra, an.name as artist, gn.name as genre ' . 
 		    'FROM entries e LEFT OUTER JOIN artist_names an ON an.id = e.artist LEFT OUTER JOIN genre_names gn ON gn.id = e.genre ' .
-                    'WHERE array_to_string(offsets,\',\') = $1;', array(substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75))); 
+                    'WHERE offsets = $1;', array('{' . substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75) . '}')); 
 		else
                   $result = pg_query_params($freedbconn,
 		    'SELECT e.id, e.freedbid, e.category, e.year, e.title, e.extra, an.name as artist, gn.name as genre ' . 
@@ -309,7 +316,7 @@ class phpCTDB{
 		  }
 		  $res[] = array(
 		    'source' => 'freedb',
-		    'id' => sprintf('%s/%08x', $r['category'], $r['freedbid']),
+		    'id' => sprintf('%s/%08x', $r['category'], $r['freedbid']&0xffffffff),
 		    'artistname' => $r['artist'],
 		    'albumname' => $r['title'],
 		    'first_release_date_year' => $r['year'],
@@ -614,7 +621,7 @@ class phpCTDB{
             global $ctdbcfg_musicbrainz_db;
 	    $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
 	    if (!$mbconn) return array();
-            $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
+            $result = pg_query($mbconn, 'SET search_path TO musicbrainz,public');
             pg_free_result($result);
           }
 	  if ($fuzzy) {
@@ -626,12 +633,12 @@ class phpCTDB{
 //	    die('{' . implode(',', $dur) . '}');
 	    $mbresult = pg_query_params($mbconn,
 	      'SELECT ' .
-	      'cube_distance(ti.toc, create_cube_from_durations($1)) AS distance, ' . 
+	      'cube_distance(ti.toc::cube, create_cube_from_durations($1)) AS distance, ' . 
               'm.id as id ' .
 	      'FROM tracklist_index ti ' . 
 	      'JOIN tracklist t ON t.id = ti.tracklist ' . 
 	      'JOIN medium m ON m.tracklist = ti.tracklist ' . 
-	      'WHERE ti.toc <@ create_bounding_cube($1, 3000) ' . 
+	      'WHERE ti.toc::cube <@ create_bounding_cube($1, 3000) ' . 
 	      'AND t.track_count = array_upper($1, 1) ' . 
 	      'AND (m.format = 1 OR m.format IS NULL) ' .
 	      'LIMIT 30', array('{' . implode(',', $dur) . '}'));
@@ -658,7 +665,7 @@ class phpCTDB{
           global $ctdbcfg_musicbrainz_db;
 	  $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
 	  if (!$mbconn) return array();
-          $result = pg_query($mbconn, 'SET search_path TO musicbrainz');
+          $result = pg_query($mbconn, 'SET search_path TO musicbrainz,public');
           pg_free_result($result);
           $mediumids = array();
           foreach($ids as $id)

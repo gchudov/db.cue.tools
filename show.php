@@ -56,7 +56,7 @@ $mbid = phpCTDB::tocs2mbid($toc);
 $ids = explode(' ', $record['trackoffsets']);
 $crcs = null;
 if ($record['track_crcs'] != null) phpCTDB::pg_array_parse($record['track_crcs'], $crcs);
-foreach($crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
+foreach($crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc&0xffffffff);
 
 $json_tracks = false;
 for ($tr = 0; $tr < count($ids) - 1; $tr++)
