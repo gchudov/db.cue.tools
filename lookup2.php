@@ -99,7 +99,7 @@ else if ($type == 'xml')
   foreach($records as &$record)
   {
     $parityurl = null;
-    if ($record['syndrome'] != null) $record['syndrome'] = stripcslashes($record['syndrome']);
+    $record['syndrome'] = phpCTDB::bytea_to_string($record['syndrome']);
     if ($record['hasparity'] == 't') {
       if ($record['syndrome'] != null && $ctdbversion == 1)
         $parityurl = $record['s3'] == 't' ? "/tov1.php?id=" . $record['id'] : null;
@@ -112,12 +112,12 @@ else if ($type == 'xml')
     if ($record['track_crcs'] != null && $ctdbversion > 1) {
       $track_crcs = null;
       phpCTDB::pg_array_parse($record['track_crcs'], $track_crcs);
-      foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc);
+      foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc & 0xffffffff);
       $track_crcs_s = implode(' ', $track_crcs);
     }
     $xmlentry[] = array(
       'id' => $record['id'],
-      'crc32' => sprintf("%08x", $record['crc32']),
+      'crc32' => sprintf("%08x", $record['crc32'] & 0xffffffff),
       'confidence' => $ctdbversion == 1 ? $record['confidence'] : $record['subcount'], 
       'npar' => $record['syndrome'] == null || $ctdbversion == 1 ? 8 : strlen($record['syndrome'])/2, 
       'stride' => 5880,

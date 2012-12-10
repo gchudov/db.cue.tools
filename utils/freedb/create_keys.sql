@@ -25,6 +25,6 @@ CREATE INDEX tracks_id ON tracks(id);
 
 CREATE UNIQUE INDEX entries_freedbid_category ON entries(freedbid, category);
 
-CREATE INDEX entries_offsets_hash_index ON entries USING HASH (array_to_string(offsets,','));
+CREATE INDEX entries_offsets_hash_index ON entries USING HASH (offsets);
 
 CREATE INDEX entries_offsets_gist_index ON entries USING GIST (create_cube_from_toc(offsets));

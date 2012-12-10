@@ -57,7 +57,7 @@ printf("%s COMMIT %d files, %d bytes in %d secs (%dKB/s)\n", gmdate("M j G:i:s")
 pg_query("COMMIT");
 foreach ($records as $record)
 {
-  $filename = sprintf("%s%08x", str_replace('.', '+', $record['tocid']), $record['crc32']);
+  $filename = sprintf("%s%08x", str_replace('.', '+', $record['tocid']), $record['crc32']&0xffffffff);
   $localname = '/var/www/ctdbweb/parity/' . $record['id'];
   unlink($localname);
 }

@@ -128,7 +128,7 @@ function drawTable()
     mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
     mbdiv.show();
     $.ajax({
-      url: "http://db.cuetools.net/lookup2.php?ctdb=0&metadata=<?php echo @$_GET['metadata']=='extensive' ? 'extensive' : 'default'; ?>&fuzzy=1&jsonp=?",
+      url: "/lookup2.php?ctdb=0&metadata=<?php echo @$_GET['metadata']=='extensive' ? 'extensive' : 'default'; ?>&fuzzy=1&jsonp=?",
       cache: true,
       data: {toc : toc_s},
       dataType: "jsonp",

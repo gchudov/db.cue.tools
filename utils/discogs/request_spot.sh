@@ -19,8 +19,8 @@ DEBUG=
 PRINT=
 PRICE=0.20
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
-export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
-export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
+#export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
+#export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
 
 while getopts “hrdnp:” OPTION
 do
@@ -95,7 +95,7 @@ EOF
 if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
 source /etc/profile.d/aws-apitools-common.sh
-$EC2_HOME/bin/ec2-request-spot-instances -region "us-east-1" ami-f565ba9c --group "sg-b81154d1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m1.medium --user-data "$UDATA"
+$EC2_HOME/bin/ec2-request-spot-instances -region "us-east-1" ami-f565ba9c --group "quick-start-1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m1.medium --user-data "$UDATA"
 else
 cat <<EOF
 $UDATA

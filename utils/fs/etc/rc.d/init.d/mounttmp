@@ -1,0 +1,29 @@
+#! /bin/bash
+#
+# network       Remount /tmp on ephemeral storage
+#
+# chkconfig: 2345 1 99
+# description: Remounts /tmp on ephemeral storage.
+#
+### BEGIN INIT INFO
+# Short-Description: Mount /tmp  
+# Description: Mount /tmp
+### END INIT INFO
+
+. /etc/init.d/functions
+
+case "$1" in
+  start)
+        [ "$EUID" != "0" ] && exit 4
+        mount /tmp
+        chmod 1777 /tmp
+        ;;
+  stop)
+        [ "$EUID" != "0" ] && exit 4
+        umount /tmp
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop}"
+        exit 2
+esac
+
