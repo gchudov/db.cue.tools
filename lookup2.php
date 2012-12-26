@@ -3,25 +3,29 @@ require_once 'phpctdb/ctdb.php';
 require_once 'XML/Serializer.php';
 
 $toc_s = $_GET['toc'] or die('Invalid arguments');
-$dombz = $dombzfuzzy = $dofreedb = $dofreedbfuzzy = $dodiscogs = $dodiscogsfuzzy = 0;
+$dombz = $dombzfuzzy = $dombzraw = $dofreedb = $dofreedbfuzzy = $dodiscogs = $dodiscogsfuzzy = 0;
 if(isset($_GET['metadata']))
 {
   if ($_GET['metadata'] == 'fast') {
     $dombz = $dodiscogs = 1;
-    $dofreedb = 2;
+#    $dombzraw = 2;
+    $dofreedb = 3;
   }
   if ($_GET['metadata'] == 'default') {
     $dombz = $dodiscogs = 1;
     $dombzfuzzy = $dodiscogsfuzzy = $dofreedb = 2;
-    $dofreedbfuzzy = 3;
+#    $dombzraw = 3;
+    $dofreedbfuzzy = 4;
   }
   if ($_GET['metadata'] == 'extensive') {
     $dombz = $dodiscogs = $dombzfuzzy = $dodiscogsfuzzy = $dofreedbfuzzy = 1;
+#    $dombzraw = 1;
   }
 }
 if (isset($_GET['musicbrainz'])) $dombz = $_GET['musicbrainz'];
 if ($dombz == 1 && $dombzfuzzy == 0) $dombzfuzzy = 2;
 if (isset($_GET['musicbrainzfuzzy'])) $dombzfuzzy = $_GET['musicbrainzfuzzy'];
+if (isset($_GET['musicbrainzraw'])) $dombzraw = $_GET['musicbrainzraw'];
 if (isset($_GET['freedb'])) $dofreedb = $_GET['freedb'];
 if (isset($_GET['freedbfuzzy'])) $dofreedbfuzzy = $_GET['freedbfuzzy'];
 if (isset($_GET['discogs'])) $dodiscogs = $_GET['discogs'];
@@ -54,12 +58,15 @@ if ($records && $fuzzy)
 
 $mbmetas = array();
 $ids_musicbrainz = array();
+$ids_musicbrainz_raw = array();
 for ($priority=1; $priority <= 7; $priority++)
 {
   if ($dombz == $priority)
     $ids_musicbrainz = array_merge($ids_musicbrainz, phpCTDB::mbzlookupids($tocs, false)); 
   if ($dombzfuzzy == $priority)
     $ids_musicbrainz = array_merge($ids_musicbrainz, phpCTDB::mbzlookupids($tocs, true)); 
+  if ($dombzraw == $priority)
+    $ids_musicbrainz_raw = array_merge($ids_musicbrainz_raw, phpCTDB::mbzrawlookupids($tocs, false)); 
   if ($dodiscogsfuzzy == $priority)
     $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(null, $toc_s));
   if ($dofreedbfuzzy == $priority)
@@ -70,6 +77,8 @@ for ($priority=1; $priority <= 7; $priority++)
 }
 if ($ids_musicbrainz) 
   $mbmetas = array_merge($mbmetas, phpCTDB::mbzlookup($ids_musicbrainz)); 
+if ($ids_musicbrainz_raw) 
+  $mbmetas = array_merge($mbmetas, phpCTDB::mbzrawlookup($ids_musicbrainz_raw));
 if ($dodiscogs != 0)
   $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas)));
 usort($mbmetas, 'phpCTDB::metadataOrder');

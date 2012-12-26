@@ -575,7 +575,7 @@ class phpCTDB{
 
 	static function metadataOrder($a, $b)
 	{
-	  $sourceOrder = array('musicbrainz' => 0, 'discogs' => 1, 'freedb' => 2);
+	  $sourceOrder = array('musicbrainz' => 0, 'discogs' => 1, 'cdstub' => 2, 'freedb' => 3);
 	  if ($a['source'] != $b['source'])
 	    return $sourceOrder[$a['source']] - $sourceOrder[$b['source']];
 	  $aRel = $a['relevance'] ?: 101;
@@ -614,6 +614,99 @@ class phpCTDB{
 	  return $ids;
 	}
 */
+	static function mbzrawlookupids($tocs, $fuzzy = false, $mbconn = null)
+	{
+	  if (!$tocs) return array();
+          if (!$mbconn) {
+            global $ctdbcfg_musicbrainz_db;
+	    $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
+	    if (!$mbconn) return array();
+            $result = pg_query($mbconn, 'SET search_path TO musicbrainz,public');
+            pg_free_result($result);
+          }
+	  {
+	    $ids = explode(':', $tocs[0]);
+            $offsets = '';
+	    for ($tr = 0; $tr < count($ids) - 1; $tr++) {
+		$offsets .= ',' . (abs($ids[$tr]) + 150);
+	    }
+	    $mbresult = pg_query_params($mbconn,'
+	      SELECT DISTINCT
+	      c.release AS id
+              FROM cdtoc_raw c
+              WHERE c.track_offset = $1
+              AND c.leadout_offset = $2
+              AND c.track_count = $3;',
+                array('{' . substr($offsets,1) . '}', abs($ids[count($ids) - 1]) + 150, count($ids) - 1));
+	  }
+	  $mbmeta = pg_fetch_all($mbresult);
+	  pg_free_result($mbresult);
+	  return $mbmeta ? $mbmeta : array();
+        }
+
+	static function mbzrawlookup($ids)
+	{
+	  if (!$ids) return array();
+          global $ctdbcfg_musicbrainz_db;
+	  $mbconn = pg_connect($ctdbcfg_musicbrainz_db);
+	  if (!$mbconn) return array();
+          $result = pg_query($mbconn, 'SET search_path TO musicbrainz,public');
+          pg_free_result($result);
+//          return $ids;
+          $mediumids = array();
+          foreach($ids as $id)
+	    $mediumids[] = $id['id'];
+	  $mediumids = array_unique($mediumids);
+          $result = pg_query_params($mbconn,'
+	    SELECT r.id, r.title as albumname, r.artist as artistname, r.barcode
+	    FROM release_raw r
+	    WHERE r.id IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids); 
+	  $meta = pg_fetch_all($result);
+	  pg_free_result($result);
+	  if (!$meta) return array();
+//          return $meta;
+	  $res = array();
+	  foreach($meta as &$r)
+	  {
+		  $result = pg_query_params($mbconn,'
+		    SELECT t.sequence as number, t.title, t.artist
+		    FROM track_raw t
+		    WHERE t.release = $1;', array($r['id']));
+		  $tmeta = pg_fetch_all($result);
+		  pg_free_result($result);
+		  $tracklist = null;
+		  if ($tmeta) {
+		    for ($i = 0; $i < count($ids) - 1; $i++)
+		      $tracklist[] = array('name' => null, 'artist' => null, 'extra' => null);
+		    foreach ($tmeta as $t) {
+		      $i = $t['number'] - 1;
+		      $tracklist[$i]['name'] = $t['title'];
+		      $tracklist[$i]['artist'] = $t['artist'];
+		    }
+		  }
+		  $res[] = array(
+		    'source' => 'cdstub',
+		    'id' => $r['id'],
+		    'artistname' => $r['artistname'],
+		    'albumname' => $r['albumname'],
+		    'first_release_date_year' => null,//$r['year'],
+		    'genre' => null,//$r['genre'],
+		    'extra' => null,//$r['extra'],
+		    'tracklist' => $tracklist,
+		    'discnumber' => null,
+		    'totaldiscs' => null,
+		    'discname' => null,
+		    'barcode' => null,
+		    'coverarturl' => null,
+		    'info_url' => null,
+		    'releasedate' => null,
+		    'country' => null,
+		    'relevance' => (isset($r['distance']) ? (int)(exp(-$r['distance']/450)*100) : null),
+		  );
+		}
+	  return $res;
+        }
+	
 	static function mbzlookupids($tocs, $fuzzy = false, $mbconn = null)
 	{
 	  if (!$tocs) return array();
@@ -796,6 +889,7 @@ class phpCTDB{
 
                   $coverart = array();
                   $caids = array();
+                  if ($coverartarchive)
                   foreach($coverartarchive as &$caa)
                     if ($caa['mediumid'] == $r['mediumid'] && !isset($caids[$caa['id']])) {
                       $coverart[] = array(
