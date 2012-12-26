@@ -680,7 +680,6 @@ class phpCTDB{
 //            '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
             'rca.cover_art_url as coverarturl, ' .
             'rm.info_url, ' .
-            'rm.cover_art_presence, ' .
             'r.gid as id, ' .
             'r.artist_credit, ' .
 //            'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
@@ -761,6 +760,15 @@ class phpCTDB{
 		  $tltl[$tr] = $tl;
 		}
 
+	    $mbresult = pg_query_params($mbconn,'
+            SELECT m.id as mediumid, ca.ordering, ca.id, cat.type_id
+            FROM musicbrainz.medium m 
+            INNER JOIN cover_art_archive.cover_art ca ON m.release=ca.release
+            JOIN cover_art_archive.cover_art_type cat ON ca.id=cat.id
+            WHERE m.id IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids);
+		$coverartarchive = pg_fetch_all($mbresult);
+		pg_free_result($mbresult);
+
 		foreach($mbmeta as &$r) {
 		  $rel = 0;
 		  foreach($ids as $id)
@@ -787,13 +795,18 @@ class phpCTDB{
 		  $r['label'] = $labelcat;
 
                   $coverart = array();
-                  if ($r['cover_art_presence'] == 'present') {
-                    $coverart[] = array(
-                      'primary' => true,
-                      'uri' => sprintf('http://coverartarchive.org/release/%s/front', $r['id']),
-                      'uri150' => sprintf('http://coverartarchive.org/release/%s/front-250', $r['id']));
-                  }
-                  elseif (!isset($r['coverarturl']) || $r['coverarturl'] == '')
+                  $caids = array();
+                  foreach($coverartarchive as &$caa)
+                    if ($caa['mediumid'] == $r['mediumid'] && !isset($caids[$caa['id']])) {
+                      $coverart[] = array(
+                        'primary' => $caa['type_id'] == 1 ? 1 : 0,
+                        'uri' => sprintf('http://coverartarchive.org/release/%s/%d.jpg', $r['id'], $caa['id']),
+                        'uri150' => sprintf('http://coverartarchive.org/release/%s/%d-250.jpg', $r['id'], $caa['id']));
+//                        'uri150' => sprintf('http://s3.us.archive.org/mbid-%s/mbid-%s-%d_thumb250.jpg', $r['id'], $r['id'], $caa['id']));
+                      $caids[$caa['id']] = true;
+                    }
+                  if (!count($coverart))
+                  if (!isset($r['coverarturl']) || $r['coverarturl'] == '')
                   if (isset($r['info_url']) && $r['info_url'] != '')
                   if (0 < preg_match("/(http\:\/\/www\.amazon\.)([^\/]*)\/gp\/product\/(.*)/", $r['info_url'], $match))
                   {
