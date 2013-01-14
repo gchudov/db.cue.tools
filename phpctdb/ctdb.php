@@ -217,11 +217,11 @@ class phpCTDB{
 	  for ($i = 0; $i < count($ids); $i++)
 	    if ($ids[$i][0] == '-')
 	      $ids[$i] = substr($ids[$i], 1);
-	  $toc = false;
-	  $toc['firstaudio'] = $firstaudio;
-	  $toc['audiotracks'] = $audiotracks;
-	  $toc['trackcount'] = $trackcount;
-	  $toc['trackoffsets'] = implode(' ', $ids);
+	  $toc = array(
+	    'firstaudio' => $firstaudio,
+	    'audiotracks' => $audiotracks,
+	    'trackcount' => $trackcount,
+	    'trackoffsets' => implode(' ', $ids));
 	  return $toc;
 	}
 
@@ -632,7 +632,7 @@ class phpCTDB{
 	    }
 	    $mbresult = pg_query_params($mbconn,'
 	      SELECT DISTINCT
-	      c.release AS id
+	      c.discid AS id
               FROM cdtoc_raw c
               WHERE c.track_offset = $1
               AND c.leadout_offset = $2
@@ -652,26 +652,25 @@ class phpCTDB{
 	  if (!$mbconn) return array();
           $result = pg_query($mbconn, 'SET search_path TO musicbrainz,public');
           pg_free_result($result);
-//          return $ids;
           $mediumids = array();
           foreach($ids as $id)
 	    $mediumids[] = $id['id'];
 	  $mediumids = array_unique($mediumids);
           $result = pg_query_params($mbconn,'
-	    SELECT r.id, r.title as albumname, r.artist as artistname, r.barcode
-	    FROM release_raw r
-	    WHERE r.id IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids); 
+	    SELECT c.discid, r.id, r.title as albumname, r.artist as artistname, r.barcode, r.comment
+	    FROM cdtoc_raw c
+	    INNER JOIN release_raw r ON c.release = r.id
+	    WHERE c.discid IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids); 
 	  $meta = pg_fetch_all($result);
 	  pg_free_result($result);
 	  if (!$meta) return array();
-//          return $meta;
 	  $res = array();
 	  foreach($meta as &$r)
 	  {
 		  $result = pg_query_params($mbconn,'
 		    SELECT t.sequence as number, t.title, t.artist
 		    FROM track_raw t
-		    WHERE t.release = $1;', array($r['id']));
+		    WHERE t.release = $1 ORDER BY t.sequence;', array($r['id']));
 		  $tmeta = pg_fetch_all($result);
 		  pg_free_result($result);
 		  $tracklist = null;
@@ -680,30 +679,31 @@ class phpCTDB{
 		      $tracklist[] = array('name' => null, 'artist' => null, 'extra' => null);
 		    foreach ($tmeta as $t) {
 		      $i = $t['number'] - 1;
-		      $tracklist[$i]['name'] = $t['title'];
-		      $tracklist[$i]['artist'] = $t['artist'];
+		      $tracklist[$i]['name'] = $t['title'] == '' ? null : $t['title'];
+		      $tracklist[$i]['artist'] = $t['artist'] == '' ? null : $t['artist'];
 		    }
 		  }
+//                  die(print_r($tracklist));
 		  $res[] = array(
 		    'source' => 'cdstub',
-		    'id' => $r['id'],
-		    'artistname' => $r['artistname'],
+		    'id' => $r['discid'],
+		    'artistname' => $r['artistname'] == null ? "Various Artists" : $r['artistname'],
 		    'albumname' => $r['albumname'],
-		    'first_release_date_year' => null,//$r['year'],
-		    'genre' => null,//$r['genre'],
-		    'extra' => null,//$r['extra'],
+		    'first_release_date_year' => null,
+		    'genre' => null,
+		    'extra' => $r['comment'] == '' ? null : $r['comment'],
 		    'tracklist' => $tracklist,
 		    'discnumber' => null,
 		    'totaldiscs' => null,
 		    'discname' => null,
-		    'barcode' => null,
+		    'barcode' => $r['barcode'],
 		    'coverarturl' => null,
 		    'info_url' => null,
 		    'releasedate' => null,
 		    'country' => null,
 		    'relevance' => (isset($r['distance']) ? (int)(exp(-$r['distance']/450)*100) : null),
 		  );
-		}
+	  }
 	  return $res;
         }
 	
@@ -839,13 +839,13 @@ class phpCTDB{
 		  $artistcredits);
 		$artistcredits = pg_fetch_all($mbresult);
 		pg_free_result($mbresult);
-		$artistcreditstonames = false;
+		$artistcreditstonames = null;
 		foreach($artistcredits as $cr)
 		  $artistcreditstonames[$cr['artist_credit']] = $cr['artistname'];
 
-		$tltl = false;
+		$tltl = null;
 		foreach($tracklists as $tr) {
-		  $tl = false;
+		  $tl = null;
 		  $tlnames = $trackliststonames[$tr];
 		  $tlart = $trackliststocredits[$tr];
 		  for ($trno = 0; $trno < count($tlnames); $trno++)
@@ -871,9 +871,9 @@ class phpCTDB{
 		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
 		  $r['tracklist'] = $tltl[$r['tracklistno']];
 		  $r['source'] = 'musicbrainz';
-		  $catno = false;
-		  $label = false;
-		  $labelcat = false;
+		  $catno = null;
+		  $label = null;
+		  $labelcat = null;
 		  if (@$r['catno']) {
 		    phpCTDB::pg_array_parse($r['catno'], $catno);
 		    phpCTDB::pg_array_parse($r['label'], $label);

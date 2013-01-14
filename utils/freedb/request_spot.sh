@@ -19,8 +19,8 @@ DEBUG=
 PRINT=
 PRICE=0.20
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
-export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
-export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
+#export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
+#export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
 
 while getopts “hrdnp:” OPTION
 do
