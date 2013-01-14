@@ -27,6 +27,7 @@ CREATE TYPE image_type_t AS ENUM (
 
 CREATE TYPE release_status_t AS ENUM (
     'Accepted',
+    'Rejected',
     'Deleted',
     'Draft'
 );

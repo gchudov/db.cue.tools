@@ -136,6 +136,8 @@ function ctdbMetaData(json)
     var title = $('<div/>').text(mbdata.getValue(row, 2)).html();
     if (mbdata.getValue(row, 9) == 'musicbrainz')
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
+    if (mbdata.getValue(row, 9) == 'cdstub')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-cdstub"><a target=_blank href="http://musicbrainz.org/cdstub/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
     if (mbdata.getValue(row, 9) == 'discogs')
       mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
     if (mbdata.getValue(row, 9) == 'freedb')

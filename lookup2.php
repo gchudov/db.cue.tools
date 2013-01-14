@@ -14,12 +14,12 @@ if(isset($_GET['metadata']))
   if ($_GET['metadata'] == 'default') {
     $dombz = $dodiscogs = 1;
     $dombzfuzzy = $dodiscogsfuzzy = $dofreedb = 2;
-#    $dombzraw = 3;
+    $dombzraw = 2;
     $dofreedbfuzzy = 4;
   }
   if ($_GET['metadata'] == 'extensive') {
     $dombz = $dodiscogs = $dombzfuzzy = $dodiscogsfuzzy = $dofreedbfuzzy = 1;
-#    $dombzraw = 1;
+    $dombzraw = 1;
   }
 }
 if (isset($_GET['musicbrainz'])) $dombz = $_GET['musicbrainz'];

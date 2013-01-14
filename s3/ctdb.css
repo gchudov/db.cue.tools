@@ -122,6 +122,11 @@ a.thumbnail:hover span.metadata-source {
     background: url("http://s3.cuetools.net/icons/musicbrainz.png") no-repeat scroll 0 0 transparent;
 }
 
+.ctdb-meta-cdstub {
+    padding: 0 0 0 18px;
+    background: url("http://s3.cuetools.net/icons/cdstub.png") no-repeat scroll 0 0 transparent;
+}
+
 .ctdb-meta-discogs {
     padding: 0 0 0 18px;
     background: url("http://s3.cuetools.net/icons/discogs.png") no-repeat scroll 0 0 transparent;
