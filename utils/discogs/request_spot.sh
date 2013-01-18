@@ -68,12 +68,13 @@ $CPFILES#files end
 DEBUG=$DEBUG
 export HOME=/root
 cd /media/ephemeral0
-yum -y install postgresql8-server postgresql8-contrib
+yum -y install postgresql9-server postgresql9-contrib
 yum -y --enablerepo=epel install php-cli php-xml php-pgsql s3cmd mercurial augeas fuse s3fuse
 #yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 3000M/g' /etc/php.ini
+sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
 service postgresql initdb
-sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
+sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 for s3confpath in /etc/s3fuse/*
 do
@@ -83,9 +84,8 @@ do
 done
 hg clone https://code.google.com/p/cuetools-database/
 s3cmd --no-progress get s3://private.cuetools.net/$discogs_rel - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
-./cuetools-database/utils/discogs/create_db.sh > ./discogs.log 2>&1
-s3cmd --no-progress --rr put discogs.log s3://private.cuetools.net/discogs/`date +%Y%m01`/
-s3cmd --no-progress --rr put discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
+./cuetools-database/utils/discogs/create_db.sh > /mnt/private.cuetools.net/discogs/`date +%Y%m01`/discogs.log 2>&1
+cp -f discogs.bin /mnt/private.cuetools.net/discogs/`date +%Y%m01`/
 if [ -z "\$DEBUG" ]; then
   shutdown -h now
 fi
