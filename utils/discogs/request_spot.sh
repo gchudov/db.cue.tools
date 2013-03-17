@@ -71,6 +71,7 @@ cd /media/ephemeral0
 yum -y install postgresql9-server postgresql9-contrib
 yum -y --enablerepo=epel install php-cli php-xml php-pgsql s3cmd mercurial augeas fuse s3fuse
 #yum -y upgrade
+chmod -x /etc/cron.daily/makewhatis.cron
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 3000M/g' /etc/php.ini
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
 service postgresql initdb
