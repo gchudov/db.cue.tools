@@ -74,7 +74,7 @@ yum -y --enablerepo=epel install php-cli php-xml php-pgsql s3cmd mercurial augea
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 3000M/g' /etc/php.ini
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
 service postgresql initdb
-sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
+sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 for s3confpath in /etc/s3fuse/*
 do
@@ -84,8 +84,10 @@ do
 done
 hg clone https://code.google.com/p/cuetools-database/
 s3cmd --no-progress get s3://private.cuetools.net/$discogs_rel - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
-./cuetools-database/utils/discogs/create_db.sh > /mnt/private.cuetools.net/discogs/`date +%Y%m01`/discogs.log 2>&1
-cp -f discogs.bin /mnt/private.cuetools.net/discogs/`date +%Y%m01`/
+outdir=/mnt/private.cuetools.net/discogs/`date +%Y%m01`/
+mkdir \$outdir/
+./cuetools-database/utils/discogs/create_db.sh > \$outdir/discogs.log 2>&1
+cp -f discogs.bin \$outdir/
 if [ -z "\$DEBUG" ]; then
   shutdown -h now
 fi
