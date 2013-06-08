@@ -90,6 +90,7 @@ mkdir \$outdir/
 ./cuetools-database/utils/discogs/create_db.sh > \$outdir/discogs.log 2>&1
 cp -f discogs.bin \$outdir/
 if [ -z "\$DEBUG" ]; then
+  umount /mnt/private.cuetools.net
   shutdown -h now
 fi
 
