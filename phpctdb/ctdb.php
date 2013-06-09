@@ -726,13 +726,12 @@ class phpCTDB{
 //	    die('{' . implode(',', $dur) . '}');
 	    $mbresult = pg_query_params($mbconn,
 	      'SELECT ' .
-	      'cube_distance(ti.toc::cube, create_cube_from_durations($1)) AS distance, ' . 
+	      'cube_distance(mi.toc::cube, create_cube_from_durations($1)) AS distance, ' . 
               'm.id as id ' .
-	      'FROM tracklist_index ti ' . 
-	      'JOIN tracklist t ON t.id = ti.tracklist ' . 
-	      'JOIN medium m ON m.tracklist = ti.tracklist ' . 
-	      'WHERE ti.toc::cube <@ create_bounding_cube($1, 3000) ' . 
-	      'AND t.track_count = array_upper($1, 1) ' . 
+	      'FROM medium_index mi ' . 
+	      'JOIN medium m ON m.id = mi.medium ' . 
+	      'WHERE mi.toc::cube <@ create_bounding_cube($1, 3000) ' . 
+	      'AND m.track_count = array_upper($1, 1) ' . 
 	      'AND (m.format = 1 OR m.format IS NULL) ' .
 	      'LIMIT 30', array('{' . implode(',', $dur) . '}'));
 	  } else {
@@ -768,8 +767,7 @@ class phpCTDB{
 	    'SELECT ' .
             'm.id AS mediumid, ' .
             'rgm.first_release_date_year, ' .
-            '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
-            'm.tracklist as tracklistno, ' .
+//            '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
 //            '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
             'rca.cover_art_url as coverarturl, ' .
             'rm.info_url, ' .
@@ -785,7 +783,7 @@ class phpCTDB{
             '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
             '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
 //            'r.date_year as year, ' .
-            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
+//            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
             'r.barcode ' .
 
 	    'FROM medium m ' . 
@@ -802,20 +800,15 @@ class phpCTDB{
 	  pg_free_result($mbresult);
 	  if (!$mbmeta) return array();
 
-		$tracklists = null;
 		$artistcredits = null;
-
-		foreach($mbmeta as $r)
-		  $tracklists[] = $r['tracklistno'];
-		$tracklists = array_unique($tracklists);
 		$trackliststonames = null;
 		$trackliststocredits = null;
-		foreach($tracklists as $tr) {
+		foreach($mediumids as $tr) {
                   $mbresult = pg_query_params('
                     SELECT t.artist_credit, tn.name 
                     FROM track t 
                     INNER JOIN track_name tn ON tn.id = t.name 
-                    WHERE t.tracklist = $1
+                    WHERE t.medium = $1
                     ORDER BY t.position', array($tr));
 		  $trartistcredits = pg_fetch_all_columns($mbresult, 0);
 		  $tracknames = pg_fetch_all_columns($mbresult, 1);
@@ -844,7 +837,7 @@ class phpCTDB{
 		  $artistcreditstonames[$cr['artist_credit']] = $cr['artistname'];
 
 		$tltl = null;
-		foreach($tracklists as $tr) {
+		foreach($mediumids as $tr) {
 		  $tl = null;
 		  $tlnames = $trackliststonames[$tr];
 		  $tlart = $trackliststocredits[$tr];
@@ -852,6 +845,19 @@ class phpCTDB{
 		    $tl[] = array('name' => $tlnames[$trno], 'artist' => $artistcreditstonames[$tlart[$trno]]);
 		  $tltl[$tr] = $tl;
 		}
+
+            $mbresult = pg_query_params($mbconn,'
+            SELECT m.id, ruc.date_year, ruc.date_month, ruc.date_day, NULL as country
+	    FROM medium m 
+            INNER JOIN release_unknown_country ruc ON m.release=ruc.release
+            WHERE m.id IN ' . phpCTDB::pg_array_indexes($mediumids) . '
+            UNION SELECT m.id, rc.date_year, rc.date_month, rc.date_day, iso.code AS country 
+            FROM medium m 
+            INNER JOIN release_country rc ON m.release=rc.release
+            INNER JOIN iso_3166_1 iso ON rc.country=iso.area 
+            WHERE m.id IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids); 
+	    $mbreleases = pg_fetch_all($mbresult);
+	    pg_free_result($mbresult);
 
 	    $mbresult = pg_query_params($mbconn,'
             SELECT m.id as mediumid, ca.ordering, ca.id, cat.type_id
@@ -869,7 +875,7 @@ class phpCTDB{
 		      $rel = max($rel, isset($id['distance']) ? (int)(exp(-$id['distance']/6000)*100) : 101);
 		  $r['relevance'] = $rel != 101 ? $rel : null;
 		  $r['artistname'] = $artistcreditstonames[$r['artist_credit']];
-		  $r['tracklist'] = $tltl[$r['tracklistno']];
+		  $r['tracklist'] = $tltl[$r['mediumid']];
 		  $r['source'] = 'musicbrainz';
 		  $catno = null;
 		  $label = null;
@@ -886,6 +892,16 @@ class phpCTDB{
 		      $labelcat[$i]['name'] = $label[$i];*/
       }
 		  $r['label'] = $labelcat;
+
+		  $r['country'] = null;
+		  $r['releasedate'] = null;
+		  if ($mbreleases)
+		  foreach($mbreleases as &$mbr)
+		  if ($mbr['id'] == $r['mediumid'])
+		  {
+		    $r['country'] = $mbr['country'];
+		    $r['releasedate'] = $mbr['date_year'] . ($mbr['date_month'] == '' ? '' : '-' . $mbr['date_month'] . ($mbr['date_day'] == '' ? '' : '-' . $mbr['date_day']));
+		  }
 
                   $coverart = array();
                   $caids = array();
