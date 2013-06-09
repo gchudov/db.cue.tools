@@ -18,6 +18,10 @@ function parseDiscno($pos, &$tr)
     $tr = (int)$match[2];
     return (int)$match[1]; 
   }
+  if (preg_match( "CD/^([0-9]+)[\-\.]([0-9]+)$/", $pos, $match)) {
+    $tr = (int)$match[2];
+    return (int)$match[1]; 
+  }
   if (preg_match( "/^[0-9]+$/", $pos, $match)) {
     $tr = (int)$match[0];
     return '1';
