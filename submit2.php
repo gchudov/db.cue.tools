@@ -18,7 +18,7 @@ $options = array(
 $serializer = new XML_Serializer($options);
 
 $version = isset($_POST['ctdb']) ? $_POST['ctdb'] : 1;
-if ($version == 2) header('Content-type: text/xml; charset=UTF-8');
+if ($version > 1) header('Content-type: text/xml; charset=UTF-8');
 
 function report_success($reason) {
   global $version, $serializer;
@@ -190,6 +190,9 @@ if ($record3['drivename'] != null) {
 
 if (!$parfile && $needparfile)
   parity_needed($neednpar);
+
+if ($ctdbcfg_readonly)
+  fatal_error('database in readonly state');
 
 if ($confirmid) {
   $record3['entryid'] =  $confirmid;
