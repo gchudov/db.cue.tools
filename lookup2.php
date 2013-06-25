@@ -112,7 +112,7 @@ else if ($type == 'xml')
     if ($record['hasparity'] == 't') {
       if ($record['syndrome'] != null && $ctdbversion == 1)
         $parityurl = $record['s3'] == 't' ? "/tov1.php?id=" . $record['id'] : null;
-      else if ($record['syndrome'] == null && $ctdbversion == 2)
+      else if ($record['syndrome'] == null && $ctdbversion > 1)
         $parityurl = $record['s3'] == 't' ? "/tov2.php?id=" . $record['id'] : null;
       else
         $parityurl = sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "/parity", $record['id']);
@@ -169,14 +169,14 @@ else if ($type == 'xml')
       'coverart' => @$mbmeta['coverart'], 
     );
   }
-  if ($ctdbversion == 2)
+  if ($ctdbversion > 1)
     $ctdbdata = array('entry' => $xmlentry, 'metadata' => $xmlmbmeta);
   else
     $ctdbdata = array('entry' => $xmlentry, 'musicbrainz' => $xmlmbmeta);
   $options = array(
     XML_SERIALIZER_OPTION_INDENT        => ' ',
     XML_SERIALIZER_OPTION_RETURN_RESULT => true,
-    XML_SERIALIZER_OPTION_SCALAR_AS_ATTRIBUTES => $ctdbversion == 2 ?
+    XML_SERIALIZER_OPTION_SCALAR_AS_ATTRIBUTES => $ctdbversion > 1 ?
       array(
         "entry" => array("id", "crc32", "confidence", "npar", "stride", "hasparity", "parity", "syndrome", "trackcrcs", "toc"),
         "metadata" => array("source", "id", "artist", "album", "year", "releasedate", "country", "discnumber", "disccount", "infourl", "barcode", "discogs_id", "genre", "relevance"),
