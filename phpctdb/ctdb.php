@@ -565,7 +565,7 @@ class phpCTDB{
 
         static function firstReleaseSorted($a)
         {
-            $best = 0;
+            $best = PHP_INT_MAX;
             if (isset($a['release']))
             foreach($a['release'] as $r)
             {
