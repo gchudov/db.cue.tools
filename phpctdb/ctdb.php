@@ -75,21 +75,14 @@ class phpCTDB{
     $json_releases = null;
     foreach ($mbmeta as $mbr)
     {
-      $label = '';
-      $labels_orig = @$mbr['label'];
-      if ($labels_orig)
-        foreach ($labels_orig as $l)
-          $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
-
       $json_releases[] = array(
           'c' => array(
             array('v' => $mbr['first_release_date_year'] == 0 ? null : (int)$mbr['first_release_date_year']),
             array('v' => $mbr['artistname']),
             array('v' => $mbr['albumname']),
             array('v' => ($mbr['totaldiscs'] ?: 1) != 1 || ($mbr['discnumber'] ?: 1) != 1 ? ($mbr['discnumber'] ?: '?') . '/' . ($mbr['totaldiscs'] ?: '?') . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
-            array('v' => $mbr['country']),
-            array('v' => $mbr['releasedate']),
-            array('v' => $label),
+            array('v' => $mbr['release']),
+            array('v' => $mbr['label']),
             array('v' => $mbr['barcode']),
             array('v' => $mbr['id']),
             array('v' => $mbr['source']),
@@ -101,13 +94,12 @@ class phpCTDB{
     }
     $json_releases_table = array(
         'cols' => array(
-          array('label' => 'Year', 'type' => 'number'),
+          array('label' => 'Date', 'type' => 'number'),
           array('label' => 'Artist', 'type' => 'string'),
           array('label' => 'Album', 'type' => 'string'),
           array('label' => 'Disc', 'type' => 'string'),
-          array('label' => 'C', 'type' => 'string'),
-          array('label' => 'Release', 'type' => 'string'),
-          array('label' => 'Label', 'type' => 'string'),
+          array('label' => 'Release', 'type' => 'object'),
+          array('label' => 'Label', 'type' => 'object'),
           array('label' => 'Barcode', 'type' => 'string'),
           array('label' => 'Id', 'type' => 'string'),
           array('label' => 'Source', 'type' => 'string'),
@@ -257,7 +249,7 @@ class phpCTDB{
 	      {
 	        preg_match( "/(\\{?\"([^\"\\\\]|\\\\.)*\"|[^,{}]+)+([,}]+)/", $text, $match, 0, $offset );
 	        $offset += strlen( $match[0] );
-	        $output[] = $match[1] == 'NULL' ? false : ( '"' != $match[1]{0} ? $match[1] : stripcslashes( substr( $match[1], 1, -1 ) ) );
+	        $output[] = $match[1] == 'NULL' ? null : ( '"' != $match[1]{0} ? $match[1] : stripcslashes( substr( $match[1], 1, -1 ) ) );
 	        if( '},' == $match[3] ) return $offset;
 	      }
 	      else  $offset = phpCTDB::pg_array_parse( $text, $output[], $limit, $offset+1 );
@@ -329,8 +321,7 @@ class phpCTDB{
 		    'barcode' => null,
 		    'coverarturl' => null,
 		    'info_url' => null,
-		    'releasedate' => null,
-		    'country' => null,
+		    'release' => null,
 		    'relevance' => (isset($r['distance']) ? (int)(exp(-$r['distance']/450)*100) : null),
 		  );
 		}
@@ -565,13 +556,24 @@ class phpCTDB{
 		    'coverart' => $rimages ? $rimages : null,
 		    'videos' => $rvideos ? $rvideos : null,
 		    'info_url' => null,
-		    'releasedate' => $r['released'],
-		    'country' => $country_iso,
+		    'release' => array(array('country' => $country_iso , 'date' => $r['released'])),
 		    'relevance' => @$r['relevance'],
 		  );
 		}
 		return $res;
 	}
+
+        static function firstReleaseSorted($a)
+        {
+            $best = 0;
+            if (isset($a['release']))
+            foreach($a['release'] as $r)
+            {
+                $temp = strtotime($r['date'] . substr('    -12-28', strlen($r['date'])));
+                if ($temp < $best) $best = $temp; 
+            }
+            return $temp;
+        }
 
 	static function metadataOrder($a, $b)
 	{
@@ -588,8 +590,9 @@ class phpCTDB{
 	  $bFR = isset($b['first_release_date_year']) ? $b['first_release_date_year'] : 9999;
 	  if ($aFR != $bFR)
 	    return $aFR - $bFR;
-	  $aRD = isset($a['releasedate']) ? strtotime(strpos($a['releasedate'],'-') ? $a['releasedate'] : $a['releasedate'] . '-01-01') : 0;
-	  $bRD = isset($b['releasedate']) ? strtotime(strpos($b['releasedate'],'-') ? $b['releasedate'] : $b['releasedate'] . '-01-01') : 0;
+          // FIXME: TODO
+	  $aRD = phpCTDB::firstReleaseSorted($a);
+	  $bRD = phpCTDB::firstReleaseSorted($b);
 	  if ($aRD != $bRD)
 	    return $aRD - $bRD;
 	  if ($a['id'] != $b['id'])
@@ -699,8 +702,7 @@ class phpCTDB{
 		    'barcode' => $r['barcode'],
 		    'coverarturl' => null,
 		    'info_url' => null,
-		    'releasedate' => null,
-		    'country' => null,
+		    'release' => null,
 		    'relevance' => (isset($r['distance']) ? (int)(exp(-$r['distance']/450)*100) : null),
 		  );
 	  }
@@ -767,7 +769,6 @@ class phpCTDB{
 	    'SELECT ' .
             'm.id AS mediumid, ' .
             'rgm.first_release_date_year, ' .
-//            '(select cn.iso_code FROM country cn WHERE cn.id = r.country) as country, ' .
 //            '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
             'rca.cover_art_url as coverarturl, ' .
             'rm.info_url, ' .
@@ -782,8 +783,6 @@ class phpCTDB{
             '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
             '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
             '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
-//            'r.date_year as year, ' .
-//            'text(r.date_year) || COALESCE(\'-\' || r.date_month || COALESCE(\'-\' || r.date_day, \'\'),\'\') as releasedate, ' .
             'r.barcode ' .
 
 	    'FROM medium m ' . 
@@ -893,15 +892,14 @@ class phpCTDB{
       }
 		  $r['label'] = $labelcat;
 
-		  $r['country'] = null;
-		  $r['releasedate'] = null;
+                  $mbreleases1 = array();
 		  if ($mbreleases)
 		  foreach($mbreleases as &$mbr)
-		  if ($mbr['id'] == $r['mediumid'])
-		  {
-		    $r['country'] = $mbr['country'];
-		    $r['releasedate'] = $mbr['date_year'] . ($mbr['date_month'] == '' ? '' : '-' . $mbr['date_month'] . ($mbr['date_day'] == '' ? '' : '-' . $mbr['date_day']));
-		  }
+		    if ($mbr['id'] == $r['mediumid'])
+                      $mbreleases1[] = array(
+		        'country' => $mbr['country'],
+		        'date' => $mbr['date_year'] . ($mbr['date_month'] == '' ? '' : '-' . str_pad($mbr['date_month'],2,'00',STR_PAD_LEFT) . ($mbr['date_day'] == '' ? '' : '-' . str_pad($mbr['date_day'],2,'00',STR_PAD_LEFT))));
+                  $r['release'] = $mbreleases1;
 
                   $coverart = array();
                   $caids = array();

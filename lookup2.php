@@ -152,8 +152,8 @@ else if ($type == 'xml')
       'artist' => $mbmeta['artistname'],
       'album' => $mbmeta['albumname'],
       'year' => $mbmeta['first_release_date_year'], 
-      'releasedate' => $mbmeta['releasedate'], 
-      'country' => $mbmeta['country'], 
+      'releasedate' => $ctdbversion > 2 ? null : $mbmeta['release'][0]['date'], 
+      'country' => $ctdbversion > 2 ? null : $mbmeta['release'][0]['country'], 
       'discnumber' => $mbmeta['discnumber'], 
       'disccount' => $mbmeta['totaldiscs'], 
       'discname' => $mbmeta['discname'], 
@@ -166,6 +166,7 @@ else if ($type == 'xml')
       'relevance' => $mbmeta['relevance'],
       'track' => $tracks,
       'label' => @$mbmeta['label'],
+      'release' => $ctdbversion <= 2 ? null : @$mbmeta['release'], 
       'coverart' => @$mbmeta['coverart'], 
     );
   }
@@ -182,6 +183,7 @@ else if ($type == 'xml')
         "metadata" => array("source", "id", "artist", "album", "year", "releasedate", "country", "discnumber", "disccount", "infourl", "barcode", "discogs_id", "genre", "relevance"),
         "track" => array("name", "artist"),
         "label" => array("name", "catno"),
+        "release" => array("country", "date"),
         "coverart" => array("uri", "uri150", "width", "height", "primary"),
       ) : true,
     XML_SERIALIZER_OPTION_MODE          => XML_SERIALIZER_MODE_SIMPLEXML,

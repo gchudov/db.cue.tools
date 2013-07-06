@@ -131,34 +131,57 @@ function ctdbMetaData(json)
     mbdata.setProperty(row, 1, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
     mbdata.setProperty(row, 2, 'className', 'google-visualization-table-td google-visualization-table-td-nowrap');
     mbdata.setProperty(row, 3, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
+    mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
     mbdata.setProperty(row, 5, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
-    mbdata.setProperty(row, 6, 'className', 'google-visualization-table-td google-visualization-table-td-ctdb');
     var title = $('<div/>').text(mbdata.getValue(row, 2)).html();
-    if (mbdata.getValue(row, 9) == 'musicbrainz')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
-    if (mbdata.getValue(row, 9) == 'cdstub')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-cdstub"><a target=_blank href="http://musicbrainz.org/cdstub/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
-    if (mbdata.getValue(row, 9) == 'discogs')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
-    if (mbdata.getValue(row, 9) == 'freedb')
-      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 8) + '">' + title + '</a></div>');
-    if (mbdata.getValue(row, 4) != null) {
-    var flags = new Array('us','gb','xe');
-    var flagno = flags.indexOf(mbdata.getValue(row, 4).toLowerCase());
-    if (flagno < 0)
-    mbdata.setFormattedValue(row, 4, '<div style="padding: 0; width: 16px; height: 11px; background: url(&quot;http://s3.cuetools.net/flags/' + mbdata.getValue(row, 4).toLowerCase() + '.png&quot;) no-repeat scroll 0 0 transparent">');
-    else
-    mbdata.setFormattedValue(row, 4, '<div style="padding: 0; width: 16px; height: 11px; background: url(&quot;http://s3.cuetools.net/flags/flags.png?id=2&quot;) no-repeat scroll 0 -' + flagno * 11 + 'px transparent">');
+    if (mbdata.getValue(row, 8) == 'musicbrainz')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-musicbrainz"><a target=_blank href="http://musicbrainz.org/release/' + mbdata.getValue(row, 7) + '">' + title + '</a></div>');
+    if (mbdata.getValue(row, 8) == 'cdstub')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-cdstub"><a target=_blank href="http://musicbrainz.org/cdstub/' + mbdata.getValue(row, 7) + '">' + title + '</a></div>');
+    if (mbdata.getValue(row, 8) == 'discogs')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-discogs"><a target=_blank href="http://www.discogs.com/release/' + mbdata.getValue(row, 7) + '">' + title + '</a></div>');
+    if (mbdata.getValue(row, 8) == 'freedb')
+      mbdata.setFormattedValue(row, 2, '<div class="ctdb-meta-freedb"><a target=_blank href="http://www.freedb.org/freedb/' + mbdata.getValue(row, 7) + '">' + title + '</a></div>');
+//          $label = $label . ($label != '' ? ', ' : '') . $l['name'] . (@$l['catno'] ? ' ' . $l['catno'] : '');
+    var releases = mbdata.getValue(row, 4);
+    if (releases != null) {
+      var v = '';
+      var datefound = false;
+      for (var r in releases) {
+        if (!datefound && releases[r].date != null) { 
+//          v = releases[r].date + ' ' + v;
+          var y = mbdata.getValue(row, 0).toString();
+          if (releases[r].date.substring(0, y.length) == y)
+            mbdata.setFormattedValue(row, 0, releases[r].date);
+          else
+            mbdata.setFormattedValue(row, 0, '(' + y + ') ' + releases[r].date);
+          datefound = true;
+        }
+        var flags = new Array('us','gb','xe');
+        var country = releases[r].country != null ? releases[r].country.toLowerCase() : 'unknown';
+        var flagno = flags.indexOf(country);
+        if (flagno < 0)
+          v = v + '<div title="' + country + ": " + releases[r].date + '" style="padding: 0; width: 20px; display: inline-block; height: 11px; background: url(&quot;http://s3.cuetools.net/flags/' + country + '.png&quot;) no-repeat scroll 0 0 transparent"></div>';
+        else
+          v = v + '<div title="' + country + ": " + releases[r].date + '" style="padding: 0; width: 20px; display: inline-block; height: 11px; background: url(&quot;http://s3.cuetools.net/flags/flags.png?id=2&quot;) no-repeat scroll 0 -' + flagno * 11 + 'px transparent"></div>';
+      }
+      mbdata.setFormattedValue(row, 4, v);
     }
-    mbdata.setProperty(row, 4, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    mbdata.setFormattedValue(row, 6, mbdata.getValue(row, 6).substring(0, 30));
-    mbdata.setProperty(row, 7, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    mbdata.setProperty(row, 10, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
-    if (mbdata.getValue(row,10) != null) {
-      var diff = 100 - mbdata.getValue(row,10);
+    var labels = mbdata.getValue(row, 5);
+    if (labels != null) {
+      var v = '';
+      for (var r in labels) {
+          v = v + (v != '' ? ', ' : '') + labels[r].name + (labels[r].catno != null ? ' ' + labels[r].catno : '');
+      }
+      mbdata.setFormattedValue(row, 5, v.substring(0, 30));
+    }
+    mbdata.setProperty(row, 6, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    mbdata.setProperty(row, 9, 'className', 'google-visualization-table-td google-visualization-table-td-consolas');
+    if (mbdata.getValue(row,9) != null) {
+      var diff = 100 - mbdata.getValue(row,9);
       color = (255 - diff).toString(16).toUpperCase() + (255 - Math.floor(diff*0.7)).toString(16).toUpperCase() + "FF";
-      mbdata.setProperty(row, 10, 'style', 'background-color:#' + color + ';');
-    //mbdata.setFormattedValue(row, 10, '<span style="background-color:#' + color + ';">' + mbdata.getValue(row,10) + '</span>');
+      mbdata.setProperty(row, 9, 'style', 'background-color:#' + color + ';');
+    //mbdata.setFormattedValue(row, 9, '<span style="background-color:#' + color + ';">' + mbdata.getValue(row,9) + '</span>');
     }
   }
   return mbdata;
