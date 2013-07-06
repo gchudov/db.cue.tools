@@ -572,7 +572,7 @@ class phpCTDB{
                 $temp = strtotime($r['date'] . substr('    -12-28', strlen($r['date'])));
                 if ($temp < $best) $best = $temp; 
             }
-            return $temp;
+            return $best;
         }
 
 	static function metadataOrder($a, $b)
