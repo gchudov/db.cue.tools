@@ -4,6 +4,7 @@ mb_internal_encoding("UTF-8");
 
 $bucket = 'p.cuetools.net';
 
+#require 'AWSSDKforPHP/aws.phar';
 require_once 'AWSSDKforPHP/sdk.class.php';
 require_once '/var/www/ctdbweb/phpctdb/ctdb.php';
 
