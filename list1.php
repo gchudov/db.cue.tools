@@ -62,7 +62,7 @@ function drawTable()
     $('#ctdbbox_div_crc').text(decimalToHexString(crc));
     $('#ctdbbox_div_cnf').text(cnf);
     $('#ctdbbox_div_tid').text(data.getValue(srow, 2));
-    $('#ctdbbox_div_tid').attr('href', '/lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=' + toc_s);
+    $('#ctdbbox_div_tid').attr('href', '/lookup2.php?version=3&ctdb=1&metadata=extensive&fuzzy=1&toc=' + toc_s);
     $('#ctdbbox_div_fdb').text(tocs2cddbid(toc_s));
     $('#ctdbbox_div_ari').text(tocs2arid(toc_s));
     <?php if (isset($where_id)) { ?>
@@ -71,7 +71,7 @@ function drawTable()
     if (trdiv != null) {
       trdata.removeRows(0, trdata.getNumberOfRows());
       trdata.addRows(ntracks);
-      var tracklist = mbdata.getNumberOfRows() > tracklist_row ? mbdata.getValue(tracklist_row,13) : new Array();
+      var tracklist = mbdata.getNumberOfRows() > tracklist_row ? mbdata.getValue(tracklist_row,12) : new Array();
       var trmod = 0;
       for(var tr=0; tr < trdata.getNumberOfRows(); tr++) {
         var trstart = 150 + Math.abs(Number(toc[tr]));
@@ -99,14 +99,14 @@ function drawTable()
     var imglist1 = new Array();
     var vidlist1 = new Array();
     for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
-      var imglist2 = mbdata.getValue(row, 11);
+      var imglist2 = mbdata.getValue(row, 10);
       if (imglist2 != null) imglist1 = imglist1.concat(imglist2);
-      var vidlist2 = mbdata.getValue(row, 12);
+      var vidlist2 = mbdata.getValue(row, 11);
       if (vidlist2 != null) vidlist1 = vidlist1.concat(vidlist2);
     }
-    var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
+    var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,10) : imglist1;
     $("#coverart").html(ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4));
-    var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
+    var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : vidlist1;
     $("#videos").html(ctdbVideos(vidlist, 3));
     Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
     ctdbbox_div.show();
@@ -145,7 +145,7 @@ function drawTable()
         }
         mbdata = ctdbMetaData(json);
         var mbview = new google.visualization.DataView(mbdata);
-        mbview.hideColumns([8,9,11,12,13]); 
+        mbview.hideColumns([7,8,10,11,12]); 
         mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: <?php echo isset($where_id) ? 10 : 5; ?>, sort: 'disable', showRowNumber: false});
         resetCoverart();
       }
