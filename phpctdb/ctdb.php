@@ -315,6 +315,7 @@ class phpCTDB{
 		    'genre' => $r['genre'],
 		    'extra' => $r['extra'],
 		    'tracklist' => $tracklist,
+		    'label' => null,
 		    'discnumber' => null,
 		    'totaldiscs' => null,
 		    'discname' => null,
