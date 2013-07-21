@@ -48,6 +48,22 @@ google.setOnLoadCallback(updateTotals());
 <a class="ctdbmenu08" href="http://www.cuetools.net/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a>
 <a id="ctdbmenu09" href="http://www.cuetools.net/wiki/CUETools" target="_blank">CUETools</a>
 </div>
+<div align=right>
+<script>
+CoinWidgetCom.go({
+	wallet_address: "13Mc25BEy8H9EuiqXYiRq1n9RzdVhHrfhc"
+	, currency: "bitcoin"
+	, counter: "count"
+	, alignment: "br"
+	, qrcode: true
+	, auto_show: false
+	, lbl_button: "Donate"
+	, lbl_address: "CUETools Bitcoin Address:"
+	, lbl_count: "donations"
+	, lbl_amount: "BTC"
+});
+</script>
+</div>
 <div id="ctdbtitle"><?php echo $ctdb_page_title;?></div>
 </div>
 <br clear=all>
