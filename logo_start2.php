@@ -58,7 +58,7 @@ CoinWidgetCom.go({
 	, qrcode: true
 	, auto_show: false
 	, lbl_button: "Donate"
-	, lbl_address: "CUETools Bitcoin Address:"
+	, lbl_address: "You can donate bitcoins to help cover hosting expenses:"
 	, lbl_count: "donations"
 	, lbl_amount: "BTC"
 });
