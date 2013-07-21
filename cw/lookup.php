@@ -32,17 +32,26 @@ THE SOFTWARE.
 
 */
 
-	header("Content-type: text/javascript");
-	/*
-		you should server side cache this response, especially if your site is active
-	*/
+	function finish($body, $maxage)
+	{
+		$etag = md5($body);
+		header("Content-type: text/javascript");
+		header("Cache-Control: max-age=" . $maxage);
+		header("ETag:  " . $etag);
+		if (@$_SERVER['HTTP_IF_NONE_MATCH'] == $etag) {
+		  header($_SERVER["SERVER_PROTOCOL"]." 304 Not Modified");
+		  exit;
+		}
+		die($body);
+	}
+
+	$maxage = 600;
+	$apc_id = md5(getlastmod() + $_SERVER['REQUEST_URI']);
+	if (apc_exists($apc_id))
+		finish(apc_fetch($apc_id), $maxage);
+
 	$data = isset($_GET['data'])?$_GET['data']:'';
 	if (!empty($data)) {
-		$apc_id = md5($_SERVER['REQUEST_URI']);
-		if (apc_exists($apc_id)) {
-			$responses = apc_fetch($apc_id);
-		} else
-		{
 		$data = explode("|", $data);
 		$responses = array();
 		if (!empty($data)) {
@@ -59,9 +68,9 @@ THE SOFTWARE.
 				$responses[$instance] = $response;
 			}
 		}
-		apc_store($apc_id, $responses, 3600);
-		}
-		echo 'var COINWIDGETCOM_DATA = '.json_encode($responses).';';
+		$body = 'var COINWIDGETCOM_DATA = ' . json_encode($responses) . ';';
+		apc_store($apc_id, $body, $maxage);
+		finish($body, $maxage);
 	}
 
 	function get_bitcoin($address) {
