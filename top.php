@@ -23,7 +23,7 @@ if ($where_artist != '')
 }
 if ($term == ' WHERE ')
 {
-	$query = $query . $term . "subcount>=5";
+	$query = $query . $term . "subcount>=50";
 	$term = ' AND ';
 }
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
