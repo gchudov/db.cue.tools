@@ -776,19 +776,18 @@ class phpCTDB{
             'r.gid as id, ' .
             'r.artist_credit, ' .
 //            'array_to_string((select array_agg(an.name || COALESCE(acn.join_phrase,\'\')) FROM artist_credit_name acn INNER JOIN artist_name an ON an.id = acn.name WHERE acn.artist_credit = r.artist_credit), \'\') as artistname, ' .
-            'rn.name as albumname, ' .
+            'r.name as albumname, ' .
 //            'rg.gid as group_id, ' .
             'm.position as discnumber, ' .
             'm.name as discname, ' .
             '(select count(*) from medium where release = r.id) as totaldiscs, ' .
             '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
             '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
-            '(select array_agg(ln.name) from release_label rl inner join label l ON l.id = rl.label inner join label_name ln ON ln.id = l.name where rl.release = r.id) as label, ' .
+            '(select array_agg(l.name) from release_label rl inner join label l ON l.id = rl.label where rl.release = r.id) as label, ' .
             'r.barcode ' .
 
 	    'FROM medium m ' . 
             'INNER JOIN release r on r.id = m.release ' .
-            'INNER JOIN release_name rn on rn.id = r.name ' .
 //            'INNER JOIN release_group rg on rg.id = r.release_group ' .
 //            'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
             'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
@@ -805,9 +804,8 @@ class phpCTDB{
 		$trackliststocredits = null;
 		foreach($mediumids as $tr) {
                   $mbresult = pg_query_params('
-                    SELECT t.artist_credit, tn.name 
+                    SELECT t.artist_credit, t.name 
                     FROM track t 
-                    INNER JOIN track_name tn ON tn.id = t.name 
                     WHERE t.medium = $1
                     ORDER BY t.position', array($tr));
 		  $trartistcredits = pg_fetch_all_columns($mbresult, 0);
@@ -825,9 +823,8 @@ class phpCTDB{
 		$mbresult = pg_query_params($mbconn,
 		  'SELECT ' .
 		  'ac.id as artist_credit, ' .
-		  'an.name as artistname ' .
+		  'ac.name as artistname ' .
 		  'FROM artist_credit ac ' .
-		  'INNER JOIN artist_name an ON an.id = ac.name ' .
 		  'WHERE ac.id IN ' . phpCTDB::pg_array_indexes($artistcredits),
 		  $artistcredits);
 		$artistcredits = pg_fetch_all($mbresult);
