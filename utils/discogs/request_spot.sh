@@ -57,7 +57,7 @@ if [ -z "$RERUN" ]; then
   rm "/tmp/$discogs_rel"
 fi
 CPFILES=
-for cpfile in /root/.s3cfg /etc/s3fuse/.??* /etc/s3fuse/* /etc/yum.repos.d/cuetools.repo
+for cpfile in /etc/s3fuse/.??* /etc/s3fuse/* /etc/yum.repos.d/cuetools.repo
 do
   CPFILES=$CPFILES"mkdir -p $(dirname $cpfile); echo $(egrep -v '(^#|^$)' $cpfile | gzip | base64 -w 0) | base64 -d | gunzip > $cpfile; chmod $(stat -c '%a' $cpfile) $cpfile"$'\n'
 done
@@ -69,10 +69,10 @@ DEBUG=$DEBUG
 export HOME=/root
 cd /media/ephemeral0
 yum -y install postgresql9-server postgresql9-contrib
-yum -y --enablerepo=epel install php-cli php-xml php-pgsql s3cmd mercurial augeas fuse s3fuse
+yum -y --enablerepo=epel install php-cli php-xml php-pgsql mercurial augeas fuse s3fuse aws-cli
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
-sed -i 's/memory_limit = [0-9]*M/memory_limit = 3000M/g' /etc/php.ini
+sed -i 's/memory_limit = [0-9]*M/memory_limit = 3500M/g' /etc/php.ini
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
@@ -84,11 +84,12 @@ do
   mkdir /mnt/\$s3conf; mount /mnt/\$s3conf
 done
 hg clone https://code.google.com/p/cuetools-database/
-s3cmd --no-progress get s3://private.cuetools.net/$discogs_rel - | ./cuetools-database/utils/discogs/run_discogs_converter.sh
+aws s3 cp s3://private.cuetools.net/$discogs_rel ./discogs.xml.gz
+./cuetools-database/utils/discogs/run_discogs_converter.sh < ./discogs.xml.gz
 outdir=/mnt/private.cuetools.net/discogs/`date +%Y%m01`/
 mkdir \$outdir/
 ./cuetools-database/utils/discogs/create_db.sh > \$outdir/discogs.log 2>&1
-cp -f discogs.bin \$outdir/
+aws s3 cp discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
 if [ -z "\$DEBUG" ]; then
   umount /mnt/private.cuetools.net
   shutdown -h now
