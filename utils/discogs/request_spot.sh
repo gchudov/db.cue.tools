@@ -19,6 +19,7 @@ DEBUG=
 PRINT=
 PRICE=0.20
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
+AMIID=ami-92852cfa #amzn-ami-hvm-2014.09.0.x86_64-s3
 #export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
 #export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
 
@@ -72,8 +73,9 @@ yum -y install postgresql9-server postgresql9-contrib
 yum -y --enablerepo=epel install php-cli php-xml php-pgsql mercurial augeas fuse s3fuse aws-cli
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
-sed -i 's/memory_limit = [0-9]*M/memory_limit = 3500M/g' /etc/php.ini
+sed -i 's/memory_limit = [0-9]*M/memory_limit = 5500M/g' /etc/php.ini
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
+sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/sysconfig/pgsql/postgresql
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
@@ -100,7 +102,7 @@ EOF
 if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
 source /etc/profile.d/aws-apitools-common.sh
-$EC2_HOME/bin/ec2-request-spot-instances -region "us-east-1" ami-f565ba9c --group "quick-start-1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m1.medium --user-data "$UDATA"
+$EC2_HOME/bin/ec2-request-spot-instances $AMIID --group "quick-start-1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m3.large --user-data "$UDATA"
 else
 cat <<EOF
 $UDATA
