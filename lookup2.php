@@ -187,6 +187,8 @@ else if ($type == 'xml')
         "coverart" => array("uri", "uri150", "width", "height", "primary"),
       ) : true,
     XML_SERIALIZER_OPTION_MODE          => XML_SERIALIZER_MODE_SIMPLEXML,
+    XML_SERIALIZER_OPTION_ENTITIES      => XML_SERIALIZER_ENTITIES_NONE,
+#    XML_SERIALIZER_OPTION_ENTITIES      => XML_SERIALIZER_ENTITIES_XML,
     XML_SERIALIZER_OPTION_IGNORE_NULL   => true,
     XML_SERIALIZER_OPTION_ROOT_NAME     => 'ctdb',
     XML_SERIALIZER_OPTION_ROOT_ATTRIBS  => array('xmlns'=>"http://db.cuetools.net/ns/mmd-1.0#", 'xmlns:ext'=>"http://db.cuetools.net/ns/ext-1.0#"),
