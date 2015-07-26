@@ -74,10 +74,12 @@ $track_crcs = explode(' ', $track_crcs_s);
 foreach($track_crcs as &$track_crc) $track_crc = phpCTDB::Hex2Int($track_crc, true);
 $track_crcs_a = '{' . implode(',', $track_crcs) . '}';
 
-$confidence = $_POST['confidence'];
-if (!$confidence) fatal_error('confidence not specified');
-
 $quality = $_POST['quality'];
+
+#if ('EACv1.0b4 CTDB 2.1.6 (Microsoft Windows NT 6.2.9200.0) (TSSTcorpCDDVDW - SH-222BB)' == $_SERVER['HTTP_USER_AGENT'])
+#{
+#  fatal_error("quality=" . $quality);
+#}
 
 $maxid = isset($_POST['maxid']) ? $_POST['maxid'] : 0;
 
@@ -96,7 +98,6 @@ if (@$_POST['parityfile'])
 }
 
 $record3 = false;
-$record3['confidence'] = $confidence;
 $record3['quality'] = $quality;
 $record3['userid'] = @$_POST['userid'];
 $record3['drivename'] = @$_POST['drivename'];
@@ -153,7 +154,7 @@ else
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   $different_entry_confirmed = pg_num_rows($result) > 0;
   pg_free_result($result);
-  if (($quality > 95 && !$different_entry_confirmed) || $confidence > 1)
+  if ($quality > 95 && !$different_entry_confirmed)
     $needparfile = true;
 }
 
@@ -197,9 +198,9 @@ if ($ctdbcfg_readonly)
 if ($confirmid) {
   $record3['entryid'] =  $confirmid;
   if ($parfile)
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, track_crcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $track_crcs_a, $confirmid, $tocid, $syndromesample == null ? null : base64_encode($syndromesample)));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET subcount=subcount+1, s3=false, hasparity=true, parity=$1, syndrome=decode($6,'base64'), crc32=$2, track_crcs=$3 WHERE id=$4 AND tocid=$5", array($paritysample, $crc32, $track_crcs_a, $confirmid, $tocid, $syndromesample == null ? null : base64_encode($syndromesample)));
   else
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET confidence=confidence+1, subcount=subcount+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET subcount=subcount+1 WHERE id=$1 AND tocid=$2", array($confirmid, $tocid));
   $result or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_affected_rows($result) > 1) submit_error($dbconn, $record3, "not unique");
   if (pg_affected_rows($result) < 1) submit_error($dbconn, $record3, "not found");
@@ -211,7 +212,7 @@ if ($confirmid) {
   $record_id =  pg_fetch_result($result,0,0);
   pg_free_result($result);
 
-  $result = pg_query_params($dbconn, "INSERT INTO submissions2 (id,trackcount,audiotracks,firstaudio,trackoffsets,crc32,track_crcs,confidence,parity,syndrome,artist,title,tocid,hasparity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, decode($10,'base64'), $11, $12, $13, $14)", array($record_id, $toc['trackcount'],$toc['audiotracks'],$toc['firstaudio'],$toc['trackoffsets'],$crc32,$track_crcs_a,$record3['confidence'],$paritysample,$syndromesample == null ? null : base64_encode($syndromesample),@$_POST['artist'],@$_POST['title'],$tocid,(int)$parfile))
+  $result = pg_query_params($dbconn, "INSERT INTO submissions2 (id,trackcount,audiotracks,firstaudio,trackoffsets,crc32,track_crcs,parity,syndrome,artist,title,tocid,hasparity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, decode($9,'base64'), $10, $11, $12, $13)", array($record_id, $toc['trackcount'],$toc['audiotracks'],$toc['firstaudio'],$toc['trackoffsets'],$crc32,$track_crcs_a,$paritysample,$syndromesample == null ? null : base64_encode($syndromesample),@$_POST['artist'],@$_POST['title'],$tocid,(int)$parfile))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
 
   $record3['entryid'] = $record_id;

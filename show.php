@@ -91,7 +91,7 @@ $json_tracks_table = array('cols' => array(
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
     <!--script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.min.js?id=<?php echo $ctdbcfg_s3_id?>"></script-->
     <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
@@ -191,7 +191,7 @@ if ($isadmin)
 }
 ?>
 <tr><td class=td_album>CRC32</td><td class=td_discid><?php printf('%08X', $record['crc32']);?></td></tr>
-<tr><td class=td_album>Conf.</td><td class=td_discid><?php echo $record['confidence'];?></td></tr>
+<tr><td class=td_album>Conf.</td><td class=td_discid><?php echo $record['subcount'];?></td></tr>
 <?php
 if ($isadmin)
 {
@@ -223,12 +223,11 @@ if ($isadmin) {
 	$result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1", array($record['id']))
   	or die('Query failed: ' . pg_last_error());
 	while (TRUE == ($record3 = pg_fetch_array($result)))
-	  printf('<tr><td class=td_ar>%s</td><td class=td_ar><a href="/?agent=%s">%.15s</a></td><td class=td_ar><a href="/?uid=%s">%s</a></td><td class=td_ar>%s</td><td class=td_ar>%s</td></tr>', 
+	  printf('<tr><td class=td_ar>%s</td><td class=td_ar><a href="/?agent=%s">%.15s</a></td><td class=td_ar><a href="/?uid=%s">%s</a></td><td class=td_ar>%s</td></tr>', 
       $record3['time'], 
       $record3['agent'], $record3['agent'], 
       $record3['userid'], '*',
-      @$record3['ip'],
-      @$record3['confidence']);
+      @$record3['ip']);
 	pg_free_result($result);
   printf("</table>");
 	printf('</td></tr></table>');

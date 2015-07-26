@@ -140,7 +140,7 @@ function parseImage($rid, $img)
 #  global $seqid_image;
 #  global $known_images;
   $key = (string)$img['uri'];
-  $key = escapeNode(substr($key,0,31)=='http://api.discogs.com/image/R-' ? substr($key,31) : $key);
+  $key = escapeNode(substr($key,0,32)=='http://api.discogs.com/images/R-' ? substr($key,32) : $key);
   //if (@$known_images[$key]) return $known_images[$key];
 #  $image_id = $seqid_image++;
 #  printInsert('image', array(

@@ -17,7 +17,7 @@ if ($term == ' WHERE ')
   $query = $query . $term . "subcount>=5";
   $term = ' AND ';
 }
-$query = $query . $term . "(confidence > 20 OR subcount > 1) AND exists(select *from submissions2 t where t.tocid=a.tocid and t.trackoffsets=a.trackoffsets and t.id != a.id AND (t.confidence > 20 OR t.subcount > 1))";
+$query = $query . $term . "(subcount > 1) AND exists(select *from submissions2 t where t.tocid=a.tocid and t.trackoffsets=a.trackoffsets and t.id != a.id AND (t.subcount > 1))";
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
 $query = $query . " ORDER BY tocid, id OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
 

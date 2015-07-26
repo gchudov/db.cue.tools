@@ -2,6 +2,7 @@
 include 'logo_start1.php';
 require_once( 'phpctdb/ctdb.php' );
 
+$ctdb_page_title = 'Recent submissions';
 if (!$isadmin) makeAuth1($realm, 'Admin priveleges required');
 
 if (@$_GET['json']) {
@@ -67,7 +68,7 @@ if ($query == '')
   $show_date = false;
 }
 */
-$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, quality, barcode, s.entryid as entryid, subcount, s.confidence as confidence, e.confidence as confidence2, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
+$result = pg_query_params($dbconn, "SELECT time, agent, drivename, userid, ip, quality, barcode, s.entryid as entryid, subcount, crc32, tocid, artist, title, firstaudio, audiotracks, trackcount, trackoffsets FROM submissions s INNER JOIN submissions2 e ON e.id = s.entryid" . $query . " ORDER by s.subid DESC LIMIT 100", $params)
   or die('Query failed: ' . pg_last_error());
 $submissions = pg_fetch_all($result);
 pg_free_result($result);
@@ -92,8 +93,7 @@ foreach($submissions as $record)
       array('v' => $record['tocid']),
       array('v' => $trcnt),
       array('v' => (int)$record['entryid']),
-      array('v' => ($record['confidence2'] == $record['subcount'] ? '' : '(' . ($record['confidence2'] - $record['subcount']) . ') ') . $record['subcount']),
-      //array('v' => $record['subcount'] . '(' . ($record['confidence'] == $record['confidence2'] ? $record['confidence'] : sprintf('%d/%d', $record['confidence'], $record['confidence2'])) . ')'),
+      array('v' => (int)$record['subcount']),
       array('v' => (int)$record['crc32']),
       array('v' => phpCTDB::toc_toc2s($record)),
       array('v' => $record['quality']),
@@ -132,13 +132,15 @@ $json_submissions = json_encode($json_submissions_table);
   die($body);
 } else
   header("Cache-Control: max-age=" . 60*60*24);
-?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-<script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
-<script type='text/javascript'>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>Recent</title>
+    <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
+    <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
 function drawTable()
 {
@@ -171,7 +173,6 @@ function drawTable()
 </script>
 <?php include 'logo_start2.php'; ?>
 <center>
-<h3>Recent additions:</h3>
 <div id='submissions_div'></div>
 </center>
 </body>

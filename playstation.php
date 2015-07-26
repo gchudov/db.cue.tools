@@ -5,7 +5,7 @@ require_once( 'phpctdb/ctdb.php' );
 $count = 20;
 $query = 'SELECT * FROM submissions2';
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
-$query = $query . ' WHERE firstaudio > 1' .  " ORDER BY confidence DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
+$query = $query . ' WHERE firstaudio > 1' .  " ORDER BY subcount DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
 
 $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);

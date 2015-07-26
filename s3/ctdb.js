@@ -148,7 +148,7 @@ function ctdbMetaData(json)
       var v = '';
       var datefound = false;
       for (var r in releases) {
-        if (!datefound && releases[r].date != null) { 
+        if (!datefound && releases[r].date != null && mbdata.getValue(row, 0) != null) { 
 //          v = releases[r].date + ' ' + v;
           var y = mbdata.getValue(row, 0).toString();
           if (releases[r].date.substring(0, y.length) == y)
