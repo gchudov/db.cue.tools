@@ -5,6 +5,8 @@ Disallow: /confirm.php
 Disallow: /repair.php
 Disallow: /confirm.php
 Disallow: /show.php
+Disallow: /tov1.php
+Disallow: /tov2.php
 Disallow: /top.php
 Disallow: /parity/
 Disallow: /cd/

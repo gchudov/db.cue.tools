@@ -18,16 +18,6 @@ cron { 'discogs':
   user    => 'root',
 }
 
-cron { 'cdstubs':
-  ensure  => 'present',
-  command => "/var/www/ctdbweb/utils/cdstubs/get.sh >> /var/log/reqspot 2>&1",
-  monthday=> 5,
-  hour    => 1,
-  minute  => 31,
-  target  => 'root',
-  user    => 'root',
-}
-
 cron { 'mbslave':
   ensure  => 'present',
   command => "/root/mbslave/mbslave-sync.py >> /var/log/mbreplication 2>&1",

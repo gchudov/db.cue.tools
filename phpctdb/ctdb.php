@@ -539,7 +539,10 @@ class phpCTDB{
                   if ($images)
 		  foreach ($images as &$image)
 		    if ($image['release_id'] == $r['discogs_id'])
-		      $rimages[] = array('uri' => 'http://api.discogs.com/image/R-' . $image['uri'], 'uri150' => 'http://api.discogs.com/image/R-150-' . $image['uri'], 'width' => $image['width'], 'height' => $image['height'], 'primary' => $image['image_type'] == 'primary' ? 1 : 0);
+		      $rimages[] = array(
+                        'uri' => (substr($image['uri'],0,7)=='http://' ? '' : 'http://api.discogs.com/images/R-') . $image['uri'], 
+                        'uri150' => (substr($image['uri'],0,7)=='http://' ? '' : 'http://api.discogs.com/images/R-150-') . $image['uri'],
+                        'width' => $image['width'], 'height' => $image['height'], 'primary' => $image['image_type'] == 'primary' ? 1 : 0);
 		  $res[] = array(
 		    'source' => 'discogs',
 		    'id' => $r['discogs_id'],
