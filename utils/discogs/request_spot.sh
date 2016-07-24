@@ -53,7 +53,7 @@ discogs_rel=discogs_`date +%Y%m01`_releases.xml.gz
 if [ -z "$RERUN" ]; then
   echo "Downloading $discogs_rel"
   user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
-  wget -nv -U "$user_agent" -O "/tmp/$discogs_rel" "http://www.discogs.com/data/$discogs_rel" || exit $?
+  wget -nv -U "$user_agent" -O "/tmp/$discogs_rel" "http://data.discogs.com.s3-us-west-2.amazonaws.com/data/$discogs_rel" || exit $?
   s3cmd --no-progress --rr put "/tmp/$discogs_rel" s3://private.cuetools.net/
   rm "/tmp/$discogs_rel"
 fi
@@ -85,7 +85,7 @@ do
   echo "s3fuse /mnt/\$s3conf fuse defaults,noauto,user,allow_other,config=/etc/s3fuse/\$s3conf 0 0" >> /etc/fstab
   mkdir /mnt/\$s3conf; mount /mnt/\$s3conf
 done
-hg clone https://code.google.com/p/cuetools-database/
+hg clone http://hg.code.sf.net/p/cuetoolsnet/dbcode cuetools-database
 aws s3 cp s3://private.cuetools.net/$discogs_rel ./discogs.xml.gz
 ./cuetools-database/utils/discogs/run_discogs_converter.sh < ./discogs.xml.gz
 outdir=/mnt/private.cuetools.net/discogs/`date +%Y%m01`/
