@@ -71,7 +71,7 @@ sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
 service postgresql start
-hg clone https://code.google.com/p/cuetools-database/
+hg clone http://hg.code.sf.net/p/cuetoolsnet/dbcode cuetools-database
 make -C cuetools-database/utils/freedb/
 s3cmd --no-progress get s3://private.cuetools.net/$freedb_rel - | tar vxjO 2>&1 | ./cuetools-database/utils/freedb/freedb 2> freedb.log
 s3cmd --no-progress --rr put freedb_*.sql.bz2 ./cuetools-database/utils/freedb/*.sql /var/log/cloud-init.log freedb.log s3://private.cuetools.net/freedb/`date +%Y%m01`/
