@@ -19,7 +19,7 @@ DEBUG=
 PRINT=
 PRICE=0.20
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
-AMIID=ami-92852cfa #amzn-ami-hvm-2014.09.0.x86_64-s3
+AMIID=ami-dc6aa9b1 #amzn-ami-hvm-2016.03.3.x86_64-s3
 #export EC2_PRIVATE_KEY=~ec2-user/.ec2/pk-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
 #export EC2_CERT=~ec2-user/.ec2/cert-7CIWDTIK74TUXOHQZNYW24BHMXG6ABBV.pem
 
