@@ -6,7 +6,7 @@ $bucket = 'p.cuetools.net';
 
 #require 'AWSSDKforPHP/aws.phar';
 require_once 'AWSSDKforPHP/sdk.class.php';
-require_once '/var/www/ctdbweb/phpctdb/ctdb.php';
+require_once '/opt/ctdb/www/ctdbweb/phpctdb/ctdb.php';
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
@@ -28,7 +28,7 @@ if (!$records || count($records) == 0) die(gmdate("M j G:i:s") . " nothing to do
 $ts = 0;
 foreach ($records as $record)
 {
-  $localname = '/var/www/ctdbweb/parity/' . $record['id'];
+  $localname = '/opt/ctdb/www/ctdbweb/parity/' . $record['id'];
   if (!file_exists($localname)) {
     echo 'File missing: ';
     print_r($record);
@@ -59,7 +59,7 @@ pg_query("COMMIT");
 foreach ($records as $record)
 {
   $filename = sprintf("%s%08x", str_replace('.', '+', $record['tocid']), $record['crc32']&0xffffffff);
-  $localname = '/var/www/ctdbweb/parity/' . $record['id'];
+  $localname = '/opt/ctdb/www/ctdbweb/parity/' . $record['id'];
   unlink($localname);
 }
 }

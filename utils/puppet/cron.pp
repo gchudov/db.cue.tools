@@ -1,6 +1,6 @@
 cron { 'freedb':
   ensure  => 'present',
-  command => "/var/www/ctdbweb/utils/freedb/request_spot.sh >> /var/log/reqspot 2>&1",
+  command => "/opt/ctdb/www/ctdbweb/utils/freedb/request_spot.sh >> /var/log/reqspot 2>&1",
   monthday=> 5,
   hour    => 1,
   minute  => 51,
@@ -10,7 +10,7 @@ cron { 'freedb':
 
 cron { 'discogs':
   ensure  => 'present',
-  command => "/var/www/ctdbweb/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1",
+  command => "/opt/ctdb/www/ctdbweb/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1",
   monthday=> 5,
   hour    => 1,
   minute  => 41,
@@ -28,7 +28,7 @@ cron { 'mbslave':
 
 cron { 'stats':
   ensure  => 'present',
-  command => " /usr/bin/psql -U ctdb_user ctdb -f /var/www/ctdbweb/utils/hourly_stats.sql >> /dev/null 2>&1",
+  command => " /usr/bin/psql -U ctdb_user ctdb -f /opt/ctdb/www/ctdbweb/utils/hourly_stats.sql >> /dev/null 2>&1",
   minute  => 01,
   target  => 'root',
   user    => 'root',

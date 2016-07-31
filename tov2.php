@@ -1,7 +1,7 @@
 <?php
 $retval = 0;
 ob_start();
-passthru('/var/www/ctdbweb/utils/ctdbconvert upconvert ' . (int)$_GET['id'], &$retval);
+passthru('/opt/ctdb/www/ctdbweb/utils/ctdbconvert upconvert ' . (int)$_GET['id'], &$retval);
 if ($retval != 0)
 {
   ob_end_clean();
