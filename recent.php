@@ -9,6 +9,14 @@ if (@$_GET['json']) {
 $query = "";
 $params = array();
 
+$where_toc=@$_GET['toc'];
+if ($where_toc != '')
+{
+  $params[] = phpCTDB::toc2tocid($where_toc);
+  $query .= $query == '' ? ' WHERE ' : ' AND ';
+  $query .= 'e.tocid=$' . count($params);
+}
+
 $where_discid=@$_GET['tocid'];
 if ($where_discid != '')
 {
