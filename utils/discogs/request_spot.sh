@@ -53,7 +53,7 @@ discogs_rel=discogs_`date +%Y%m01`_releases.xml.gz
 if [ -z "$RERUN" ]; then
   echo "Downloading $discogs_rel"
   user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
-  wget -nv -U "$user_agent" -O "/tmp/$discogs_rel" "http://data.discogs.com.s3-us-west-2.amazonaws.com/data/$discogs_rel" || exit $?
+  wget -nv -U "$user_agent" -O "/tmp/$discogs_rel" "http://discogs-data.s3-us-west-2.amazonaws.com/data/$discogs_rel" || exit $?
   s3cmd --no-progress --rr put "/tmp/$discogs_rel" s3://private.cuetools.net/
   rm "/tmp/$discogs_rel"
 fi

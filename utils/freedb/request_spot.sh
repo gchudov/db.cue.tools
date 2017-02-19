@@ -74,6 +74,7 @@ sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/dat
 service postgresql start
 hg clone http://hg.code.sf.net/p/cuetoolsnet/dbcode cuetools-database
 make -C cuetools-database/utils/freedb/
+update-alternatives --set python /usr/bin/python2.6
 s3cmd --no-progress get s3://private.cuetools.net/$freedb_rel - | tar vxjO 2>&1 | ./cuetools-database/utils/freedb/freedb 2> freedb.log
 s3cmd --no-progress --rr put freedb_*.sql.bz2 ./cuetools-database/utils/freedb/*.sql /var/log/cloud-init.log freedb.log s3://private.cuetools.net/freedb/`date +%Y%m01`/
 if [ -z "\$DEBUG" ]; then
@@ -86,7 +87,7 @@ if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
 #ec2rsi -region us-east-1 ami-9f4082f6 -g sg-b81154d1 -k ec2 -n 1 -p $PRICE -r one-time -t c1.medium --user-data "$UDATA"
 source /etc/profile.d/aws-apitools-common.sh
-$EC2_HOME/bin/ec2-request-spot-instances -region "us-east-1" $AMIID --group "quick-start-1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m1.medium --user-data "$UDATA"
+$EC2_HOME/bin/ec2-request-spot-instances -region "us-east-1" $AMIID --group "quick-start-1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m3.large --user-data "$UDATA"
 else
 cat <<EOF
 $UDATA

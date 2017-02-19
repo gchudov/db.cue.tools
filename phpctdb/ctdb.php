@@ -283,6 +283,10 @@ class phpCTDB{
                     'ORDER BY distance LIMIT 30',
                     array('{' . substr($offsets,1) . ',' . ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75) . '}', $fuzzy, count($ids)));
                     //array('{' . substr($offsets,1) . ',' . (abs($ids[count($ids) - 1]) + 150) . '}', $fuzzy, count($ids)));
+                if (!$result) {
+                  //error_log(pg_last_error());
+                  return array();
+                }
 		$meta = pg_fetch_all($result);
 		pg_free_result($result);
 		if (!$meta) return array();

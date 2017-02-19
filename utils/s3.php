@@ -1,18 +1,22 @@
 <?php
+set_include_path('/opt/ctdb/www/ctdbweb/');
+require 'vendor/autoload.php';
 error_reporting(-1);
 mb_internal_encoding("UTF-8");
 
 $bucket = 'p.cuetools.net';
 
 #require 'AWSSDKforPHP/aws.phar';
-require_once 'AWSSDKforPHP/sdk.class.php';
-require_once '/opt/ctdb/www/ctdbweb/phpctdb/ctdb.php';
+#require_once 'AWSSDKforPHP/sdk.class.php';
+require_once 'phpctdb/ctdb.php';
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
     or die('Could not connect: ' . pg_last_error());
-$s3 = new AmazonS3();
-$s3->set_region(AmazonS3::REGION_US_E1);
-$s3->enable_path_style();
+$s3 = new Aws\S3\S3Client([
+    'version' => 'latest',
+    'region'  => 'us-east-1'
+]);
+//$s3->enable_path_style();
 //$s3->disable_ssl();
 //$s3->adjust_offset(60*60);
 while (true)
@@ -26,6 +30,7 @@ pg_free_result($result);
 if (!$records || count($records) == 0) die(gmdate("M j G:i:s") . " nothing to do\n");
 
 $ts = 0;
+$promises = null; 
 foreach ($records as $record)
 {
   $localname = '/opt/ctdb/www/ctdbweb/parity/' . $record['id'];
@@ -37,21 +42,29 @@ foreach ($records as $record)
     continue;
   }
   $ts += filesize($localname);
-  $s3->batch()->create_object($bucket, $record['id'], array(
-	'fileUpload' => $localname,
-	'acl' => AmazonS3::ACL_PUBLIC
-  ));
+  $promises[] = $s3->PutObjectAsync([
+      'ACL' => 'public-read',
+      'Bucket' => $bucket,
+      'Key' => $record['id'],
+      'SourceFile' => $localname
+  ]);
 
   $result = pg_query_params($dbconn, "UPDATE submissions2 SET s3 = TRUE WHERE id=$1", array($record['id']));
   pg_free_result($result);
 }
 $start = microtime(true);
-$file_upload_response = $s3->batch()->send();
-if (!$file_upload_response->areOK())
-{
+GuzzleHttp\Promise\all($promises)->then(function (array $responses) {
+  foreach ($responses as $response) {
+    printf("%s uploaded.\n", $response["ObjectURL"]);
+#    print $response;
+  }
+}, function (array $responses) {
+  foreach ($responses as $response) {
+    print $response;
+  }
   pg_query("ABORT");
   die("abort\n");
-}
+})->wait();
 $dur = microtime(true) - $start;
 if ($dur < 0.01) $dur = 0.01;
 printf("%s COMMIT %d files, %d bytes in %d secs (%dKB/s)\n", gmdate("M j G:i:s"), count($records), $ts, $dur, (int)($ts/$dur/1024));
