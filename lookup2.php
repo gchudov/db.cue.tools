@@ -180,7 +180,7 @@ else if ($type == 'xml')
     XML_SERIALIZER_OPTION_SCALAR_AS_ATTRIBUTES => $ctdbversion > 1 ?
       array(
         "entry" => array("id", "crc32", "confidence", "npar", "stride", "hasparity", "parity", "syndrome", "trackcrcs", "toc"),
-        "metadata" => array("source", "id", "artist", "album", "year", "releasedate", "country", "discnumber", "disccount", "infourl", "barcode", "discogs_id", "genre", "relevance"),
+        "metadata" => array("source", "id", "artist", "album", "year", "releasedate", "country", "discnumber", "disccount", "discname", "infourl", "barcode", "discogs_id", "genre", "relevance"),
         "track" => array("name", "artist"),
         "label" => array("name", "catno"),
         "release" => array("country", "date"),
