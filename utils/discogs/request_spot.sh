@@ -70,7 +70,8 @@ DEBUG=$DEBUG
 export HOME=/root
 cd /media/ephemeral0
 yum -y install postgresql9-server postgresql9-contrib
-yum -y --enablerepo=epel install php-cli php-xml php-pgsql mercurial augeas fuse s3fuse aws-cli
+yum -y --enablerepo=epel install php-cli php-xml php-pgsql mercurial augeas fuse aws-cli
+yum -y --enablerepo=cuetools install s3fuse
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 5500M/g' /etc/php.ini

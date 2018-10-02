@@ -182,6 +182,7 @@ function parseCredits($artists)
 //  global $known_names;
 //  $known_names = array();
   $ac = array();
+  $join = '';
   foreach($artists->children() as $art) {
     $ac[] = array(
       'name' => parseArtistName($art->name),
@@ -189,7 +190,8 @@ function parseCredits($artists)
       'join_verb' => escapeNode($art->join),
       'role' => escapeNode($art->role),
       'tracks' => escapeNode($art->tracks));
-    $artist_name .= ($art->anv != '' ? $art->anv : $art->name) . ($art->join != '' ? ' ' . $art->join . ' ' : '');
+    $artist_name .= $join . ($art->anv != '' ? $art->anv : $art->name);
+    $join = ($art->join != '' ? ' ' . $art->join . ' ' : '');
   }
   $artist_name_id = parseArtistName($artist_name);
   if ($artist_name_id == "\\N") return "\\N";
