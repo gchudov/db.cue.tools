@@ -50,12 +50,14 @@ do
 done
 
 discogs_rel=discogs_`date +%Y%m01`_releases.xml.gz
+discogs_year=`date +%Y`
 if [ -z "$RERUN" ]; then
   echo "Downloading $discogs_rel"
-  user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
-  wget -nv -U "$user_agent" -O "/tmp/$discogs_rel" "http://discogs-data.s3-us-west-2.amazonaws.com/data/$discogs_rel" || exit $?
-  s3cmd --no-progress --rr put "/tmp/$discogs_rel" s3://private.cuetools.net/
-  rm "/tmp/$discogs_rel"
+  aws s3 cp --quiet --storage-class REDUCED_REDUNDANCY s3://discogs-data/data/$discogs_year/$discogs_rel s3://private.cuetools.net/$discogs_rel || exit $?
+#  user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
+#  wget -nv -U "$user_agent" -O "/opt/ctdb/tmp/$discogs_rel" "http://discogs-data.s3-us-west-2.amazonaws.com/data/$discogs_year/$discogs_rel" || exit $?
+#  s3cmd --no-progress --rr put "/opt/ctdb/tmp/$discogs_rel" s3://private.cuetools.net/
+#  rm "/opt/ctdb/tmp/$discogs_rel"
 fi
 CPFILES=
 for cpfile in /etc/s3fuse/.??* /etc/s3fuse/* /etc/yum.repos.d/cuetools.repo
@@ -74,7 +76,7 @@ yum -y --enablerepo=epel install php-cli php-xml php-pgsql mercurial augeas fuse
 yum -y --enablerepo=cuetools install s3fuse
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
-sed -i 's/memory_limit = [0-9]*M/memory_limit = 5500M/g' /etc/php.ini
+sed -i 's/memory_limit = [0-9]*M/memory_limit = 7500M/g' /etc/php.ini
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/sysconfig/pgsql/postgresql
 service postgresql initdb
@@ -87,12 +89,12 @@ do
   mkdir /mnt/\$s3conf; mount /mnt/\$s3conf
 done
 hg clone http://hg.code.sf.net/p/cuetoolsnet/dbcode cuetools-database
-aws s3 cp s3://private.cuetools.net/$discogs_rel ./discogs.xml.gz
+aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs.xml.gz
 ./cuetools-database/utils/discogs/run_discogs_converter.sh < ./discogs.xml.gz
 outdir=/mnt/private.cuetools.net/discogs/`date +%Y%m01`/
 mkdir \$outdir/
 ./cuetools-database/utils/discogs/create_db.sh > \$outdir/discogs.log 2>&1
-aws s3 cp discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
+aws s3 cp --quiet discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
 if [ -z "\$DEBUG" ]; then
   umount /mnt/private.cuetools.net
   shutdown -h now
@@ -104,6 +106,7 @@ if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
 source /etc/profile.d/aws-apitools-common.sh
 $EC2_HOME/bin/ec2-request-spot-instances $AMIID --group "quick-start-1" --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type m3.large --user-data "$UDATA"
+aws ec2 describe-spot-instance-requests --region us-east-1
 else
 cat <<EOF
 $UDATA
