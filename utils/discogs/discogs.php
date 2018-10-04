@@ -13,7 +13,10 @@ function parseDuration($dur)
 
 function parseDiscno($pos, &$tr)
 {
-  if ($pos == null || $pos == "") return "\\N";
+  if ($pos == null || $pos == "") {
+    $tr = "\\N";
+    return "\\N";
+  }
   if (preg_match( "/^([0-9]+)[\-\.]([0-9]+)$/", $pos, $match)) {
     $tr = (int)$match[2];
     return (int)$match[1]; 
@@ -24,8 +27,9 @@ function parseDiscno($pos, &$tr)
   }
   if (preg_match( "/^[0-9]+$/", $pos, $match)) {
     $tr = (int)$match[0];
-    return '1';
+    if ($tr >= 0 && $tr <= 0x7FFFFFFF) return '1';
   }
+  $tr = "\\N";
   return "\\N";
   //die("Invalid position $pos");
 }
@@ -61,7 +65,7 @@ function escapeNode($node, $t = 'text')
 
 function escapeNodes($nodes, $t = 'text')
 {
-  if (!$nodes) return "\\N";
+  if (!$nodes || !$nodes->children()) return "\\N";
   $res = array();
   foreach($nodes->children() as $node)
     $res[] = escapeNode($node, $t);
