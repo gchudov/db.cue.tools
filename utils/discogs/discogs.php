@@ -309,7 +309,7 @@ function parseRelease($rel)
     printInsert('releases_formats', array(
       'release_id' => $rel['id'] + 0,
       'format_name' => escapeNode($fmt['name']),
-      'qty' => $fmt['qty'] + 0,
+      'qty' => ($fmt['qty'] + 0) & 0x7FFFFFFF,
       'descriptions' => escapeNodes($fmt->descriptions, 'description_t')));
   }
   if ($iscd && end(array_keys($toc)) == count($toc))
