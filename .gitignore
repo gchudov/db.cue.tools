@@ -1,0 +1,7 @@
+parity/
+vendor/
+composer.json
+composer.lock
+composer.phar
+ctdbcfg.php
+

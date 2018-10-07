@@ -69,7 +69,7 @@ mkdir -p /media/ephemeral0
 mount /dev/nvme1n1 /media/ephemeral0
 cd /media/ephemeral0
 yum -y install postgresql9-server postgresql9-contrib
-yum -y --enablerepo=epel install php-cli php-xml php-pgsql mercurial augeas aws-cli
+yum -y --enablerepo=epel install php-cli php-xml php-pgsql git augeas aws-cli
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 12000M/g' /etc/php.ini
@@ -78,7 +78,7 @@ sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/sysconfig/pgsql/po
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
-hg clone http://hg.code.sf.net/p/cuetoolsnet/dbcode cuetools-database
+git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
 aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs.xml.gz
 ./cuetools-database/utils/discogs/run_discogs_converter.sh < ./discogs.xml.gz
 ./cuetools-database/utils/discogs/create_db.sh > discogs.log 2>&1

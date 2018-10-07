@@ -67,13 +67,13 @@ cd /media/ephemeral0
 echo \$S3CFG | base64 -d | gunzip > ~/.s3cfg
 printf "[s3tools]\nname=Tools for managing Amazon S3 - Simple Storage Service (RHEL_6)\ntype=rpm-md\nbaseurl=http://s3tools.org/repo/RHEL_6/\ngpgcheck=1\ngpgkey=http://s3tools.org/repo/RHEL_6/repodata/repomd.xml.key\nenabled=1" > /etc/yum.repos.d/s3tools.repo
 yum -y install postgresql8-server postgresql8-contrib
-yum -y install php-cli php-xml php-pgsql s3cmd mercurial augeas gcc make bzip2-devel
+yum -y install php-cli php-xml php-pgsql s3cmd git augeas gcc make bzip2-devel
 #yum -y upgrade
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 2000M/g' /etc/php.ini
 service postgresql initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*ident/local all all trust/g' /var/lib/pgsql/data/pg_hba.conf
 service postgresql start
-hg clone http://hg.code.sf.net/p/cuetoolsnet/dbcode cuetools-database
+git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
 make -C cuetools-database/utils/freedb/
 update-alternatives --set python /usr/bin/python2.6
 s3cmd --no-progress get s3://private.cuetools.net/$freedb_rel - | tar vxjO 2>&1 | ./cuetools-database/utils/freedb/freedb 2> freedb.log
