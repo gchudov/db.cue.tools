@@ -519,15 +519,16 @@ int main(void)
     while (fgets(buf, sizeof(buf), stdin)) 
     {
         if (strlen(buf) >= sizeof(buf) - 1) {
-            fprintf(stderr,"Line too long\n");
+            fprintf(stderr, "Line too long in %s/%08x\n", validcategories[category], freedbid);
 	    exit(1);
         }
         if (strlen(buf) == 0) {
-            fprintf(stderr,"Empty line\n");
-	    exit(1);
+            fprintf(stderr, "Empty line in %s/%08x\n", validcategories[category], freedbid);
+            continue;
+	    // exit(1);
         }
         if (buf[strlen(buf) - 1] != '\n') { 
-            fprintf(stderr,"No new line character\n");
+            fprintf(stderr, "No new line character in %s/%08x\n", validcategories[category], freedbid);
 	    exit(1);
         }
         buf[strlen(buf) - 1] = 0;
