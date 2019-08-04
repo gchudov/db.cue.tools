@@ -94,6 +94,7 @@ if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
 source /etc/profile.d/aws-apitools-common.sh
 $EC2_HOME/bin/ec2-request-spot-instances $AMIID --network-attachment :0:subnet-0e728857::10.0.0.55:sg-5d2f8a3a:true --associate-public-ip-address true --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type r5d.large --user-data "$UDATA"
+#aws ec2 request-spot-instances --region us-east-1 --block-duration-minutes 360 --spot-price $PRICE --type one-time 
 aws ec2 describe-spot-instance-requests --region us-east-1
 else
 cat <<EOF
