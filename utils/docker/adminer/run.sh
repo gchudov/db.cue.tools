@@ -1,0 +1,1 @@
+docker run -d --name adminer --network ct --restart always -e ADMINER_DEFAULT_SERVER=postgres -v /opt/ctdb/www/ctdbweb/utils/docker/adminer/login-otp.php:/var/www/html/plugins-enabled/login-otp.php -p 8081:8080 adminer
