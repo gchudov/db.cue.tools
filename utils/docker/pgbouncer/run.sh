@@ -1,0 +1,1 @@
+docker run -d --name pgbouncer --network ct --restart always -p 6544:6544 -v /var/run/postgresql:/var/run/postgresql -v /opt/ctdb/www/ctdbweb/utils/docker/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini -v /opt/ctdb/www/ctdbweb/utils/docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt brainsam/pgbouncer:latest

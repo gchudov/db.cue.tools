@@ -45,7 +45,7 @@ function parity_needed($npar) {
   die($version == 1 ? 'parity needed' : $serializer->serialize(array('status' => 'parity needed', 'message' => 'parity needed', 'npar' => $npar)));
 }
 
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544")
   or fatal_error('Could not connect: ' . pg_last_error());
 
 $confirmid = @$_POST['confirmid'];

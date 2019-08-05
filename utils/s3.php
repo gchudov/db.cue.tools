@@ -10,7 +10,7 @@ $bucket = 'p.cuetools.net';
 #require_once 'AWSSDKforPHP/sdk.class.php';
 require_once 'phpctdb/ctdb.php';
 
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544")
     or die('Could not connect: ' . pg_last_error());
 $s3 = new Aws\S3\S3Client([
     'version' => 'latest',

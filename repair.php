@@ -1,6 +1,6 @@
 <?php
 
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user port=6543")
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544")
 	or die('Could not connect: ' . pg_last_error());
 
 $id = $_GET['id'];
