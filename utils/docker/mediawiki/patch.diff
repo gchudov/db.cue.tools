@@ -1,0 +1,11 @@
+--- a/includes/libs/rdbms/database/DatabaseDomain.php	2019-08-07 18:30:35.123413316 +0000
++++ b/includes/libs/rdbms/database/DatabaseDomain.php	2019-08-07 18:30:02.227655451 +0000
+@@ -73,7 +73,7 @@
+ 		if ( count( $parts ) == 1 ) {
+ 			$database = $parts[0];
+ 		} elseif ( count( $parts ) == 2 ) {
+-			list( $database, $prefix ) = $parts;
++			list( $database, $schema ) = $parts;
+ 		} elseif ( count( $parts ) == 3 ) {
+ 			list( $database, $schema, $prefix ) = $parts;
+ 		} else {

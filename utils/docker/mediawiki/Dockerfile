@@ -28,7 +28,14 @@ RUN set -eux; \
         cd googleAnalytics ; \
 	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/googleAnalytics/+archive/REL1_31.tar.gz" | tar -zx ; \
         cd .. ; \
+	mkdir CheckUser; \
+        cd CheckUser ; \
+	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/CheckUser/+archive/REL1_31.tar.gz" | tar -zx ; \
+        cd .. ; \
         cd .. ; \
 	chown -R www-data:www-data extensions
+
 COPY extensions/googleAnalyticsLinks/ /var/www/html/extensions/googleAnalyticsLinks/
 COPY favicon.ico robots.txt google098e3cccb92122e1.html .htaccess /var/www/html/
+COPY patch.diff /var/www/html/
+RUN patch -p1 < patch.diff
