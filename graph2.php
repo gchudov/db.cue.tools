@@ -4,7 +4,7 @@ require_once ('jpgraph/jpgraph_line.php');
 require_once ('jpgraph/jpgraph_date.php');
 require_once ('jpgraph/jpgraph_utils.inc.php');
 
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544")
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432")
     or die('Could not connect: ' . pg_last_error());
 $interval = 5;
 $result = pg_query_params($dbconn, "SELECT subcount from submissions2 WHERE id % $1 = 0 AND subcount < 200 AND subcount > 0 ORDER by subcount DESC", array($interval))

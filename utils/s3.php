@@ -1,5 +1,5 @@
 <?php
-set_include_path('/opt/ctdb/www/ctdbweb/');
+set_include_path('/var/www/html/');
 require 'vendor/autoload.php';
 error_reporting(-1);
 mb_internal_encoding("UTF-8");
@@ -10,7 +10,7 @@ $bucket = 'p.cuetools.net';
 #require_once 'AWSSDKforPHP/sdk.class.php';
 require_once 'phpctdb/ctdb.php';
 
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544")
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432")
     or die('Could not connect: ' . pg_last_error());
 $s3 = new Aws\S3\S3Client([
     'version' => 'latest',
@@ -33,7 +33,7 @@ $ts = 0;
 $promises = null; 
 foreach ($records as $record)
 {
-  $localname = '/opt/ctdb/www/ctdbweb/parity/' . $record['id'];
+  $localname = '/var/www/html/parity/' . $record['id'];
   if (!file_exists($localname)) {
     echo 'File missing: ';
     print_r($record);
@@ -72,7 +72,7 @@ pg_query("COMMIT");
 foreach ($records as $record)
 {
   $filename = sprintf("%s%08x", str_replace('.', '+', $record['tocid']), $record['crc32']&0xffffffff);
-  $localname = '/opt/ctdb/www/ctdbweb/parity/' . $record['id'];
+  $localname = '/var/www/html/parity/' . $record['id'];
   unlink($localname);
 }
 }
