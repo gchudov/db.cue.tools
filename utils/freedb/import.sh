@@ -1,14 +1,16 @@
 dbname=freedb1
-dbmaster=postgres1
+dbmaster=postgres
 dbuser=freedb_user
-dbhost=localhost
-dbport=6544
-psql -U postgres -h $dbhost -p $dbport -d $dbmaster -c "DROP DATABASE $dbname"
-psql -U postgres -h $dbhost -p $dbport -d $dbmaster -c "CREATE DATABASE $dbname OWNER $dbuser"
-psql -U postgres -h $dbhost -p $dbport -d $dbname -c "CREATE EXTENSION cube"
-psql -U $dbuser -h $dbhost -p $dbport -d $dbname -f $(dirname $0)/create_tables.sql
+dbcont=postgres96
+latest=`aws s3 cp --quiet s3://private.cuetools.net/freedb/LATEST -`
+psql="docker exec -i $dbcont psql"
+$psql -U postgres -d $dbmaster -c "DROP DATABASE $dbname"
+$psql -U postgres -d $dbmaster -c "CREATE ROLE $dbuser LOGIN"
+$psql -U postgres -d $dbmaster -c "CREATE DATABASE $dbname OWNER $dbuser"
+$psql -U postgres -d $dbname -c "CREATE EXTENSION cube"
+cat $(dirname $0)/create_tables.sql | $psql -U $dbuser -d $dbname
 for table in artist_names genre_names entries tracks ; do
-  s3cmd --no-progress get s3://private.cuetools.net/freedb/`date +%Y%m`01/freedb_"$table".sql.bz2 - | nice -n 19 bunzip2 | psql -U $dbuser -h $dbhost -p $dbport -d $dbname
+  aws s3 cp --quiet "s3://private.cuetools.net/freedb/$latest/freedb_"$table".sql.bz2" - | nice -n 19 bunzip2 | $psql -U $dbuser -d $dbname
 done
-psql -U $dbuser -h $dbhost -p $dbport -d $dbname -f $(dirname $0)/create_keys.sql
-psql -U postgres -h $dbhost -p $dbport -d $dbname -c "VACUUM"
+cat $(dirname $0)/create_keys.sql | $psql -U $dbuser -d $dbname
+$psql -U postgres -d $dbname -c "VACUUM"

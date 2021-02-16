@@ -742,7 +742,7 @@ class phpCTDB{
 	      'JOIN medium m ON m.id = mi.medium ' . 
 	      'WHERE mi.toc::cube <@ create_bounding_cube($1, 3000) ' . 
 	      'AND m.track_count = array_upper($1, 1) ' . 
-	      'AND (m.format = 1 OR m.format IS NULL) ' .
+	      'AND (m.format = 1 OR m.format = 12 OR m.format IS NULL) ' .
 	      'LIMIT 30', array('{' . implode(',', $dur) . '}'));
 	  } else {
 	    $mbids = array();

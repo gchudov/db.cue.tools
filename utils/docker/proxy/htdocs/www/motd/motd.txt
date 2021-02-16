@@ -1,0 +1,19 @@
+CUETools 2.1.4
+CUETools 2.1.4 is out!
+
+Download link: http://www.cuetools.net/install/CUETools_2.1.4.rar
+
+* CTDB 2.0: now ignoring pregap in parity calculations
+* CTDB 2.0: popular CDs can have twice larger correction files
+* CTDB 2.0: confidence values no longer include AccurateRip data
+* CTDB 2.0: simplified (per-track) verification log
+* CTDB 2.0: faster verification process with less network traffic
+* CUERipper: support for some older drives, like PLEXTOR W1210A
+* CUERipper: support for cover art
+* CUERipper: main window resizable
+* CUERipper: real test&copy mode
+* CUERipper: options dialog
+* Tagging: support for release date, release country, disc subtitle, label, catalog number, comment
+* Local DB: can now refresh folder, removing missing files from database and adding new files.
+* Codecs: LAME encoder updated to use libmp3lame.dll, which is now included in CUETools download (version 3.98.4)
+* Various bug fixes

@@ -36,6 +36,6 @@ RUN set -eux; \
 	chown -R www-data:www-data extensions
 
 COPY extensions/googleAnalyticsLinks/ /var/www/html/extensions/googleAnalyticsLinks/
-COPY favicon.ico robots.txt google098e3cccb92122e1.html .htaccess /var/www/html/
+COPY .htaccess /var/www/html/
 COPY patch.diff /var/www/html/
 RUN patch -p1 < patch.diff

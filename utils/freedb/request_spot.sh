@@ -51,9 +51,9 @@ freedb_rel=freedb-complete-`date +%Y%m01`.tar.bz2
 if [ -z "$RERUN" ]; then
   echo "Downloading $freedb_rel"
   user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
-  wget -nv -U "$user_agent" -O "/tmp/$freedb_rel" "http://ftp.freedb.org/pub/freedb/$freedb_rel" || exit $?
-  aws s3 cp --quiet --storage-class REDUCED_REDUNDANCY "/tmp/$freedb_rel" s3://private.cuetools.net/$freedb_rel || exit $?
-  rm "/tmp/$freedb_rel"
+  wget -nv -U "$user_agent" -O "/opt/ctdb/tmp/$freedb_rel" "http://ftp.freedb.org/pub/freedb/$freedb_rel" || exit $?
+  aws s3 cp --quiet --storage-class REDUCED_REDUNDANCY "/opt/ctdb/tmp/$freedb_rel" s3://private.cuetools.net/$freedb_rel || exit $?
+  rm "/opt/ctdb/tmp/$freedb_rel"
 fi
 UDATA="$( cat <<EOF
 #!/bin/sh

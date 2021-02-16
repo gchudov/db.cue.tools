@@ -3,4 +3,4 @@
 "musicbrainz" "musicbrainz"
 "freedb_user" "freedb_user"
 "postgres" "postgres"
-"wikiuser" "wikiuser"
+"ctwiki" "ctwiki"
