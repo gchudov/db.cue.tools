@@ -40,7 +40,7 @@ $records = array();
 
 if ($doctdb > 0)
 {
-  $dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544") or die('Could not connect: ' . pg_last_error());
+  $dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432") or die('Could not connect: ' . pg_last_error());
   $tocid = phpCTDB::toc2tocid($toc); 
   $query = "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "'";
   if (!$fuzzy) $query = $query . " AND trackoffsets='" . pg_escape_string($toc['trackoffsets']) . "'";

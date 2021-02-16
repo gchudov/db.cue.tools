@@ -47,8 +47,8 @@ THE SOFTWARE.
 
 	$maxage = 600;
 	$apc_id = md5(getlastmod() + $_SERVER['REQUEST_URI']);
-	if (apc_exists($apc_id))
-		finish(apc_fetch($apc_id), $maxage);
+	if (apcu_exists($apc_id))
+		finish(apcu_fetch($apc_id), $maxage);
 
 	$data = isset($_GET['data'])?$_GET['data']:'';
 	if (!empty($data)) {
@@ -69,7 +69,7 @@ THE SOFTWARE.
 			}
 		}
 		$body = 'var COINWIDGETCOM_DATA = ' . json_encode($responses) . ';';
-		apc_store($apc_id, $body, $maxage);
+		apcu_store($apcu_id, $body, $maxage);
 		finish($body, $maxage);
 	}
 

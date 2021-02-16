@@ -6,7 +6,7 @@ require_once 'XML/Serializer.php';
 //  fatal_error("user agent " . $_SERVER['HTTP_USER_AGENT'] . " is not allowed");
 
 $options = array(
-  XML_SERIALIZER_OPTION_INDENT        => '  ',
+  XML_SERIALIZER_OPTION_INDENT        => ' ',
   XML_SERIALIZER_OPTION_RETURN_RESULT => true,
   XML_SERIALIZER_OPTION_SCALAR_AS_ATTRIBUTES => true,
   XML_SERIALIZER_OPTION_MODE          => XML_SERIALIZER_MODE_SIMPLEXML,
@@ -37,6 +37,7 @@ function fatal_error($reason) {
 #    $response['updateurl'] = 'http://s3.cuetools.net/CUETools.CTDB.EACPlugin.Installer.msi';
 #    $response['updatemsg'] = 'Version 2.1.4 adds support for coverart.';
 #  }
+  #error_log("response: " . print_r($version == 1 ? $reason : $serializer->serialize($response), true));
   die($version == 1 ? $reason : $serializer->serialize($response));
 }
 
@@ -45,7 +46,7 @@ function parity_needed($npar) {
   die($version == 1 ? 'parity needed' : $serializer->serialize(array('status' => 'parity needed', 'message' => 'parity needed', 'npar' => $npar)));
 }
 
-$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=localhost port=6544")
+$dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432")
   or fatal_error('Could not connect: ' . pg_last_error());
 
 $confirmid = @$_POST['confirmid'];
@@ -184,7 +185,8 @@ if ($confirmid) {
 }
 
 if ($record3['drivename'] != null) {
-  $result = pg_query_params($dbconn, "SELECT * FROM drives ds WHERE $1 ~* ('^'|| ds.name ||'.*-')", array($record3['drivename']));
+  $result = pg_query_params($dbconn, "SELECT * FROM drives ds WHERE $1 ~* ('^'|| ds.name ||'.*-')", array($record3['drivename']))
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_num_rows($result) == 0) submit_error($dbconn, $record3, "unrecognized or virtual drive");
   pg_free_result($result);
 }
@@ -208,7 +210,8 @@ if ($confirmid) {
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
-  $result = pg_query("SELECT nextval('submissions2_id_seq')");
+  $result = pg_query("SELECT nextval('submissions2_id_seq')")
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
   $record_id =  pg_fetch_result($result,0,0);
   pg_free_result($result);
 
