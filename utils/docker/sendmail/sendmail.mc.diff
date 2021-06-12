@@ -1,0 +1,26 @@
+--- /etc/mail/sendmail.mc.bak   2021-03-02 04:30:47.823589862 +0000
++++ /etc/mail/sendmail.mc       2021-03-02 04:33:26.872620185 +0000
+@@ -72,7 +72,7 @@
+ FEATURE(`use_cw_file')dnl
+ dnl #
+ dnl # The access db is the basis for most of sendmail's checking
+-FEATURE(`access_db', , `skip')dnl
++FEATURE(`access_db')dnl
+ dnl #
+ dnl # The greet_pause feature stops some automail bots - but check the
+ dnl # provided access db for details on excluding localhosts...
+@@ -97,6 +97,14 @@
+ include(`/etc/mail/m4/dialup.m4')dnl
+ include(`/etc/mail/m4/provider.m4')dnl
+ dnl #
++define(`SMART_HOST', `email-smtp.us-east-1.amazonaws.com')dnl
++define(`RELAY_MAILER_ARGS', `TCP $h 587')dnl
++define(`ESMTP_MAILER_ARGS', `TCP $h 587')dnl
++define(`confAUTH_MECHANISMS', `LOGIN PLAIN')dnl
++FEATURE(`authinfo', `hash -o /etc/mail/authinfo.db')dnl
++MASQUERADE_AS(`cuetools.net')dnl
++FEATURE(masquerade_envelope)dnl
++FEATURE(masquerade_entire_domain)dnl
+ dnl # Default Mailer setup
+ MAILER_DEFINITIONS
+ MAILER(`local')dnl
