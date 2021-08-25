@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install zip
 RUN pear install channel://pear.php.net/XML_Serializer-0.21.0 \
     && rm -rf /tmp/pear
+COPY remoteip.conf /etc/apache2/conf-available/
+RUN ln -s ../mods-available/remoteip.load /etc/apache2/mods-enabled/ \
+    && ln -s ../conf-available/remoteip.conf /etc/apache2/conf-enabled/
 COPY db.cue.tools/ /var/www/html/
 COPY ctdbcfg.php /var/www/html/
 RUN mkdir /var/www/html/parity && chown www-data.www-data /var/www/html/parity
