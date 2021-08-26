@@ -37,6 +37,9 @@ google.setOnLoadCallback(updateTotals());
 <body>
 <div id="ctdbheader">
 <span id="ctdbtotals"></span>
+<span id="ctdbsponsor" style="float:right;">
+<iframe src="https://github.com/sponsors/gchudov/button" title="Sponsor gchudov" height="35" width="116" style="border: 0;"></iframe>
+</span>
 <div id="ctdbmenu">
 <a class="ctdbmenu01" href="/">Home</a>
 <a class="ctdbmenu02" href="/top.php">Popular</a>
