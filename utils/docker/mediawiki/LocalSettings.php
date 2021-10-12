@@ -160,20 +160,17 @@ $wgDefaultUserOptions['usebetatoolbar'] = 1;
 $wgDefaultUserOptions['usebetatoolbar-cgd'] = 1;
 $wgDefaultUserOptions['wikieditor-preview'] = 1;
 
-wfLoadExtensions( array( 'ConfirmEdit', 'ConfirmEdit/ReCaptchaNoCaptcha' ) );
-$wgCaptchaClass = 'ReCaptchaNoCaptcha';
-$wgReCaptchaSiteKey = '6Ld6BsgSAAAAAIv4joGO60OjtfxxU6FNAoj9nCra';
-$wgReCaptchaSecretKey = '6Ld6BsgSAAAAAArzGB8Te-fGh3lj92L-W2WvXu42';
-$wgReCaptchaSendRemoteIP = true;
+#wfLoadExtensions( array( 'ConfirmEdit', 'ConfirmEdit/ReCaptchaNoCaptcha' ) );
+#$wgCaptchaClass = 'ReCaptchaNoCaptcha';
+#$wgReCaptchaSiteKey = '6Ld6BsgSAAAAAIv4joGO60OjtfxxU6FNAoj9nCra';
+#$wgReCaptchaSecretKey = '6Ld6BsgSAAAAAArzGB8Te-fGh3lj92L-W2WvXu42';
+#$wgReCaptchaSendRemoteIP = true;
 
-#wfLoadExtensions( array( 'ConfirmEdit', 'ConfirmEdit/QuestyCaptcha' ) );
-#$arr = array (
-#        "What is the most popular lossless audio codec?" => "flac",
-#        'What file extension is used for CD table of contents?' => 'cue',
-#);
-#foreach ( $arr as $key => $value ) {
-#        $wgCaptchaQuestions[] = array( 'question' => $key, 'answer' => $value );
-#}
+wfLoadExtensions( array( 'ConfirmEdit', 'ConfirmEdit/QuestyCaptcha' ) );
+$wgCaptchaQuestions = [
+        "What is the most popular lossless audio codec?" => "flac",
+        'What file extension is used for CD table of contents?' => 'cue',
+];
 
 wfLoadExtension('StopForumSpam');
 $wgSFSIPListLocation = '/var/www/blacklist/listed_ip_30_all.zip';

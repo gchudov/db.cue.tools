@@ -38,5 +38,9 @@ RUN set -eux; \
         cd .. ; \
 	chown -R www-data:www-data extensions
 
+COPY remoteip.conf /etc/apache2/conf-available/
+RUN ln -s ../mods-available/remoteip.load /etc/apache2/mods-enabled/ \
+    && ln -s ../conf-available/remoteip.conf /etc/apache2/conf-enabled/
+
 COPY extensions/googleAnalyticsLinks/ /var/www/html/extensions/googleAnalyticsLinks/
 COPY .htaccess /var/www/html/
