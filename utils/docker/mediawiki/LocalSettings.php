@@ -45,7 +45,7 @@ $wgLogo             = "http://s3.cuetools.net/ctdb64.png";
 ## UPO means: this is also a user preference option
 
 $wgSMTP = array(
- 'host'     => "172.18.0.1",       // could also be an IP address. Where the SMTP server is located
+ 'host'     => "sendmail",         // could also be an IP address. Where the SMTP server is located
  'IDHost'   => "cue.tools",        // Generally this will be the domain name of your website (aka mywiki.org)
  'port'     => 25,                 // Port to use when connecting to the SMTP server
  'auth'     => false,              // Should we use SMTP authentication (true or false)
@@ -72,6 +72,7 @@ $wgDBserver         = "pgbouncer";
 $wgDBname           = "ctwiki";
 $wgDBuser           = "ctwiki";
 $wgDBpassword       = "";
+$wgDBmwschema       = "mediawiki";
 $wgDBprefix         = "";
 
 # Postgres specific settings
@@ -164,6 +165,7 @@ $wgCaptchaClass = 'ReCaptchaNoCaptcha';
 $wgReCaptchaSiteKey = '6Ld6BsgSAAAAAIv4joGO60OjtfxxU6FNAoj9nCra';
 $wgReCaptchaSecretKey = '6Ld6BsgSAAAAAArzGB8Te-fGh3lj92L-W2WvXu42';
 $wgReCaptchaSendRemoteIP = true;
+
 #wfLoadExtensions( array( 'ConfirmEdit', 'ConfirmEdit/QuestyCaptcha' ) );
 #$arr = array (
 #        "What is the most popular lossless audio codec?" => "flac",
@@ -172,6 +174,10 @@ $wgReCaptchaSendRemoteIP = true;
 #foreach ( $arr as $key => $value ) {
 #        $wgCaptchaQuestions[] = array( 'question' => $key, 'answer' => $value );
 #}
+
+wfLoadExtension('StopForumSpam');
+$wgSFSIPListLocation = '/var/www/blacklist/listed_ip_30_all.zip';
+
 wfLoadExtension('SpamBlacklist');
 
 $wgSpamBlacklistFiles = array(

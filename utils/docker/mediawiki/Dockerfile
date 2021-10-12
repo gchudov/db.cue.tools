@@ -1,4 +1,4 @@
-FROM mediawiki:1.31
+FROM mediawiki:1.35
 
 # System dependencies
 RUN set -eux; \
@@ -17,25 +17,26 @@ RUN set -eux; \
                 pgsql \
 	;
 
-RUN ln -s ../mods-available/rewrite.load /etc/apache2/mods-enabled/
 RUN set -eux; \
         cd extensions ; \
 	mkdir MobileFrontend ; \
         cd MobileFrontend ; \
-	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/MobileFrontend/+archive/REL1_31.tar.gz" | tar -zx ; \
+	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/MobileFrontend/+archive/REL1_35.tar.gz" | tar -zx ; \
+        cd .. ; \
+        mkdir StopForumSpam ; \
+        cd StopForumSpam ; \
+	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/StopForumSpam/+archive/REL1_35.tar.gz" | tar -zx ; \
         cd .. ; \
 	mkdir googleAnalytics ; \
         cd googleAnalytics ; \
-	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/googleAnalytics/+archive/REL1_31.tar.gz" | tar -zx ; \
+	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/googleAnalytics/+archive/REL1_35.tar.gz" | tar -zx ; \
         cd .. ; \
 	mkdir CheckUser; \
         cd CheckUser ; \
-	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/CheckUser/+archive/REL1_31.tar.gz" | tar -zx ; \
+	curl -fsSL "https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/CheckUser/+archive/REL1_35.tar.gz" | tar -zx ; \
         cd .. ; \
         cd .. ; \
 	chown -R www-data:www-data extensions
 
 COPY extensions/googleAnalyticsLinks/ /var/www/html/extensions/googleAnalyticsLinks/
 COPY .htaccess /var/www/html/
-COPY patch.diff /var/www/html/
-RUN patch -p1 < patch.diff
