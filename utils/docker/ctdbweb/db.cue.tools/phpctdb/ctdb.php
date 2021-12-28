@@ -552,7 +552,7 @@ class phpCTDB{
 		    'id' => $r['discogs_id'],
 		    'artistname' => @$artist_credit[$r['artist_credit']],
 		    'albumname' => $r['title'],
-		    'first_release_date_year' => ($r['year'] != null ? $r['year'] : substr($r['released'],0,4)),
+		    'first_release_date_year' => (int) ($r['year'] != null ? $r['year'] : substr($r['released'],0,4)),
 		    'genre' => null, //$r['genre'],
 		    'extra' => $r['notes'],
 		    'tracklist' => $tracklist,
