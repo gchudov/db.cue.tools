@@ -37,7 +37,7 @@ foreach ($records as $record)
   if (!file_exists($localname)) {
     echo 'File missing: ';
     print_r($record);
-    $result = pg_query_params($dbconn, "UPDATE submissions2 SET hasparity = false WHERE id=$1", array($record['id']));
+    $result = pg_query_params($dbconn, "UPDATE submissions2 SET hasparity = false WHERE id=$1 AND NOT s3", array($record['id']));
     pg_free_result($result);
     continue;
   }

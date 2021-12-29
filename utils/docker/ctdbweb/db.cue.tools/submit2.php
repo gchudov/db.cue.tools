@@ -18,32 +18,36 @@ $options = array(
 $serializer = new XML_Serializer($options);
 
 $version = isset($_POST['ctdb']) ? $_POST['ctdb'] : 1;
-if ($version > 1) header('Content-type: text/xml; charset=UTF-8');
+if ($version < 2) {
+    die('Invalid version');
+}
+
+header('Content-type: text/xml; charset=UTF-8');
 
 function report_success($reason) {
-  global $version, $serializer;
+  global $serializer;
   $response = array('status' => 'success', 'message' => $reason);
 #  if (substr($_SERVER['HTTP_USER_AGENT'],0,strlen('EACv1.0b3 CTDB 2.1.4')) == 'EACv1.0b3 CTDB 2.1.4') {
 #    $response['updateurl'] = 'http://s3.cuetools.net/CUETools.CTDB.EACPlugin.Installer.msi';
 #    $response['updatemsg'] = 'Version 2.1.4 adds support for coverart.';
 #  }
-  die($version == 1 ? $reason : $serializer->serialize($response));
+  die($serializer->serialize($response));
 }
 
 function fatal_error($reason) {
-  global $version, $serializer;
+  global $serializer;
   $response = array('status' => 'error', 'message' => $reason);
 #  if (substr($_SERVER['HTTP_USER_AGENT'],0,strlen('EACv1.0b3 CTDB 2.1.4')) == 'EACv1.0b3 CTDB 2.1.4') {
 #    $response['updateurl'] = 'http://s3.cuetools.net/CUETools.CTDB.EACPlugin.Installer.msi';
 #    $response['updatemsg'] = 'Version 2.1.4 adds support for coverart.';
 #  }
-  #error_log("response: " . print_r($version == 1 ? $reason : $serializer->serialize($response), true));
-  die($version == 1 ? $reason : $serializer->serialize($response));
+  #error_log("response: " . print_r($serializer->serialize($response), true));
+  die($serializer->serialize($response));
 }
 
 function parity_needed($npar) {
-  global $version, $serializer;
-  die($version == 1 ? 'parity needed' : $serializer->serialize(array('status' => 'parity needed', 'message' => 'parity needed', 'npar' => $npar)));
+  global $serializer;
+  die($serializer->serialize(array('status' => 'parity needed', 'message' => 'parity needed', 'npar' => $npar)));
 }
 
 $dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432")
@@ -58,8 +62,6 @@ $toc = phpCTDB::toc_s2toc($toc_s);
 $tocid = phpCTDB::toc2tocid($toc);
 
 $trackoffsets = explode(' ', $toc['trackoffsets']);
-if ($version == 1 && $trackoffsets[0] != 0)
-  fatal_error('discs with pregaps not supported in this protocol version');
 
 $paritysample = @$_POST['parity'];
 if (!$paritysample) fatal_error('parity not specified');
@@ -125,13 +127,12 @@ if ($confirmid)
   $oldsyn = phpCTDB::bytea_to_string(@$oldrecord['syndrome']);
   if ($oldrecord['hasparity'] != 't') $needparfile = true;
   if ($oldrecord['track_crcs'] == null) $needparfile = true;
-  if ($version > 1 && $oldrecord['syndrome'] == null) $needparfile = true;
-  if ($version > 1 && $oldrecord['subcount'] + 1 >= 5 && ($oldsyn == null || strlen($oldsyn) < 16)) {
+  if ($oldrecord['syndrome'] == null) $needparfile = true;
+  if ($oldrecord['subcount'] + 1 >= 5 && ($oldsyn == null || strlen($oldsyn) < 16)) {
     $needparfile = true;
     $neednpar = 16;
   }
 
-  if ($version > 1) {
     if ($crc32 != $oldrecord['crc32'])
       submit_error($dbconn, $record3, "crc32 mismatch");
     $old_track_crcs = null;
@@ -146,7 +147,6 @@ if ($confirmid)
       if (substr($syndromesample, 0, $synlen) != substr($oldsyn, 0, $synlen))
         submit_error($dbconn, $record3, "syndrome mismatch");
     }
-  }
 }
 else
 {
@@ -165,12 +165,10 @@ if ($parfile && !$needparfile)
 #error_log(print_r($_POST,true));
 #error_log('v=' . $version);
 #error_log('maxid=' . $maxid);
-if ($version != 1) {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND trackoffsets = $2 AND id > $3", array($tocid, $toc['trackoffsets'], $maxid))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "client is not aware of recent entries"); // or confirm?
   pg_free_result($result);
-}
 
 if ($confirmid) {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND (userid=$2 OR ip=$3) AND drivename=$4", array($confirmid, $record3['userid'], $record3['ip'], $record3['drivename']))

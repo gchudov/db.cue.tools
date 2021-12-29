@@ -38,6 +38,10 @@ $fuzzy = @$_GET['fuzzy'];
 $toc = phpCTDB::toc_s2toc($toc_s);
 $records = array();
 
+if ($ctdbversion < 2) {
+  die('Invalid version');
+}
+
 if ($doctdb > 0)
 {
   $dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432") or die('Could not connect: ' . pg_last_error());
@@ -109,13 +113,8 @@ else if ($type == 'xml')
   {
     $parityurl = null;
     $record['syndrome'] = phpCTDB::bytea_to_string($record['syndrome']);
-    if ($record['hasparity'] == 't') {
-      if ($record['syndrome'] != null && $ctdbversion == 1)
-        $parityurl = $record['s3'] == 't' ? "/tov1.php?id=" . $record['id'] : null;
-      else if ($record['syndrome'] == null && $ctdbversion > 1)
-        $parityurl = $record['s3'] == 't' ? "/tov2.php?id=" . $record['id'] : null;
-      else
-        $parityurl = sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "/parity", $record['id']);
+    if ($record['hasparity'] == 't' && $record['syndrome'] != null) {
+      $parityurl = sprintf("%s/%d", $record['s3'] == 't' ? "http://p.cuetools.net" : "/parity", $record['id']);
     }
     $track_crcs_s = null;
     if ($record['track_crcs'] != null && $ctdbversion > 1) {
