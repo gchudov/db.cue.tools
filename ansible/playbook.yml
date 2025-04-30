@@ -45,3 +45,64 @@
         fi
       args:
         creates: /usr/local/bin/code
+
+  #   - name: Add freedb cron job
+  #     ansible.builtin.cron:
+  #       name: "freedb"
+  #       minute: "51"
+  #       hour: "1"
+  #       day: "5"
+  #       job: "/opt/ctdb/www/ctdbweb/utils/freedb/request_spot.sh >> /var/log/reqspot 2>&1"
+  #       user: "root"
+
+  #   - name: Add discogs cron job
+  #     ansible.builtin.cron:
+  #       name: "discogs"
+  #       minute: "41"
+  #       hour: "1"
+  #       day: "5"
+  #       job: "/opt/ctdb/www/ctdbweb/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1"
+  #       user: "root"
+
+  #   - name: Add mbslave cron job
+  #     ansible.builtin.cron:
+  #       name: "mbslave"
+  #       minute: "15"
+  #       job: "/root/mbslave/mbslave-sync.py >> /var/log/mbreplication 2>&1"
+  #       user: "root"
+
+  #   - name: Add stats cron job
+  #     ansible.builtin.cron:
+  #       name: "stats"
+  #       minute: "1"
+  #       job: "/usr/bin/psql -U ctdb_user ctdb -f /opt/ctdb/www/ctdbweb/utils/hourly_stats.sql >> /dev/null 2>&1"
+  #       user: "root"
+
+    - name: Run PostgreSQL 16 container
+      become: yes
+      community.docker.docker_container:
+        name: postgres16
+        image: postgres:16
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - postgres16:/var/lib/postgresql/data
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+
+    - name: Get system architecture for Docker Compose URL
+      become: yes
+      shell: echo "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)"
+      register: docker_compose_url
+
+    - name: Install Docker Compose
+      become: yes
+      ansible.builtin.get_url:
+        url: "{{ docker_compose_url.stdout }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Verify Docker Compose installation
+      become: yes
+      command: docker-compose --version
