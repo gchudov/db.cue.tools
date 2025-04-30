@@ -26,18 +26,22 @@
         name: tmux
         state: present
 
+    - name: Check if Docker network 'ct' exists
+      command: docker network inspect ct
+      register: docker_network_check
+      ignore_errors: yes
+
     - name: Create Docker network 'ct'
       command: docker network create ct
-      args:
-        creates: /var/lib/docker/network/files/ct
+      when: docker_network_check.rc != 0
 
     - name: Download and install VS Code CLI for Amazon Graviton
       become: yes
       shell: |
         if [ ! -f /usr/local/bin/code ]; then
-          curl -L https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-arm64 -o vscode-cli-alpine-arm64.tar.gz
-          tar -xzf vscode-cli-alpine-arm64.tar.gz -C /usr/local/bin
-          rm vscode-cli-alpine-arm64.tar.gz
+          curl -L --no-progress-meter "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-arm64" -o /tmp/vscode-cli-alpine-arm64.tar.gz
+          tar -xzf /tmp/vscode-cli-alpine-arm64.tar.gz -C /usr/local/bin
+          rm /tmp/vscode-cli-alpine-arm64.tar.gz
         fi
       args:
         creates: /usr/local/bin/code

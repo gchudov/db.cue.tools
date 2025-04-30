@@ -32,7 +32,7 @@ resource "aws_instance" "example" {
     sudo yum install -y git ansible
 
     # Clone the repository
-    git clone https://github.com/gchudov/db.cue.tools.git /opt/db.cue.tools
+    git clone --recurse-submodules https://github.com/gchudov/db.cue.tools.git /opt/db.cue.tools
 
     cd /opt/db.cue.tools/ansible
     ansible-playbook /opt/db.cue.tools/ansible/playbook.yml
