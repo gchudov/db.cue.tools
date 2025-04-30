@@ -2,6 +2,24 @@
 - name: Manage system setup
   hosts: localhost
   tasks:
+    - name: Install Docker
+      become: yes
+      yum:
+        name: docker
+        state: present
+
+    - name: Enable Docker service
+      become: yes
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Start Docker service
+      become: yes
+      service:
+        name: docker
+        state: started
+
     - name: Install tmux
       become: yes
       yum:
