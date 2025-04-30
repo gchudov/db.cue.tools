@@ -29,21 +29,12 @@ resource "aws_instance" "example" {
   user_data = <<-EOF
     #!/bin/bash
     # Install required tools
-    sudo yum install -y tmux git unzip
-
-    # Install Terraform
-    curl -fsSL https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_arm64.zip -o terraform.zip
-    unzip terraform.zip -d /usr/local/bin/
-    rm -f terraform.zip
+    sudo yum install -y git ansible
 
     # Clone the repository
     git clone https://github.com/gchudov/db.cue.tools.git /opt/db.cue.tools
 
-    # Change directory to the environment Terraform scripts
-    cd /opt/db.cue.tools/utils/terraform/environment
-
-    # Initialize and apply Terraform
-    /usr/local/bin/terraform init
-    /usr/local/bin/terraform apply -auto-approve
+    cd /opt/db.cue.tools/ansible
+    ansible-playbook /opt/db.cue.tools/ansible/playbook.yml
   EOF
 }

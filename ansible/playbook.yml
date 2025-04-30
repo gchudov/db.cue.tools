@@ -1,0 +1,25 @@
+---
+- name: Manage system setup
+  hosts: localhost
+  tasks:
+    - name: Install tmux
+      become: yes
+      yum:
+        name: tmux
+        state: present
+
+    - name: Create Docker network 'ct'
+      command: docker network create ct
+      args:
+        creates: /var/lib/docker/network/files/ct
+
+    - name: Download and install VS Code CLI for Amazon Graviton
+      become: yes
+      shell: |
+        if [ ! -f /usr/local/bin/code ]; then
+          curl -L https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-arm64 -o vscode-cli-alpine-arm64.tar.gz
+          tar -xzf vscode-cli-alpine-arm64.tar.gz -C /usr/local/bin
+          rm vscode-cli-alpine-arm64.tar.gz
+        fi
+      args:
+        creates: /usr/local/bin/code
