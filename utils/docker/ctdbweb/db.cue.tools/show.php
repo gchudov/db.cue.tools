@@ -91,7 +91,7 @@ $json_tracks_table = array('cols' => array(
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
     <!--script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.min.js?id=<?php echo $ctdbcfg_s3_id?>"></script-->
     <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
@@ -116,7 +116,7 @@ $json_tracks_table = array('cols' => array(
         var mbdiv = $('#releases_div');
         mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
         $.ajax({
-          url: "http://db.cuetools.net/lookup2.php?ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>&jsonp=?",
+          url: "http://db.cuetools.net/lookup2.php?version=3&ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>&jsonp=?",
           cache: true,
           dataType: "jsonp",
           jsonpCallback: "jQuery17108581121710594743_1333124620119",
@@ -178,7 +178,7 @@ include 'logo_start2.php';
 <table class="ctdbbox" border=0 cellspacing=0 cellpadding=0 width="1200">
 <tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid width=50%><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=<?php echo phpCTDB::toc_toc2s($record); ?>"><?php echo $record['tocid']; ?></a></td><td rowspan=10 style="vertical-align: top;"><div id='tracks_div'></div></td></tr>
 <tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=<?php echo phpCTDB::toc2mbtoc($record);?>"><?php echo $mbid;?></a></tr>
-<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid><form align=right method=post action="http://www.freedb.org/freedb_discid_check.php" name=mySearchForm id="mySearchForm"><input type=hidden name=page value=1><input type=hidden name=discid value="<?php echo phpCTDB::toc2cddbid($record);?>"></form><a href="javascript:void(0)" onclick="javascript: document.getElementById(\'mySearchForm\') .submit(); return false;"><?php echo phpCTDB::toc2cddbid($record);?></a></td></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid>><?php echo phpCTDB::toc2cddbid($record);?></td></tr>
 <?php
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
 if ($isadmin)

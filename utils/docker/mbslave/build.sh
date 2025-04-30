@@ -1,1 +1,1 @@
-docker build . -t mbslave
+docker build mbslave -f mbslave/Dockerfile.mbslave -t mbslave

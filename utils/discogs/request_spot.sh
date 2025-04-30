@@ -19,7 +19,7 @@ DEBUG=
 PRINT=
 PRICE=0.20
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
-AMIID=ami-0c7d8678e345b414c #amzn-ami-hvm-2018.03.0.20180811-x86_64-ebs
+AMIID=ami-01d425805aef71788 #amzn2-ami-hvm-2.0.20211005.0-x86_64-ebs
 
 while getopts “hrdnp:” OPTION
 do
@@ -68,14 +68,15 @@ mkfs.ext4 /dev/nvme1n1
 mkdir -p /media/ephemeral0
 mount /dev/nvme1n1 /media/ephemeral0
 cd /media/ephemeral0
-yum -y install postgresql9-server postgresql9-contrib
-yum -y --enablerepo=epel install php-cli php-xml php-pgsql git augeas aws-cli
+yum -y install postgresql-server postgresql-contrib
+yum -y install php-cli php-xml php-pgsql git augeas aws-cli
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
 sed -i 's/memory_limit = [0-9]*M/memory_limit = 12000M/g' /etc/php.ini
-sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/rc.d/init.d/postgresql
-sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /etc/sysconfig/pgsql/postgresql
-service postgresql initdb
+sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /usr/lib/systemd/system/postgresql.service
+mkdir /media/ephemeral0/pgsql
+chown postgres.postgres /media/ephemeral0/pgsql
+postgresql-setup initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
@@ -90,14 +91,32 @@ fi
 
 EOF
 )"
+UDATA64=$(base64 -w 0 <<< "$UDATA");
+LAUNCH_SPEC="$( cat <<EOF
+{
+  "IamInstanceProfile": { "Arn": "$IROLE" },
+  "ImageId": "$AMIID",
+  "InstanceType": "r5d.large",
+  "KeyName" : "ec2",
+  "NetworkInterfaces": [
+    {
+      "DeviceIndex": 0,
+      "SubnetId": "subnet-0e728857",
+      "Groups": [ "sg-5d2f8a3a" ],
+      "AssociatePublicIpAddress": true
+    }
+  ],
+  "UserData": "$UDATA64"
+}
+EOF
+)"
 if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
-source /etc/profile.d/aws-apitools-common.sh
-$EC2_HOME/bin/ec2-request-spot-instances $AMIID --network-attachment :0:subnet-0e728857::10.0.0.55:sg-5d2f8a3a:true --associate-public-ip-address true --iam-profile $IROLE --key ec2 --instance-count 1 --price $PRICE --type one-time --instance-type r5d.large --user-data "$UDATA"
-#aws ec2 request-spot-instances --region us-east-1 --block-duration-minutes 360 --spot-price $PRICE --type one-time 
+aws ec2 request-spot-instances --region us-east-1 --spot-price $PRICE --type one-time --launch-specification "$LAUNCH_SPEC"
 aws ec2 describe-spot-instance-requests --region us-east-1
 else
 cat <<EOF
-$UDATA
+UDATA:$UDATA
+LAUNCH_SPEC:$LAUNCH_SPEC
 EOF
 fi

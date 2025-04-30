@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
 <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
@@ -128,7 +128,7 @@ function drawTable()
     mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
     mbdiv.show();
     $.ajax({
-      url: "/lookup2.php?ctdb=0&metadata=<?php echo @$_GET['metadata']=='extensive' ? 'extensive' : 'default'; ?>&fuzzy=1&jsonp=?",
+      url: "/lookup2.php?version=3&ctdb=0&metadata=<?php echo @$_GET['metadata']=='extensive' ? 'extensive' : 'default'; ?>&fuzzy=1&jsonp=?",
       cache: true,
       data: {toc : toc_s},
       dataType: "jsonp",

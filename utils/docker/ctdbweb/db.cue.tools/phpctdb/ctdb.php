@@ -778,7 +778,7 @@ class phpCTDB{
             'm.id AS mediumid, ' .
             'rgm.first_release_date_year, ' .
 //            '(select array_agg(tn.name ORDER BY t.position) FROM track t INNER JOIN track_name tn ON t.name = tn.id WHERE t.tracklist = m.tracklist) as tracklist, ' .
-            'rca.cover_art_url as coverarturl, ' .
+//            'rca.cover_art_url as coverarturl, ' .
             'rm.info_url, ' .
             'r.gid as id, ' .
             'r.artist_credit, ' .
@@ -797,7 +797,7 @@ class phpCTDB{
             'INNER JOIN release r on r.id = m.release ' .
 //            'INNER JOIN release_group rg on rg.id = r.release_group ' .
 //            'INNER JOIN artist_credit ac ON ac.id = rg.artist_credit ' .
-            'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
+//            'LEFT OUTER JOIN release_coverart rca ON rca.id = r.id ' .
             'LEFT OUTER JOIN release_meta rm ON rm.id = r.id ' .
             'LEFT OUTER JOIN release_group_meta rgm ON rgm.id = r.release_group ' .
 	    'WHERE m.id IN ' . phpCTDB::pg_array_indexes($mediumids), $mediumids); 
@@ -919,7 +919,7 @@ class phpCTDB{
                       $caids[$caa['id']] = true;
                     }
                   if (!count($coverart))
-                  if (!isset($r['coverarturl']) || $r['coverarturl'] == '')
+//                  if (!isset($r['coverarturl']) || $r['coverarturl'] == '')
                   if (isset($r['info_url']) && $r['info_url'] != '')
                   if (0 < preg_match("/(http\:\/\/www\.amazon\.)([^\/]*)\/gp\/product\/(.*)/", $r['info_url'], $match))
                   {

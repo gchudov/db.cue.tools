@@ -1,0 +1,4 @@
+[submodule "utils/docker/mbslave/mbdata"]
+	path = utils/docker/mbslave/mbdata
+	url = https://github.com/acoustid/mbdata
+	branch = main

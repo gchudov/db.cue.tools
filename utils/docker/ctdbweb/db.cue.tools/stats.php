@@ -10,7 +10,7 @@ $ctdb_page_title = 'Statistics';
     <script type="text/javascript"
       src='https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1"}]}'>
     </script>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
     <script type="text/javascript">
       function drawSubmissions() {
