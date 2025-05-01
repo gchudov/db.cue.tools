@@ -1,0 +1,43 @@
+---
+- name: Set up MusicBrainz in mirror-only mode
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Clone the MusicBrainz Docker repository
+      git:
+        repo: https://github.com/metabrainz/musicbrainz-docker.git
+        dest: /opt/musicbrainz-docker
+
+    - name: Change to the MusicBrainz Docker directory
+      command: chdir=/opt/musicbrainz-docker pwd
+      register: musicbrainz_dir
+
+    - name: Configure for mirror-only mode
+      command: ./admin/configure with alt-db-only-mirror
+      args:
+        chdir: "{{ musicbrainz_dir.stdout }}"
+
+    - name: Build Docker images
+      command: docker-compose build
+      args:
+        chdir: "{{ musicbrainz_dir.stdout }}"
+
+    # - name: Build and start Docker Compose services
+    #   community.docker.docker_compose:
+    #     project_src: /opt/musicbrainz-docker
+    #     state: present
+
+    - name: Create the database
+      command: docker-compose run --rm musicbrainz createdb.sh -fetch
+      args:
+        chdir: "{{ musicbrainz_dir.stdout }}"
+
+    - name: Start the MusicBrainz services
+      command: docker-compose up -d
+      args:
+        chdir: "{{ musicbrainz_dir.stdout }}"
+
+    # - name: Start the MusicBrainz services
+    #   community.docker.docker_compose:
+    #     project_src: /opt/musicbrainz-docker
+    #     state: started

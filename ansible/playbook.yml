@@ -39,9 +39,9 @@
       become: yes
       shell: |
         if [ ! -f /usr/local/bin/code ]; then
-          curl -L --no-progress-meter "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-arm64" -o /tmp/vscode-cli-alpine-arm64.tar.gz
-          tar -xzf /tmp/vscode-cli-alpine-arm64.tar.gz -C /usr/local/bin
-          rm /tmp/vscode-cli-alpine-arm64.tar.gz
+          curl -L --no-progress-meter "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o /tmp/vscode-cli.tar.gz
+          tar -xzf /tmp/vscode-cli.tar.gz -C /usr/local/bin
+          rm /tmp/vscode-cli.tar.gz
         fi
       args:
         creates: /usr/local/bin/code
@@ -90,6 +90,58 @@
           - postgres16:/var/lib/postgresql/data
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
+
+    - name: Create /var/run/postgresql directory
+      become: yes
+      file:
+        path: /var/run/postgresql
+        state: directory
+        mode: '0777'
+        owner: root
+        group: root
+
+    - name: Run PGBouncer container
+      become: yes
+      community.docker.docker_container:
+        name: pgbouncer
+        image: pgbouncer/pgbouncer:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - /var/run/postgresql:/var/run/postgresql
+          - /opt/db.cue.tools/utils/docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
+        env:
+          DATABASES: "ctwiki = host=postgres96,freedb = host=postgres96,discogs = host=postgres96,musicbrainz = host=musicbrainz-docker-db-1,ctdb = host=postgres96"
+          PGBOUNCER_AUTH_TYPE: trust
+          PGBOUNCER_AUTH_FILE: /etc/pgbouncer/userlist.txt
+          PGBOUNCER_UNIX_SOCKET_DIR: /var/run/postgresql
+        # PGBOUNCER_LISTEN_PORT: 6544
+
+    - name: Build a container image for the Apache2 reverse proxy
+      become: yes
+      community.docker.docker_image:
+        name: proxy
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/proxy
+          dockerfile: Dockerfile
+
+    - name: Run apache2 reverse proxy container
+      become: yes
+      community.docker.docker_container:
+        name: proxy
+        image: proxy:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - /etc/letsencrypt:/etc/letsencrypt
+        ports:
+          - "80:80"
+          - "443:443"
 
     - name: Get system architecture for Docker Compose URL
       become: yes
