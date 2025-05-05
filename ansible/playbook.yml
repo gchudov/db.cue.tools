@@ -26,6 +26,12 @@
         name: tmux
         state: present
 
+    - name: Install Pip
+      become: yes
+      yum:
+        name: pip
+        state: present
+
     - name: Check if Docker network 'ct' exists
       command: docker network inspect ct
       register: docker_network_check
@@ -112,11 +118,29 @@
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
         env:
-          DATABASES: "ctwiki = host=postgres96,freedb = host=postgres96,discogs = host=postgres96,musicbrainz = host=musicbrainz-docker-db-1,ctdb = host=postgres96"
+          DATABASES: "ctwiki = host=postgres96,freedb = host=postgres96,discogs = host=postgres96,musicbrainz = host=musicbrainz-docker-db-1 dbname=musicbrainz_db,ctdb = host=postgres96"
           PGBOUNCER_AUTH_TYPE: trust
           PGBOUNCER_AUTH_FILE: /etc/pgbouncer/userlist.txt
           PGBOUNCER_UNIX_SOCKET_DIR: /var/run/postgresql
         # PGBOUNCER_LISTEN_PORT: 6544
+
+    - name: Check if Certbot certificate exists
+      stat:
+        path: /etc/letsencrypt/live/cue.tools/cert.pem
+      register: certbot_cert
+
+    - name: Run Certbot container
+      become: yes
+      community.docker.docker_container:
+        name: certbot
+        image: certbot/dns-route53:latest
+        state: started
+        restart_policy: always
+        volumes:
+          - /etc/letsencrypt:/etc/letsencrypt
+          - /var/lib/letsencrypt:/var/lib/letsencrypt
+        command: certonly --dns-route53 --agree-tos --domains cue.tools,db.cue.tools,www.cue.tools -n
+      when: not certbot_cert.stat.exists
 
     - name: Build a container image for the Apache2 reverse proxy
       become: yes
@@ -143,18 +167,77 @@
           - "80:80"
           - "443:443"
 
-    - name: Get system architecture for Docker Compose URL
+    - name: Fetch secret from AWS Secrets Manager and run container with config
       become: yes
-      shell: echo "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)"
-      register: docker_compose_url
+      block:
+        - name: Ensure boto3 is installed
+          pip:
+            name: boto3
+            state: present
+
+        - name: Ensure botocore is installed
+          pip:
+            name: botocore
+            state: present
+
+        - name: Fetch secret from AWS Secrets Manager
+          set_fact:
+            secret_password: "{{ lookup('amazon.aws.aws_secret', 'adminer_otp_secret', region='us-east-1') | from_json | json_query('ADMINER_OTP_SECRET') }}"
+          no_log: true
+
+        - name: Generate configuration content
+          set_fact:
+            config_content: "{{ lookup('template', '/opt/db.cue.tools/utils/docker/adminer/login-otp.php.def') }}"
+          no_log: true
+
+        - name: Run adminer container
+          become: yes
+          community.docker.docker_container:
+            name: adminer
+            image: adminer:latest
+            state: started
+            restart_policy: always
+            network_mode: ct
+            volumes:
+              - /var/run/postgresql:/var/run/postgresql
+            env:
+              ADMINER_DEFAULT_SERVER: musicbrainz-docker-db-1
+
+        - name: Write configuration directly into container
+          shell: |
+            echo '{{ config_content }}' | docker exec -i adminer sh -c 'cat > /var/www/html/plugins-enabled/login-otp.php && chmod 0640 /var/www/html/plugins-enabled/login-otp.php'
+          args:
+            executable: /bin/bash
+          no_log: true
 
     - name: Install Docker Compose
       become: yes
-      ansible.builtin.get_url:
-        url: "{{ docker_compose_url.stdout }}"
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
+      block:
+        - name: Check Docker Compose version
+          command: docker-compose --version
+          register: docker_compose_check
+          failed_when: false
+          changed_when: false
 
-    - name: Verify Docker Compose installation
-      become: yes
-      command: docker-compose --version
+        - name: Install Docker Compose if not present
+          when: docker_compose_check.rc != 0
+          block:
+            - name: Determine system architecture
+              ansible.builtin.setup:
+                filter: ansible_architecture
+
+            - name: Set Docker Compose download URL
+              set_fact:
+                compose_arch: "{{ 'aarch64' if ansible_architecture == 'aarch64' else 'x86_64' }}"
+                compose_url: "https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+
+            - name: Download Docker Compose
+              ansible.builtin.get_url:
+                url: "{{ compose_url }}"
+                dest: /usr/local/bin/docker-compose
+                mode: '0755'
+
+        - name: Verify Docker Compose installation
+          command: docker-compose --version
+          changed_when: false
+

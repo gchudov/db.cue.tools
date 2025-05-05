@@ -1,57 +1,28 @@
 <?php
-require_once('plugins/login-otp.php');
+require_once("plugins/login-otp.php");
 
-        /**
-	 * Decodes a base32 string into a binary string.
-	 **/
-	function base32_decode($b32) {
 
-		$b32 	= strtoupper($b32);
-        $lut = array(    // Lookup needed for Base32 encoding
-                "A" => 0,       "B" => 1,
-                "C" => 2,       "D" => 3,
-                "E" => 4,       "F" => 5,
-                "G" => 6,       "H" => 7,
-                "I" => 8,       "J" => 9,
-                "K" => 10,      "L" => 11,
-                "M" => 12,      "N" => 13,
-                "O" => 14,      "P" => 15,
-                "Q" => 16,      "R" => 17,
-                "S" => 18,      "T" => 19,
-                "U" => 20,      "V" => 21,
-                "W" => 22,      "X" => 23,
-                "Y" => 24,      "Z" => 25,
-                "2" => 26,      "3" => 27,
-                "4" => 28,      "5" => 29,
-                "6" => 30,      "7" => 31
-        );
+function base32_decode($b32) {
+    $alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    $b32 = strtoupper($b32);
+    $binary = "";
 
-		if (!preg_match('/^[ABCDEFGHIJKLMNOPQRSTUVWXYZ234567]+$/', $b32, $match))
-			throw new Exception('Invalid characters in the base32 string.');
+    foreach (str_split($b32) as $char) {
+        $index = strpos($alphabet, $char);
+        if ($index === false) {
+            continue; // Skip invalid characters
+        }
+        $binary .= str_pad(decbin($index), 5, "0", STR_PAD_LEFT);
+    }
 
-		$l 	= strlen($b32);
-		$n	= 0;
-		$j	= 0;
-		$binary = "";
+    $decoded = "";
+    foreach (str_split($binary, 8) as $byte) {
+        $decoded .= chr(bindec($byte));
+    }
 
-		for ($i = 0; $i < $l; $i++) {
+    return rtrim($decoded, "\0");
+}
 
-			$n = $n << 5; 				// Move buffer left by 5 to make room
-			$n = $n + $lut[$b32[$i]]; 	// Add value into buffer
-			$j = $j + 5;				// Keep track of number of bits in buffer
-
-			if ($j >= 8) {
-				$j = $j - 8;
-				$binary .= chr(($n & (0xFF << $j)) >> $j);
-			}
-		}
-
-		return $binary;
-	}
-
-/**
-        * @param string decoded secret, e.g. base32_decode("SECRET")
-        */
 return new AdminerLoginOtp(
-        $secret = base32_decode("OTP-PASS-FIXME")
+        $secret = base32_decode("{{ secret_password }}")
 );
