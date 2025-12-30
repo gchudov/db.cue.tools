@@ -3,39 +3,92 @@
   hosts: localhost
   become: yes
   tasks:
+    - name: Set MusicBrainz Docker directory path
+      set_fact:
+        musicbrainz_dir: /opt/musicbrainz-docker
+
     - name: Clone the MusicBrainz Docker repository
       git:
         repo: https://github.com/metabrainz/musicbrainz-docker.git
-        dest: /opt/musicbrainz-docker
-
-    - name: Change to the MusicBrainz Docker directory
-      command: chdir=/opt/musicbrainz-docker pwd
-      register: musicbrainz_dir
+        dest: "{{ musicbrainz_dir }}"
 
     - name: Configure for mirror-only mode
       command: ./admin/configure with alt-db-only-mirror
       args:
-        chdir: "{{ musicbrainz_dir.stdout }}"
+        chdir: "{{ musicbrainz_dir }}"
 
     - name: Build Docker images
       command: docker-compose build
       args:
-        chdir: "{{ musicbrainz_dir.stdout }}"
+        chdir: "{{ musicbrainz_dir }}"
 
     # - name: Build and start Docker Compose services
     #   community.docker.docker_compose:
-    #     project_src: /opt/musicbrainz-docker
+    #     project_src: "{{ musicbrainz_dir }}"
     #     state: present
 
-    - name: Create the database
-      command: docker-compose run --rm musicbrainz createdb.sh -fetch
+    - name: Check if database exists
+      command: docker-compose run --rm musicbrainz carton exec -- /musicbrainz-server/script/database_exists MAINTENANCE
       args:
-        chdir: "{{ musicbrainz_dir.stdout }}"
+        chdir: "{{ musicbrainz_dir }}"
+      register: database_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Create the database
+      command: docker-compose run --rm musicbrainz createdb.sh -fetch -wget-opts --progress=dot
+      args:
+        chdir: "{{ musicbrainz_dir }}"
+      when: database_check.rc != 0
+
+    - name: Check if replication token file exists
+      stat:
+        path: "{{ musicbrainz_dir }}/local/secrets/metabrainz_access_token"
+      register: token_file
+
+    - name: Fetch metabrainz_access_token from AWS Secrets Manager
+      set_fact:
+        metabrainz_access_token: "{{ lookup('amazon.aws.aws_secret', 'metabrainz_access_token', region='us-east-1') | from_json | json_query('METABRAINZ_ACCESS_TOKEN') }}"
+      no_log: true
+      when: not token_file.stat.exists
+
+    - name: Set replication token using admin script
+      shell: echo "{{ metabrainz_access_token }}" | ./admin/set-replication-token
+      args:
+        chdir: "{{ musicbrainz_dir }}"
+      when: not token_file.stat.exists
+      no_log: true
+
+    - name: Re-check if replication token file exists
+      stat:
+        path: "{{ musicbrainz_dir }}/local/secrets/metabrainz_access_token"
+      register: token_file
+
+    - name: Configure replication token
+      command: ./admin/configure add replication-token
+      args:
+        chdir: "{{ musicbrainz_dir }}"
+      when: token_file.stat.exists
+
+    - name: Configure replication cron
+      command: ./admin/configure add replication-cron
+      args:
+        chdir: "{{ musicbrainz_dir }}"
+      when: token_file.stat.exists
 
     - name: Start the MusicBrainz services
       command: docker-compose up -d
       args:
-        chdir: "{{ musicbrainz_dir.stdout }}"
+        chdir: "{{ musicbrainz_dir }}"
+
+    - name: Run replication
+      command: docker-compose exec -T musicbrainz replication.sh
+      args:
+        chdir: "{{ musicbrainz_dir }}"
+      async: 3600
+      poll: 0
+      register: replication_job
+      when: token_file.stat.exists
 
     # - name: Start the MusicBrainz services
     #   community.docker.docker_compose:

@@ -20,6 +20,13 @@
         name: docker
         state: started
 
+    - name: Add ec2-user to docker group
+      become: yes
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
     - name: Install tmux
       become: yes
       yum:

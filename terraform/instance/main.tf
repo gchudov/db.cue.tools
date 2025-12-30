@@ -34,6 +34,9 @@ resource "aws_instance" "example" {
     # Clone the repository
     git clone --recurse-submodules https://github.com/gchudov/db.cue.tools.git /opt/db.cue.tools
 
+    # Change ownership to ec2-user so it can be edited later
+    chown -R ec2-user:ec2-user /opt/db.cue.tools
+
     cd /opt/db.cue.tools/ansible
     ansible-playbook /opt/db.cue.tools/ansible/playbook.yml
   EOF
