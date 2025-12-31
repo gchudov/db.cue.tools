@@ -19,7 +19,7 @@ class phpCTDB{
 
   static function records2json($records)
   {
-    $json_entries = false;
+    $json_entries = array();
     foreach($records as $record)
     {
       $trcnt = ($record['firstaudio'] > 1) ?
@@ -174,7 +174,7 @@ class phpCTDB{
 			$tocid = $tocid . (floor($ids[$tr] / 75) + 2);
 		$id0 = 0;
     for ($i = 0; $i < strlen($tocid); $i++)
-			$id0 += ord($tocid{$i}) - ord('0');
+			$id0 += ord($tocid[$i]) - ord('0');
     return 
 			sprintf('%02X', $id0 % 255) . 
 			sprintf('%04X', floor($ids[$record['trackcount']] / 75) - floor($ids[0] / 75)) .
@@ -245,11 +245,11 @@ class phpCTDB{
 	  if( '{}' != $text )
 	    do
 	    {
-	      if( '{' != $text{$offset} )
+	      if( '{' != $text[$offset] )
 	      {
 	        preg_match( "/(\\{?\"([^\"\\\\]|\\\\.)*\"|[^,{}]+)+([,}]+)/", $text, $match, 0, $offset );
 	        $offset += strlen( $match[0] );
-	        $output[] = $match[1] == 'NULL' ? null : ( '"' != $match[1]{0} ? $match[1] : stripcslashes( substr( $match[1], 1, -1 ) ) );
+	        $output[] = $match[1] == 'NULL' ? null : ( '"' != $match[1][0] ? $match[1] : stripcslashes( substr( $match[1], 1, -1 ) ) );
 	        if( '},' == $match[3] ) return $offset;
 	      }
 	      else  $offset = phpCTDB::pg_array_parse( $text, $output[], $limit, $offset+1 );
@@ -810,7 +810,7 @@ class phpCTDB{
 		$trackliststonames = null;
 		$trackliststocredits = null;
 		foreach($mediumids as $tr) {
-                  $mbresult = pg_query_params('
+                  $mbresult = pg_query_params($mbconn, '
                     SELECT t.artist_credit, t.name 
                     FROM track t 
                     WHERE t.medium = $1
@@ -962,7 +962,7 @@ class phpCTDB{
 		$byte_wordlen = strlen($byte_word);
 
 		for ($i = 0; $i < $byte_wordlen; $i++) {
-				$int_value += ord($byte_word{$i}) * pow(256, ($byte_wordlen - 1 - $i));
+				$int_value += ord($byte_word[$i]) * pow(256, ($byte_wordlen - 1 - $i));
 		}
 
 		if ($signed) {

@@ -1,4 +1,4 @@
-FROM php:7.2-apache
+FROM php:8.4-apache
 RUN apt-get update && apt-get install -y \
         postgresql-client \
         libpq-dev \
@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-configure pgsql \
     && docker-php-ext-install -j$(nproc) pgsql \
-    && docker-php-ext-configure zip --with-libzip \
     && docker-php-ext-install zip
 RUN pear install channel://pear.php.net/XML_Serializer-0.21.0 \
     && rm -rf /tmp/pear

@@ -103,6 +103,67 @@
           - postgres16:/var/lib/postgresql/data
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
+        shm_size: 256m
+
+    - name: Check if ctdb database exists
+      command: docker exec postgres16 psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='ctdb'"
+      register: ctdb_database_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Import ctdb database from backup
+      become: yes
+      when: ctdb_database_check.stdout | trim == ''
+      block:
+        - name: Create ctdb_user role
+          command: docker exec -i postgres16 psql -U postgres -d postgres -c "CREATE ROLE ctdb_user LOGIN"
+          ignore_errors: yes
+
+        - name: Create ctdb database
+          command: docker exec -i postgres16 psql -U postgres -d postgres -c "CREATE DATABASE ctdb OWNER ctdb_user"
+
+        - name: Get latest backup version from S3
+          amazon.aws.s3_object:
+            bucket: backups.cuetools.net
+            object: LATEST
+            dest: /tmp/latest_backup.txt
+            mode: get
+
+        - name: Set latest backup version fact
+          set_fact:
+            latest_backup: "{{ lookup('file', '/tmp/latest_backup.txt') | trim }}"
+
+        - name: Download backup from S3
+          amazon.aws.s3_object:
+            bucket: backups.cuetools.net
+            object: "{{ latest_backup }}/ctdb.bin"
+            dest: /var/tmp/ctdb.bin
+            mode: get
+
+        - name: Restore database
+          shell: |
+            cat /var/tmp/ctdb.bin | docker exec -i postgres16 pg_restore -U postgres -d ctdb --no-owner
+          ignore_errors: yes
+
+        - name: Verify restore succeeded by checking for tables
+          command: docker exec postgres16 psql -U postgres -d ctdb -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
+          register: table_count
+          failed_when: table_count.stdout | int == 0
+
+        - name: Grant schema permissions
+          command: docker exec -i postgres16 psql -U postgres -d ctdb -c "GRANT ALL ON SCHEMA public TO ctdb_user"
+
+        - name: Grant table permissions
+          command: docker exec -i postgres16 psql -U postgres -d ctdb -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO ctdb_user"
+
+        - name: Grant sequence permissions
+          command: docker exec -i postgres16 psql -U postgres -d ctdb -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO ctdb_user"
+
+        - name: Vacuum database
+          command: docker exec -i postgres16 psql -U postgres -d ctdb -c "VACUUM"
+
+        - name: Analyze database
+          command: docker exec -i postgres16 psql -U postgres -d ctdb -c "ANALYZE"
 
     - name: Create /var/run/postgresql directory
       become: yes
@@ -120,12 +181,14 @@
         image: pgbouncer/pgbouncer:latest
         state: started
         restart_policy: always
-        network_mode: ct
+        networks:
+          - name: ct
+          - name: musicbrainz-docker_default
         volumes:
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
         env:
-          DATABASES: "ctwiki = host=postgres96,freedb = host=postgres96,discogs = host=postgres96,musicbrainz = host=musicbrainz-docker-db-1 dbname=musicbrainz_db,ctdb = host=postgres96"
+          DATABASES: "ctwiki = host=postgres16,freedb = host=postgres16,discogs = host=postgres16,musicbrainz = host=musicbrainz-docker-db-1 dbname=musicbrainz_db,ctdb = host=postgres16"
           PGBOUNCER_AUTH_TYPE: trust
           PGBOUNCER_AUTH_FILE: /etc/pgbouncer/userlist.txt
           PGBOUNCER_UNIX_SOCKET_DIR: /var/run/postgresql
@@ -247,4 +310,27 @@
         - name: Verify Docker Compose installation
           command: docker-compose --version
           changed_when: false
+
+    - name: Build a container image for the CTDB database
+      become: yes
+      community.docker.docker_image:
+        name: ctdbweb
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/ctdbweb
+          dockerfile: Dockerfile
+
+    - name: Run CTDB database container
+      become: yes
+      community.docker.docker_container:
+        name: ctdbweb
+        image: ctdbweb:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - ctparity:/var/www/html/parity
+          - /var/run/postgresql:/var/run/postgresql
 

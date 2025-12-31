@@ -46,8 +46,8 @@ if ($doctdb > 0)
 {
   $dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432") or die('Could not connect: ' . pg_last_error());
   $tocid = phpCTDB::toc2tocid($toc); 
-  $query = "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "'";
-  if (!$fuzzy) $query = $query . " AND trackoffsets='" . pg_escape_string($toc['trackoffsets']) . "'";
+  $query = "SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($dbconn, $tocid) . "'";
+  if (!$fuzzy) $query = $query . " AND trackoffsets='" . pg_escape_string($dbconn, $toc['trackoffsets']) . "'";
   $query = $query . " ORDER BY id";
   $result = pg_query($dbconn, $query) 
     or die('Query failed: ' . pg_last_error());
@@ -107,7 +107,7 @@ else if ($type == 'xml')
     die('Not Found'); 
   }
 
-  $xmlentry = null;
+  $xmlentry = array();
   if ($records)
   foreach($records as &$record)
   {
@@ -136,7 +136,7 @@ else if ($type == 'xml')
       'toc' => phpCTDB::toc_toc2s($record)
     );
   }
-  $xmlmbmeta = null; 
+  $xmlmbmeta = array(); 
   foreach ($mbmetas as $mbmeta)
   {
     $tracks = array();

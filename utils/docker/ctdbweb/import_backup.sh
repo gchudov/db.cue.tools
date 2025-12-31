@@ -2,7 +2,7 @@ dbname=ctdb
 dbuser=ctdb_user
 dbschema=public
 dbmaster=postgres
-dbcont=postgres96
+dbcont=postgres16
 psql="docker exec -i $dbcont psql"
 pg_restore="docker exec -i $dbcont pg_restore"
 $psql -U postgres -d $dbmaster -c "DROP DATABASE $dbname"

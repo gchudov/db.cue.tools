@@ -3,7 +3,7 @@ $dbconn = pg_connect("dbname=ctdb user=ctdb_user host=pgbouncer port=6432")
 	or die('Could not connect: ' . pg_last_error());
 $tocid = @$_GET['tocid']
 	or die('No id');
-$result = pg_query("SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($tocid) . "';") 
+$result = pg_query("SELECT * FROM submissions2 WHERE tocid='" . pg_escape_string($dbconn, $tocid) . "';")
 	or die('Query failed: ' . pg_last_error());
 $record = pg_fetch_array($result);
 if (!$record)
