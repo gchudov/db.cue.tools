@@ -27,12 +27,12 @@ if ($where_artist != '')
   $term = ' AND ';
   $url = $url . '&artist=' . urlencode($where_artist);
 }
-$where_album = @$_GET['album'];
-if ($where_album != '')
+$where_title = @$_GET['title'];
+if ($where_title != '')
 {
-  $query = $query . $term . "album ilike '" . pg_escape_string($dbconn, $where_album) . "'";
+  $query = $query . $term . "title ilike '" . pg_escape_string($dbconn, $where_title) . "'";
   $term = ' AND ';
-  $url = $url . '&album=' . urlencode($where_album);
+  $url = $url . '&title=' . urlencode($where_title);
 }
 if ($term == ' WHERE ')
 {
