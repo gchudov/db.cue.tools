@@ -5,7 +5,7 @@ $count = 20;
 $query = "SELECT * FROM submissions2 WHERE artist IS NULL OR artist='' OR title IS NULL";
 $url = '';
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
-$query = $query . " ORDER BY subcount DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
+$query = $query . " ORDER BY subcount DESC OFFSET " . pg_escape_string($dbconn, $start) . " LIMIT " . pg_escape_string($dbconn, $count);
 $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);
 if ($json_entries == '') die('nothing found');

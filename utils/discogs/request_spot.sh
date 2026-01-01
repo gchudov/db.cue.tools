@@ -17,9 +17,11 @@ EOF
 RERUN=
 DEBUG=
 PRINT=
-PRICE=0.20
+PRICE=0.30
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
 AMIID=ami-01d425805aef71788 #amzn2-ami-hvm-2.0.20211005.0-x86_64-ebs
+ITYPE=r5d.xlarge
+# r7gd.large
 
 while getopts “hrdnp:” OPTION
 do
@@ -51,11 +53,11 @@ discogs_rel=discogs_`date +%Y%m01`_releases.xml.gz
 discogs_year=`date +%Y`
 if [ -z "$RERUN" ]; then
   echo "Downloading $discogs_rel"
-  aws s3 cp --quiet --storage-class REDUCED_REDUNDANCY s3://discogs-data/data/$discogs_year/$discogs_rel s3://private.cuetools.net/$discogs_rel || exit $?
-#  user_agent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100721 Firefox/3.6.8"
-#  wget -nv -U "$user_agent" -O "/opt/ctdb/tmp/$discogs_rel" "http://discogs-data.s3-us-west-2.amazonaws.com/data/$discogs_year/$discogs_rel" || exit $?
-#  s3cmd --no-progress --rr put "/opt/ctdb/tmp/$discogs_rel" s3://private.cuetools.net/
-#  rm "/opt/ctdb/tmp/$discogs_rel"
+  if [ -n "$DEBUG" ]; then
+    aws s3 cp --metadata-directive REPLACE --storage-class REDUCED_REDUNDANCY s3://discogs-data-dumps/data/$discogs_year/$discogs_rel s3://private.cuetools.net/$discogs_rel || exit $?
+  else
+    aws s3 cp --quiet --metadata-directive REPLACE --storage-class REDUCED_REDUNDANCY s3://discogs-data-dumps/data/$discogs_year/$discogs_rel s3://private.cuetools.net/$discogs_rel || exit $?
+  fi
 fi
 CPFILES=
 UDATA="$( cat <<EOF
@@ -69,10 +71,10 @@ mkdir -p /media/ephemeral0
 mount /dev/nvme1n1 /media/ephemeral0
 cd /media/ephemeral0
 yum -y install postgresql-server postgresql-contrib
-yum -y install php-cli php-xml php-pgsql git augeas aws-cli
+yum -y install php-cli php-xml php-pgsql git augeas aws-cli golang
 #yum -y upgrade
 chmod -x /etc/cron.daily/makewhatis.cron
-sed -i 's/memory_limit = [0-9]*M/memory_limit = 12000M/g' /etc/php.ini
+sed -i 's/memory_limit = [0-9]*M/memory_limit = 24000M/g' /etc/php.ini
 sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /usr/lib/systemd/system/postgresql.service
 mkdir /media/ephemeral0/pgsql
 chown postgres.postgres /media/ephemeral0/pgsql
@@ -80,8 +82,11 @@ postgresql-setup initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
-aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs.xml.gz
-./cuetools-database/utils/discogs/run_discogs_converter.sh < ./discogs.xml.gz
+cd ./cuetools-database/utils/discogs
+go build -o discogs .
+cd /media/ephemeral0
+aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs_releases.xml.gz
+gunzip -c discogs_releases.xml.gz | ./cuetools-database/utils/discogs/run_discogs_go.sh
 ./cuetools-database/utils/discogs/create_db.sh > discogs.log 2>&1
 aws s3 cp --quiet discogs.log s3://private.cuetools.net/discogs/`date +%Y%m01`/
 aws s3 cp --quiet discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
@@ -96,7 +101,7 @@ LAUNCH_SPEC="$( cat <<EOF
 {
   "IamInstanceProfile": { "Arn": "$IROLE" },
   "ImageId": "$AMIID",
-  "InstanceType": "r5d.large",
+  "InstanceType": "$ITYPE",
   "KeyName" : "ec2",
   "NetworkInterfaces": [
     {

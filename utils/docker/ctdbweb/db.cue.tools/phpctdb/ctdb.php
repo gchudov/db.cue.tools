@@ -352,8 +352,8 @@ class phpCTDB{
 	static function discogslookup($dids, $fuzzy = null)
 	{
                 global $ctdbcfg_discogs_db;
-		$conn = pg_connect($ctdbcfg_discogs_db);
-		if (!$conn)
+		$conn = @pg_connect($ctdbcfg_discogs_db);
+		if ($conn === false)
 		  return array();
 		$discogs_countries = array(
 'Afghanistan' => 'AF','Africa' => '','Albania' => 'AL','Algeria' => 'DZ','American Samoa' => 'AS','Andorra' => 'AD',

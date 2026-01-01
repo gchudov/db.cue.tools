@@ -1,7 +1,7 @@
 dbname=freedb1
 dbmaster=postgres
 dbuser=freedb_user
-dbcont=postgres96
+dbcont=postgres16
 latest=`aws s3 cp --quiet s3://private.cuetools.net/freedb/LATEST -`
 psql="docker exec -i $dbcont psql"
 $psql -U postgres -d $dbmaster -c "DROP DATABASE $dbname"

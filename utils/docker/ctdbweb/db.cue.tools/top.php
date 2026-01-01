@@ -10,14 +10,14 @@ $url = '';
 $where_discid=@$_GET['tocid'];
 if ($where_discid != '')
 {
-  $query = $query . $term . "tocid='" . pg_escape_string($where_discid) . "'";
+  $query = $query . $term . "tocid='" . pg_escape_string($dbconn, $where_discid) . "'";
   $term = ' AND ';
   $url = $url . '&tocid=' . urlencode($where_discid);
 }
 $where_artist=@$_GET['artist'];
 if ($where_artist != '')
 {
-  $query = $query . $term . "artist ilike '" . pg_escape_string($where_artist) . "'";
+  $query = $query . $term . "artist ilike '" . pg_escape_string($dbconn, $where_artist) . "'";
   $term = ' AND ';
   $url = $url . '&artist=' . urlencode($where_artist);
 }
@@ -27,7 +27,7 @@ if ($term == ' WHERE ')
 	$term = ' AND ';
 }
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
-$query = $query . " ORDER BY subcount DESC, id DESC OFFSET " . pg_escape_string($start) . " LIMIT " . pg_escape_string($count);
+$query = $query . " ORDER BY subcount DESC, id DESC OFFSET " . pg_escape_string($dbconn, $start) . " LIMIT " . pg_escape_string($dbconn, $count);
 
 $json_entries = phpCTDB::query2json($dbconn, $query);
 if (@$_GET['json']) die($json_entries);
