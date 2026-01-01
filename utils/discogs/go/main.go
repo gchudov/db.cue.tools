@@ -142,7 +142,7 @@ func newTableWriter(table string, columns []string) *TableWriter {
 	if err != nil {
 		panic(err)
 	}
-	gz, err := gzip.NewWriterLevel(f, 5)
+	gz, err := gzip.NewWriterLevel(f, 4)
 	if err != nil {
 		panic(err)
 	}
@@ -643,45 +643,40 @@ func main() {
 		w.Close()
 	}
 	
-	// Output enum definitions
-	fmt.Println("CREATE TYPE style_t AS ENUM (")
-	var styles []string
-	for s := range knownStyles {
-		styles = append(styles, "    E'"+pgEscape(s)+"'")
+	// Write enum definitions to gzipped file
+	writeEnums()
+}
+
+func writeEnums() {
+	f, err := os.Create("discogs_enums_sql.gz")
+	if err != nil {
+		panic(err)
 	}
-	fmt.Println(strings.Join(styles, ",\n"))
-	fmt.Println(");")
+	defer f.Close()
 	
-	fmt.Println("CREATE TYPE genre_t AS ENUM (")
-	var genres []string
-	for g := range knownGenres {
-		genres = append(genres, "    E'"+pgEscape(g)+"'")
+	gz, err := gzip.NewWriterLevel(f, 5)
+	if err != nil {
+		panic(err)
 	}
-	fmt.Println(strings.Join(genres, ",\n"))
-	fmt.Println(");")
+	defer gz.Close()
 	
-	fmt.Println("CREATE TYPE description_t AS ENUM (")
-	var descriptions []string
-	for d := range knownDescriptions {
-		descriptions = append(descriptions, "    E'"+pgEscape(d)+"'")
-	}
-	fmt.Println(strings.Join(descriptions, ",\n"))
-	fmt.Println(");")
+	w := bufio.NewWriter(gz)
+	defer w.Flush()
 	
-	fmt.Println("CREATE TYPE format_t AS ENUM (")
-	var formats []string
-	for f := range knownFormats {
-		formats = append(formats, "    E'"+pgEscape(f)+"'")
+	writeEnum := func(name string, values map[string]bool) {
+		w.WriteString("CREATE TYPE " + name + " AS ENUM (\n")
+		var items []string
+		for v := range values {
+			items = append(items, "    E'"+pgEscape(v)+"'")
+		}
+		w.WriteString(strings.Join(items, ",\n"))
+		w.WriteString("\n);\n\n")
 	}
-	fmt.Println(strings.Join(formats, ",\n"))
-	fmt.Println(");")
 	
-	fmt.Println("CREATE TYPE idtype_t AS ENUM (")
-	var idtypes []string
-	for t := range knownIDTypes {
-		idtypes = append(idtypes, "    E'"+pgEscape(t)+"'")
-	}
-	fmt.Println(strings.Join(idtypes, ",\n"))
-	fmt.Println(");")
+	writeEnum("style_t", knownStyles)
+	writeEnum("genre_t", knownGenres)
+	writeEnum("description_t", knownDescriptions)
+	writeEnum("format_t", knownFormats)
+	writeEnum("idtype_t", knownIDTypes)
 }
 

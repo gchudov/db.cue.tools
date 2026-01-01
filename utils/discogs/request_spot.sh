@@ -82,11 +82,11 @@ postgresql-setup initdb
 sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
-cd ./cuetools-database/utils/discogs
+cd ./cuetools-database/utils/discogs/go
 go build -o discogs .
 cd /media/ephemeral0
 aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs_releases.xml.gz
-gunzip -c discogs_releases.xml.gz | ./cuetools-database/utils/discogs/run_discogs_go.sh
+gunzip -c ./discogs_releases.xml.gz | ./cuetools-database/utils/discogs/run_discogs_go.sh
 ./cuetools-database/utils/discogs/create_db.sh > discogs.log 2>&1
 aws s3 cp --quiet discogs.log s3://private.cuetools.net/discogs/`date +%Y%m01`/
 aws s3 cp --quiet discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
