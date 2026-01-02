@@ -1,1 +1,1 @@
-docker exec -it postgres96 bash
+docker exec -it postgres16 bash
