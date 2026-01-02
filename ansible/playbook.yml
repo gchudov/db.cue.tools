@@ -39,6 +39,14 @@
         name: pip
         state: present
 
+    - name: Ensure boto3 and botocore are installed
+      become: yes
+      pip:
+        name:
+          - boto3
+          - botocore
+        state: present
+
     - name: Check if Docker network 'ct' exists
       command: docker network inspect ct
       register: docker_network_check
@@ -237,48 +245,21 @@
           - "80:80"
           - "443:443"
 
-    - name: Fetch secret from AWS Secrets Manager and run container with config
+    - name: Run Adminer container
       become: yes
-      block:
-        - name: Ensure boto3 is installed
-          pip:
-            name: boto3
-            state: present
-
-        - name: Ensure botocore is installed
-          pip:
-            name: botocore
-            state: present
-
-        - name: Fetch secret from AWS Secrets Manager
-          set_fact:
-            secret_password: "{{ lookup('amazon.aws.aws_secret', 'adminer_otp_secret', region='us-east-1') | from_json | json_query('ADMINER_OTP_SECRET') }}"
-          no_log: true
-
-        - name: Generate configuration content
-          set_fact:
-            config_content: "{{ lookup('template', '/opt/db.cue.tools/utils/docker/adminer/login-otp.php.def') }}"
-          no_log: true
-
-        - name: Run adminer container
-          become: yes
-          community.docker.docker_container:
-            name: adminer
-            image: adminer:latest
-            state: started
-            restart_policy: always
-            network_mode: ct
-            volumes:
-              - /var/run/postgresql:/var/run/postgresql
-            env:
-              ADMINER_DEFAULT_SERVER: musicbrainz-docker-db-1
-
-        - name: Write configuration directly into container
-          shell: |
-            echo '{{ config_content }}' | docker exec -i adminer sh -c 'cat > /var/www/html/plugins-enabled/login-otp.php && chmod 0640 /var/www/html/plugins-enabled/login-otp.php'
-          args:
-            executable: /bin/bash
-          no_log: true
+      community.docker.docker_container:
+        name: adminer
+        image: adminer:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - /var/run/postgresql:/var/run/postgresql
+          - /opt/db.cue.tools/utils/docker/adminer/login-otp.php:/var/www/html/plugins-enabled/login-otp.php:ro
+        env:
+          ADMINER_DEFAULT_SERVER: "/var/run/postgresql/:6432"
+          ADMINER_OTP_SECRET: "{{ lookup('amazon.aws.aws_secret', 'adminer_otp_secret', region='us-east-1') | from_json | json_query('ADMINER_OTP_SECRET_BASE64') }}"
+      no_log: true
 
     - name: Install Docker Compose
       become: yes
@@ -359,3 +340,27 @@
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/mediawiki/LocalSettings.php:/var/www/html/LocalSettings.php
 
+    - name: Build Sendmail container image
+      become: yes
+      community.docker.docker_image:
+        name: sendmail
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/sendmail
+          dockerfile: Dockerfile
+
+    - name: Run Sendmail container
+      become: yes
+      community.docker.docker_container:
+        name: sendmail
+        image: sendmail:latest
+        hostname: mail.cue.tools
+        state: started
+        restart_policy: always
+        network_mode: ct
+        env:
+          AWS_SES_SMTP_USERNAME: "{{ lookup('amazon.aws.aws_secret', 'aws_ses_smtp_credentials', region='us-east-1') | from_json | json_query('AWS_SES_SMTP_USERNAME') }}"
+          AWS_SES_SMTP_PASSWORD: "{{ lookup('amazon.aws.aws_secret', 'aws_ses_smtp_credentials', region='us-east-1') | from_json | json_query('AWS_SES_SMTP_PASSWORD') }}"
+      no_log: true

@@ -1,11 +1,13 @@
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		sendmail sendmail-cf m4 sasl2-bin libsasl2-modules rsyslog openssl patch \
 		vim less man \
 	; \
-	rm -rf /var/lib/apt/lists/*
+	rm -rf /var/lib/apt/lists/*; \
+	# Disable imklog module (can't read /proc/kmsg in container)
+	sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
 
 RUN sed -i "s|START=no|START=yes|" /etc/default/saslauthd \
 	&& service saslauthd restart
@@ -22,8 +24,8 @@ ENV SUBNET 172.18
 # AuthInfo:email-smtp.us-west-2.amazonaws.com "U:root" "I:smtpUsername" "P:smtpPassword" "M:PLAIN"
 RUN cp /etc/mail/access /etc/mail/access.bak
 RUN cp /etc/mail/sendmail.mc /etc/mail/sendmail.mc.bak
-ADD authinfo /etc/mail/authinfo
-RUN makemap hash /etc/mail/authinfo.db < /etc/mail/authinfo
+# ADD authinfo /etc/mail/authinfo
+# RUN makemap hash /etc/mail/authinfo.db < /etc/mail/authinfo
 ADD access /etc/mail/access
 RUN makemap hash /etc/mail/access.db < /etc/mail/access
 

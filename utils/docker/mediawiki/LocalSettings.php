@@ -32,7 +32,7 @@ $wgArticlePath      = "/wiki/$1";
 #$wgScriptExtension  = ".php";
 
 ## The protocol and server name to use in fully-qualified URLs
-$wgServer           = "http://cue.tools";
+$wgServer           = "http://www2.cue.tools";
 
 ## The relative URL path to the skins directory
 #$wgResourceBasePath = "http://s3.cuetools.net/mediawiki27.0";

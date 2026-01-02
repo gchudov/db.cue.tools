@@ -18,14 +18,6 @@ cron { 'discogs':
   user    => 'root',
 }
 
-cron { 'mbslave':
-  ensure  => 'present',
-  command => "/root/mbslave/mbslave-sync.py >> /var/log/mbreplication 2>&1",
-  minute  => 15,
-  target  => 'root',
-  user    => 'root',
-}
-
 cron { 'stats':
   ensure  => 'present',
   command => " /usr/bin/psql -U ctdb_user ctdb -f /opt/ctdb/www/ctdbweb/utils/hourly_stats.sql >> /dev/null 2>&1",
