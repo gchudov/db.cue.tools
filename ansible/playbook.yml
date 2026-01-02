@@ -334,3 +334,28 @@
           - ctparity:/var/www/html/parity
           - /var/run/postgresql:/var/run/postgresql
 
+    - name: Build MediaWiki container image
+      become: yes
+      community.docker.docker_image:
+        name: ctwiki
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/mediawiki
+          dockerfile: Dockerfile
+
+    - name: Run MediaWiki container
+      become: yes
+      community.docker.docker_container:
+        name: ctwiki
+        image: ctwiki:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - ctwikiimages:/var/www/html/images
+          - ctwikiblacklist:/var/www/blacklist
+          - /var/run/postgresql:/var/run/postgresql
+          - /opt/db.cue.tools/utils/docker/mediawiki/LocalSettings.php:/var/www/html/LocalSettings.php
+

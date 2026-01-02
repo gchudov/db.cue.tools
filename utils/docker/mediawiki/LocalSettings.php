@@ -40,7 +40,7 @@ $wgServer           = "http://cue.tools";
 
 ## The relative URL path to the logo.  Make sure you change this from the default,
 ## or else you'll overwrite your logo when you upgrade!
-$wgLogo             = "http://s3.cuetools.net/ctdb64.png";
+$wgLogo             = "https://s3.cue.tools/ctdb64.png";
 
 ## UPO means: this is also a user preference option
 
@@ -74,6 +74,8 @@ $wgDBuser           = "ctwiki";
 $wgDBpassword       = "";
 $wgDBmwschema       = "mediawiki";
 $wgDBprefix         = "";
+$wgDBadminuser      = "postgres";
+$wgDBadminpassword  = "";
 
 # Postgres specific settings
 $wgDBport           = "6432";
@@ -172,6 +174,8 @@ $wgCaptchaQuestions = [
         'What file extension is used for CD table of contents?' => 'cue',
 ];
 
+wfLoadExtension( 'AbuseFilter' );
+
 wfLoadExtension('StopForumSpam');
 $wgSFSIPListLocation = '/var/www/blacklist/listed_ip_30_all.zip';
 
@@ -179,8 +183,8 @@ wfLoadExtension('SpamBlacklist');
 
 $wgSpamBlacklistFiles = array(
    "[[m:Spam blacklist]]",
-   "http://meta.wikimedia.org/wiki/Spam_blacklist",
-   "http://en.wikipedia.org/wiki/MediaWiki:Spam-blacklist"
+   "https://meta.wikimedia.org/wiki/Spam_blacklist",
+   "https://en.wikipedia.org/wiki/MediaWiki:Spam-blacklist"
 );
 
 #wfLoadExtension('googleAnalytics');

@@ -17,25 +17,26 @@
  
 $wgExtensionCredits['parserhook'][] = array(
         'name'           => 'Google Analytics Links',
-        'version'        => '1.2',
+        'version'        => '1.3',
         'author'         => 'Nik Molnar',
         'description'    => 'Allows you to easily make use of Google Analytics to track non-HTML files.',
         'url'            => 'http://www.mediawiki.org/wiki/Extension:Google_Analytics_Links',
         'path'           => __FILE__,
 );
  
-$wgExtensionFunctions[] = "wfGAnalyticsExtension";
+// Register hook using ParserFirstCallInit (modern MediaWiki 1.35+)
+$wgHooks['ParserFirstCallInit'][] = 'wfGAnalyticsExtension';
  
 //Register the hook
-function wfGAnalyticsExtension() {
-        global $wgParser;
-        $wgParser->setHook("googa", "renderGAnalytics");
+function wfGAnalyticsExtension( Parser $parser ) {
+        $parser->setHook("googa", "renderGAnalytics");
+        return true;
 }
  
 //Render function
 function renderGAnalytics($input) {
-        //Pase the arguments
-        $args = split("[|]", $input);
+        //Parse the arguments
+        $args = explode("|", $input);
  
         //If 3rd argument is absent, use the 1st argument.
         if(!isset($args[2])) { $args[2] = $args[0]; }
