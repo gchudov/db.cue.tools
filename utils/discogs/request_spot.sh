@@ -19,7 +19,8 @@ DEBUG=
 PRINT=
 PRICE=0.30
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
-AMIID=ami-01d425805aef71788 #amzn2-ami-hvm-2.0.20211005.0-x86_64-ebs
+#aws ssm get-parameters   --names /aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-x86_64-ebs   --query 'Parameters[0].Value'   --output text   --region us-east-1
+AMIID=ami-07cfb9a59a3e50453
 ITYPE=r5d.large
 # r7gd.large
 
@@ -85,9 +86,10 @@ postgresql-setup initdb
 echo 'local all all trust' > /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
-go build -o discogs ./cuetools-database/utils/discogs/go
+export GOBIN=/media/ephemeral0
+go install github.com/gchudov/db.cue.tools/utils/discogs/discogs2psql@latest
 aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs_releases.xml.gz
-./cuetools-database/utils/discogs/go/discogs < ./discogs_releases.xml.gz
+/media/ephemeral0/discogs2psql < ./discogs_releases.xml.gz
 ./cuetools-database/utils/discogs/create_db.sh > discogs.log 2>&1
 aws s3 cp --quiet discogs.log s3://private.cuetools.net/discogs/`date +%Y%m01`/
 aws s3 cp --quiet discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
