@@ -23,15 +23,22 @@ go build -o discogs .
 
 ```bash
 # Direct pipe from gzipped XML
-gunzip -c discogs_releases.xml.gz | ./discogs > discogs_enums.sql
+gunzip -c discogs_releases.xml.gz | ./discogs
 
 # Or use the wrapper script (includes XML cleanup)
 gunzip -c discogs_releases.xml.gz | ../run_discogs_go.sh
 ```
 
+All output files (including `discogs_enums_sql.gz`) are created in the current directory.
+
 ### Output
 
-The converter generates the following gzipped PostgreSQL COPY files:
+The converter generates the following gzipped PostgreSQL files:
+
+**Enum definitions:**
+- `discogs_enums_sql.gz` - CREATE TYPE statements for style_t, genre_t, format_t, description_t, idtype_t
+
+**Data tables (COPY format):**
 - `discogs_artist_name_sql.gz`
 - `discogs_artist_credit_sql.gz`
 - `discogs_artist_credit_name_sql.gz`
@@ -47,16 +54,15 @@ The converter generates the following gzipped PostgreSQL COPY files:
 - `discogs_track_sql.gz`
 - `discogs_toc_sql.gz`
 
-Plus enum type definitions on stdout.
-
 ## Importing to PostgreSQL
 
 ```bash
 # Create enum types first
 gunzip -c discogs_enums_sql.gz | psql -U user -d discogs
 
-# Import data tables
+# Import data tables (skip the enums file)
 for f in discogs_*_sql.gz; do
+    [ "$f" = "discogs_enums_sql.gz" ] && continue
     gunzip -c "$f" | psql -U user -d discogs
 done
 ```

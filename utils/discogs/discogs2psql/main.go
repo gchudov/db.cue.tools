@@ -142,7 +142,7 @@ func newTableWriter(table string, columns []string) *TableWriter {
 	if err != nil {
 		panic(err)
 	}
-	gz, err := gzip.NewWriterLevel(f, 5)
+	gz, err := gzip.NewWriterLevel(f, 4)
 	if err != nil {
 		panic(err)
 	}
@@ -193,16 +193,25 @@ func escapeNull(s string) string {
 	return s
 }
 
+// PostgreSQL array literal format for COPY text mode:
+// - Elements with special chars must be quoted
+// - Within quoted elements: \ -> \\, " -> \"
+// - But COPY text format also interprets \, so we need \\\\ for \ and \\\" for "
+var arrayNeedsQuote = regexp.MustCompile(`["\\\{\}, ]`)
+
 func printArray(items []string) string {
 	if len(items) == 0 {
 		return ""
 	}
-	needsQuote := regexp.MustCompile(`["\\\{, ]`)
 	var parts []string
 	for _, item := range items {
-		if needsQuote.MatchString(item) {
-			item = strings.ReplaceAll(item, "\\", "\\\\")
-			item = strings.ReplaceAll(item, "\"", "\\\"")
+		if arrayNeedsQuote.MatchString(item) {
+			// For COPY text format, backslashes need double escaping:
+			// - First level: array literal escaping (\ -> \\, " -> \")
+			// - Second level: COPY text escaping (\ -> \\)
+			// So: \ -> \\\\ and " -> \\\"
+			item = strings.ReplaceAll(item, "\\", "\\\\\\\\")
+			item = strings.ReplaceAll(item, "\"", "\\\\\"")
 			item = "\"" + item + "\""
 		}
 		parts = append(parts, item)
@@ -224,6 +233,8 @@ func escapeNodes(sl *StringList) string {
 // Duration parsing
 var durationRe = regexp.MustCompile(`([0-9]*)[:'\.]([0-9]+)`)
 
+const maxInt32 = 2147483647
+
 func parseDuration(dur string) string {
 	if dur == "" {
 		return "\\N"
@@ -232,15 +243,34 @@ func parseDuration(dur string) string {
 	if m == nil {
 		return "\\N"
 	}
-	min, _ := strconv.Atoi(m[1])
-	sec, _ := strconv.Atoi(m[2])
-	if min >= 2147483647 || sec >= 2147483647 {
+	
+	// Parse seconds (required)
+	sec, err := strconv.ParseInt(m[2], 10, 64)
+	if err != nil {
 		return "\\N"
 	}
+	
+	// If no minutes part, just return seconds
 	if m[1] == "" {
-		return strconv.Itoa(sec)
+		if sec > maxInt32 {
+			return "\\N"
+		}
+		return strconv.FormatInt(sec, 10)
 	}
-	return strconv.Itoa(min*60 + sec)
+	
+	// Parse minutes
+	min, err := strconv.ParseInt(m[1], 10, 64)
+	if err != nil {
+		return "\\N"
+	}
+	
+	// Calculate total seconds and check overflow
+	total := min*60 + sec
+	if total > maxInt32 || total < 0 {
+		return "\\N"
+	}
+	
+	return strconv.FormatInt(total, 10)
 }
 
 // Disc/Track number parsing
@@ -248,20 +278,38 @@ var discNoRe1 = regexp.MustCompile(`^([0-9]+)[-\.]([0-9]+)$`)
 var discNoRe2 = regexp.MustCompile(`^CD([0-9]+)[-\.]([0-9]+)$`)
 var discNoRe3 = regexp.MustCompile(`^[0-9]+$`)
 
+// parseValidInt parses a numeric string and returns formatted int if valid for PostgreSQL INTEGER
+func parseValidInt(s string) (string, bool) {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n < 0 || n > maxInt32 {
+		return "", false
+	}
+	return strconv.FormatInt(n, 10), true
+}
+
 func parseDiscno(pos string) (disc, track string) {
 	if pos == "" {
 		return "\\N", "\\N"
 	}
 	if m := discNoRe1.FindStringSubmatch(pos); m != nil {
-		return m[1], m[2]
+		d, ok1 := parseValidInt(m[1])
+		t, ok2 := parseValidInt(m[2])
+		if ok1 && ok2 {
+			return d, t
+		}
+		return "\\N", "\\N"
 	}
 	if m := discNoRe2.FindStringSubmatch(pos); m != nil {
-		return m[1], m[2]
+		d, ok1 := parseValidInt(m[1])
+		t, ok2 := parseValidInt(m[2])
+		if ok1 && ok2 {
+			return d, t
+		}
+		return "\\N", "\\N"
 	}
 	if m := discNoRe3.FindStringSubmatch(pos); m != nil {
-		tr, _ := strconv.Atoi(m[0])
-		if tr >= 0 && tr <= 0x7FFFFFFF {
-			return "1", m[0]
+		if t, ok := parseValidInt(m[0]); ok {
+			return "1", t
 		}
 	}
 	return "\\N", "\\N"
@@ -616,7 +664,14 @@ func pgEscape(s string) string {
 }
 
 func main() {
-	decoder := xml.NewDecoder(os.Stdin)
+	// Decompress gzipped stdin
+	gz, err := gzip.NewReader(os.Stdin)
+	if err != nil {
+		panic(err)
+	}
+	defer gz.Close()
+
+	decoder := xml.NewDecoder(gz)
 	
 	// Find the first release element
 	for {
@@ -643,45 +698,40 @@ func main() {
 		w.Close()
 	}
 	
-	// Output enum definitions
-	fmt.Println("CREATE TYPE style_t AS ENUM (")
-	var styles []string
-	for s := range knownStyles {
-		styles = append(styles, "    E'"+pgEscape(s)+"'")
+	// Write enum definitions to gzipped file
+	writeEnums()
+}
+
+func writeEnums() {
+	f, err := os.Create("discogs_enums_sql.gz")
+	if err != nil {
+		panic(err)
 	}
-	fmt.Println(strings.Join(styles, ",\n"))
-	fmt.Println(");")
+	defer f.Close()
 	
-	fmt.Println("CREATE TYPE genre_t AS ENUM (")
-	var genres []string
-	for g := range knownGenres {
-		genres = append(genres, "    E'"+pgEscape(g)+"'")
+	gz, err := gzip.NewWriterLevel(f, 5)
+	if err != nil {
+		panic(err)
 	}
-	fmt.Println(strings.Join(genres, ",\n"))
-	fmt.Println(");")
+	defer gz.Close()
 	
-	fmt.Println("CREATE TYPE description_t AS ENUM (")
-	var descriptions []string
-	for d := range knownDescriptions {
-		descriptions = append(descriptions, "    E'"+pgEscape(d)+"'")
-	}
-	fmt.Println(strings.Join(descriptions, ",\n"))
-	fmt.Println(");")
+	w := bufio.NewWriter(gz)
+	defer w.Flush()
 	
-	fmt.Println("CREATE TYPE format_t AS ENUM (")
-	var formats []string
-	for f := range knownFormats {
-		formats = append(formats, "    E'"+pgEscape(f)+"'")
+	writeEnum := func(name string, values map[string]bool) {
+		w.WriteString("CREATE TYPE " + name + " AS ENUM (\n")
+		var items []string
+		for v := range values {
+			items = append(items, "    E'"+pgEscape(v)+"'")
+		}
+		w.WriteString(strings.Join(items, ",\n"))
+		w.WriteString("\n);\n\n")
 	}
-	fmt.Println(strings.Join(formats, ",\n"))
-	fmt.Println(");")
 	
-	fmt.Println("CREATE TYPE idtype_t AS ENUM (")
-	var idtypes []string
-	for t := range knownIDTypes {
-		idtypes = append(idtypes, "    E'"+pgEscape(t)+"'")
-	}
-	fmt.Println(strings.Join(idtypes, ",\n"))
-	fmt.Println(");")
+	writeEnum("style_t", knownStyles)
+	writeEnum("genre_t", knownGenres)
+	writeEnum("description_t", knownDescriptions)
+	writeEnum("format_t", knownFormats)
+	writeEnum("idtype_t", knownIDTypes)
 }
 

@@ -1,4 +1,4 @@
-dbcont=postgres96
+dbcont=postgres16
 psql="docker exec -i $dbcont psql"
 docker stop pgbouncer
 $psql -U postgres -c "DROP DATABASE discogs2"

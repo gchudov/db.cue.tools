@@ -412,7 +412,7 @@ class phpCTDB{
 		    '  r.artist_credit, ' .
 		    '  r.notes, ' .
 		    '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
-		    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
+		    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released ~ \'^\\d{4}\') as year ' .
 		    'FROM release r ' .
 		    'WHERE r.discogs_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		} else {
@@ -431,7 +431,7 @@ class phpCTDB{
                     '  r.artist_credit, ' .
                     '  r.notes, ' .
                     '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
-                    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released IS NOT NULL) as year ' .
+                    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released  ~ \'^\\d{4}\') as year ' .
 		    'FROM toc t ' .
 		    'INNER JOIN release r ON r.discogs_id = t.discogs_id ' .
 		    'WHERE create_cube_from_toc(t.duration) <@ create_bounding_cube($1,3) AND array_upper(t.duration, 1)=$2 '.
@@ -577,6 +577,8 @@ class phpCTDB{
             if (isset($a['release']))
             foreach($a['release'] as $r)
             {
+				if ($r['date'] === null)
+					continue;
                 $temp = strtotime($r['date'] . substr('    -12-28', strlen($r['date'])));
                 if ($temp < $best) $best = $temp; 
             }
@@ -790,7 +792,7 @@ class phpCTDB{
             '(select count(*) from medium where release = r.id) as totaldiscs, ' .
             '(select min(substring(u.url,32)) from l_release_url rurl INNER JOIN url u ON rurl.entity1 = u.id WHERE rurl.entity0 = r.id AND u.url ilike \'http://www.discogs.com/release/%\') as discogs_id, ' .
             '(select array_agg(rl.catalog_number) from release_label rl where rl.release = r.id) as catno, ' .
-            '(select array_agg(l.name) from release_label rl inner join label l ON l.id = rl.label where rl.release = r.id) as label, ' .
+            '(select array_agg(l.name) from release_label rl left join label l ON l.id = rl.label where rl.release = r.id) as label, ' .
             'r.barcode ' .
 
 	    'FROM medium m ' . 
@@ -887,8 +889,8 @@ class phpCTDB{
 		  if (@$r['catno']) {
 		    phpCTDB::pg_array_parse($r['catno'], $catno);
 		    phpCTDB::pg_array_parse($r['label'], $label);
-        for($i = 0; $i < count($catno); $i++)
-          $labelcat[] = array('name' => $label[$i], 'catno' => $catno[$i]);
+        	for($i = 0; $i < count($catno); $i++)
+				$labelcat[] = array('name' => $label[$i], 'catno' => $catno[$i]);
 /*        if (count($catno) != count($label)) die($label[232]);
 		    for($i = 0; $i < count($catno); $i++)
 		      $labelcat[$i]['catno'] = $catno[$i];
