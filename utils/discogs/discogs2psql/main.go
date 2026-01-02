@@ -278,19 +278,33 @@ var discNoRe1 = regexp.MustCompile(`^([0-9]+)[-\.]([0-9]+)$`)
 var discNoRe2 = regexp.MustCompile(`^CD([0-9]+)[-\.]([0-9]+)$`)
 var discNoRe3 = regexp.MustCompile(`^[0-9]+$`)
 
+// validInt checks if a numeric string fits in PostgreSQL INTEGER type
+func validInt(s string) bool {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return false
+	}
+	return n >= 0 && n <= maxInt32
+}
+
 func parseDiscno(pos string) (disc, track string) {
 	if pos == "" {
 		return "\\N", "\\N"
 	}
 	if m := discNoRe1.FindStringSubmatch(pos); m != nil {
-		return m[1], m[2]
+		if validInt(m[1]) && validInt(m[2]) {
+			return m[1], m[2]
+		}
+		return "\\N", "\\N"
 	}
 	if m := discNoRe2.FindStringSubmatch(pos); m != nil {
-		return m[1], m[2]
+		if validInt(m[1]) && validInt(m[2]) {
+			return m[1], m[2]
+		}
+		return "\\N", "\\N"
 	}
 	if m := discNoRe3.FindStringSubmatch(pos); m != nil {
-		tr, _ := strconv.Atoi(m[0])
-		if tr >= 0 && tr <= 0x7FFFFFFF {
+		if validInt(m[0]) {
 			return "1", m[0]
 		}
 	}
