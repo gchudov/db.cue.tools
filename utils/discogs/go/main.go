@@ -193,16 +193,25 @@ func escapeNull(s string) string {
 	return s
 }
 
+// PostgreSQL array literal format for COPY text mode:
+// - Elements with special chars must be quoted
+// - Within quoted elements: \ -> \\, " -> \"
+// - But COPY text format also interprets \, so we need \\\\ for \ and \\\" for "
+var arrayNeedsQuote = regexp.MustCompile(`["\\\{\}, ]`)
+
 func printArray(items []string) string {
 	if len(items) == 0 {
 		return ""
 	}
-	needsQuote := regexp.MustCompile(`["\\\{, ]`)
 	var parts []string
 	for _, item := range items {
-		if needsQuote.MatchString(item) {
-			item = strings.ReplaceAll(item, "\\", "\\\\")
-			item = strings.ReplaceAll(item, "\"", "\\\"")
+		if arrayNeedsQuote.MatchString(item) {
+			// For COPY text format, backslashes need double escaping:
+			// - First level: array literal escaping (\ -> \\, " -> \")
+			// - Second level: COPY text escaping (\ -> \\)
+			// So: \ -> \\\\ and " -> \\\"
+			item = strings.ReplaceAll(item, "\\", "\\\\\\\\")
+			item = strings.ReplaceAll(item, "\"", "\\\\\"")
 			item = "\"" + item + "\""
 		}
 		parts = append(parts, item)
@@ -224,6 +233,8 @@ func escapeNodes(sl *StringList) string {
 // Duration parsing
 var durationRe = regexp.MustCompile(`([0-9]*)[:'\.]([0-9]+)`)
 
+const maxInt32 = 2147483647
+
 func parseDuration(dur string) string {
 	if dur == "" {
 		return "\\N"
@@ -232,15 +243,34 @@ func parseDuration(dur string) string {
 	if m == nil {
 		return "\\N"
 	}
-	min, _ := strconv.Atoi(m[1])
-	sec, _ := strconv.Atoi(m[2])
-	if min >= 2147483647 || sec >= 2147483647 {
+	
+	// Parse seconds (required)
+	sec, err := strconv.ParseInt(m[2], 10, 64)
+	if err != nil {
 		return "\\N"
 	}
+	
+	// If no minutes part, just return seconds
 	if m[1] == "" {
-		return strconv.Itoa(sec)
+		if sec > maxInt32 {
+			return "\\N"
+		}
+		return strconv.FormatInt(sec, 10)
 	}
-	return strconv.Itoa(min*60 + sec)
+	
+	// Parse minutes
+	min, err := strconv.ParseInt(m[1], 10, 64)
+	if err != nil {
+		return "\\N"
+	}
+	
+	// Calculate total seconds and check overflow
+	total := min*60 + sec
+	if total > maxInt32 || total < 0 {
+		return "\\N"
+	}
+	
+	return strconv.FormatInt(total, 10)
 }
 
 // Disc/Track number parsing
@@ -616,7 +646,14 @@ func pgEscape(s string) string {
 }
 
 func main() {
-	decoder := xml.NewDecoder(os.Stdin)
+	// Decompress gzipped stdin
+	gz, err := gzip.NewReader(os.Stdin)
+	if err != nil {
+		panic(err)
+	}
+	defer gz.Close()
+
+	decoder := xml.NewDecoder(gz)
 	
 	// Find the first release element
 	for {

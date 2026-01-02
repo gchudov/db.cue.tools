@@ -20,7 +20,7 @@ PRINT=
 PRICE=0.30
 IROLE=arn:aws:iam::421792542113:instance-profile/ctdbtask
 AMIID=ami-01d425805aef71788 #amzn2-ami-hvm-2.0.20211005.0-x86_64-ebs
-ITYPE=r5d.xlarge
+ITYPE=r5d.large
 # r7gd.large
 
 while getopts “hrdnp:” OPTION
@@ -70,23 +70,24 @@ mkfs.ext4 /dev/nvme1n1
 mkdir -p /media/ephemeral0
 mount /dev/nvme1n1 /media/ephemeral0
 cd /media/ephemeral0
+yum remove -y man-db man-pages mlocate
 yum -y install postgresql-server postgresql-contrib
-yum -y install php-cli php-xml php-pgsql git augeas aws-cli golang
+yum -y install git aws-cli golang
 #yum -y upgrade
-chmod -x /etc/cron.daily/makewhatis.cron
-sed -i 's/memory_limit = [0-9]*M/memory_limit = 24000M/g' /etc/php.ini
-sed -i 's/PGDATA=.*/PGDATA=\/media\/ephemeral0\/pgsql/g' /usr/lib/systemd/system/postgresql.service
+mkdir -p /etc/systemd/system/postgresql.service.d
+cat > /etc/systemd/system/postgresql.service.d/override.conf <<'OVERRIDE'
+[Service]
+Environment=PGDATA=/media/ephemeral0/pgsql
+OVERRIDE
 mkdir /media/ephemeral0/pgsql
 chown postgres.postgres /media/ephemeral0/pgsql
 postgresql-setup initdb
-sed -i 's/local[ ]*all[ ]*all[ ]*.*/local all all trust/g' /media/ephemeral0/pgsql/pg_hba.conf
+echo 'local all all trust' > /media/ephemeral0/pgsql/pg_hba.conf
 service postgresql start
 git clone https://github.com/gchudov/db.cue.tools.git cuetools-database
-cd ./cuetools-database/utils/discogs/go
-go build -o discogs .
-cd /media/ephemeral0
+go build -o discogs ./cuetools-database/utils/discogs/go
 aws s3 cp --quiet s3://private.cuetools.net/$discogs_rel ./discogs_releases.xml.gz
-gunzip -c ./discogs_releases.xml.gz | ./cuetools-database/utils/discogs/run_discogs_go.sh
+./cuetools-database/utils/discogs/go/discogs < ./discogs_releases.xml.gz
 ./cuetools-database/utils/discogs/create_db.sh > discogs.log 2>&1
 aws s3 cp --quiet discogs.log s3://private.cuetools.net/discogs/`date +%Y%m01`/
 aws s3 cp --quiet discogs.bin s3://private.cuetools.net/discogs/`date +%Y%m01`/
@@ -118,7 +119,7 @@ EOF
 if [ -z "$PRINT" ]; then
 echo "Requesting instance. PRICE=$PRICE; DEBUG=$DEBUG"
 aws ec2 request-spot-instances --region us-east-1 --spot-price $PRICE --type one-time --launch-specification "$LAUNCH_SPEC"
-aws ec2 describe-spot-instance-requests --region us-east-1
+#aws ec2 describe-spot-instance-requests --region us-east-1
 else
 cat <<EOF
 UDATA:$UDATA
