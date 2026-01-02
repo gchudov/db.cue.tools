@@ -278,13 +278,13 @@ var discNoRe1 = regexp.MustCompile(`^([0-9]+)[-\.]([0-9]+)$`)
 var discNoRe2 = regexp.MustCompile(`^CD([0-9]+)[-\.]([0-9]+)$`)
 var discNoRe3 = regexp.MustCompile(`^[0-9]+$`)
 
-// validInt checks if a numeric string fits in PostgreSQL INTEGER type
-func validInt(s string) bool {
+// parseValidInt parses a numeric string and returns formatted int if valid for PostgreSQL INTEGER
+func parseValidInt(s string) (string, bool) {
 	n, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return false
+	if err != nil || n < 0 || n > maxInt32 {
+		return "", false
 	}
-	return n >= 0 && n <= maxInt32
+	return strconv.FormatInt(n, 10), true
 }
 
 func parseDiscno(pos string) (disc, track string) {
@@ -292,20 +292,24 @@ func parseDiscno(pos string) (disc, track string) {
 		return "\\N", "\\N"
 	}
 	if m := discNoRe1.FindStringSubmatch(pos); m != nil {
-		if validInt(m[1]) && validInt(m[2]) {
-			return m[1], m[2]
+		d, ok1 := parseValidInt(m[1])
+		t, ok2 := parseValidInt(m[2])
+		if ok1 && ok2 {
+			return d, t
 		}
 		return "\\N", "\\N"
 	}
 	if m := discNoRe2.FindStringSubmatch(pos); m != nil {
-		if validInt(m[1]) && validInt(m[2]) {
-			return m[1], m[2]
+		d, ok1 := parseValidInt(m[1])
+		t, ok2 := parseValidInt(m[2])
+		if ok1 && ok2 {
+			return d, t
 		}
 		return "\\N", "\\N"
 	}
 	if m := discNoRe3.FindStringSubmatch(pos); m != nil {
-		if validInt(m[0]) {
-			return "1", m[0]
+		if t, ok := parseValidInt(m[0]); ok {
+			return "1", t
 		}
 	}
 	return "\\N", "\\N"
