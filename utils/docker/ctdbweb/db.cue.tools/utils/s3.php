@@ -30,7 +30,7 @@ pg_free_result($result);
 if (!$records || count($records) == 0) die(gmdate("M j G:i:s") . " nothing to do\n");
 
 $ts = 0;
-$promises = null; 
+$promises = array(); 
 foreach ($records as $record)
 {
   $localname = '/var/www/html/parity/' . $record['id'];
@@ -53,7 +53,7 @@ foreach ($records as $record)
   pg_free_result($result);
 }
 $start = microtime(true);
-GuzzleHttp\Promise\all($promises)->then(function (array $responses) {
+if ($promises) GuzzleHttp\Promise\Utils::all($promises)->then(function (array $responses) {
   foreach ($responses as $response) {
     printf("%s uploaded.\n", $response["ObjectURL"]);
 #    print $response;
