@@ -2,23 +2,15 @@
 - name: Manage system setup
   hosts: localhost
   tasks:
-    - name: Install Docker
+    - name: Install Docker, pip, tmux and cronie (cron daemon)
       become: yes
       yum:
-        name: docker
+        name:
+          - docker
+          - pip
+          - tmux
+          - cronie
         state: present
-
-    - name: Enable Docker service
-      become: yes
-      service:
-        name: docker
-        enabled: yes
-
-    - name: Start Docker service
-      become: yes
-      service:
-        name: docker
-        state: started
 
     - name: Add ec2-user to docker group
       become: yes
@@ -27,17 +19,12 @@
         groups: docker
         append: yes
 
-    - name: Install tmux
+    - name: Enable and startDocker service
       become: yes
-      yum:
-        name: tmux
-        state: present
-
-    - name: Install cronie (cron daemon)
-      become: yes
-      yum:
-        name: cronie
-        state: present
+      service:
+        name: docker
+        enabled: yes
+        state: started
 
     - name: Enable and start crond service
       become: yes
@@ -45,12 +32,6 @@
         name: crond
         enabled: yes
         state: started
-
-    - name: Install Pip
-      become: yes
-      yum:
-        name: pip
-        state: present
 
     - name: Ensure boto3 and botocore are installed
       become: yes
@@ -293,13 +274,6 @@
           - ctparity:/var/www/html/parity
           - /var/run/postgresql:/var/run/postgresql
 
-    - name: Add hourly stats cron job
-      ansible.builtin.cron:
-        name: "hourly stats"
-        minute: "7"
-        job: "/bin/cat /opt/db.cue.tools/utils/hourly_stats.sql | /bin/docker exec -i postgres16 psql -U ctdb_user ctdb >> /var/log/hourly 2>&1"
-        user: root
-
     - name: Build MediaWiki container image
       become: yes
       community.docker.docker_image:
@@ -324,14 +298,6 @@
           - ctwikiblacklist:/var/www/blacklist
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/mediawiki/LocalSettings.php:/var/www/html/LocalSettings.php
-
-    - name: Update MediaWiki blacklist
-      ansible.builtin.cron:
-        name: "update MediaWiki blacklist"
-        minute: "0"
-        hour: "3"
-        job: "/opt/db.cue.tools/utils/docker/mediawiki/updateBlacklist.sh >> /var/log/updateBlacklist.log 2>&1"
-        user: root
 
     - name: Build Sendmail container image
       become: yes
@@ -367,6 +333,21 @@
   #       job: "/opt/ctdb/www/ctdbweb/utils/freedb/request_spot.sh >> /var/log/reqspot 2>&1"
   #       user: "root"
 
+    - name: Add hourly stats cron job
+      ansible.builtin.cron:
+        name: "hourly stats"
+        minute: "7"
+        job: "/bin/cat /opt/db.cue.tools/utils/hourly_stats.sql | /bin/docker exec -i postgres16 psql -U ctdb_user ctdb >> /var/log/hourly 2>&1"
+        user: root
+
+    - name: Add Update MediaWiki blacklist cron job
+      ansible.builtin.cron:
+        name: "update MediaWiki blacklist"
+        minute: "0"
+        hour: "3"
+        job: "/opt/db.cue.tools/utils/docker/mediawiki/updateBlacklist.sh >> /var/log/updateBlacklist.log 2>&1"
+        user: root
+
     - name: Add discogs cron job
       ansible.builtin.cron:
         name: "discogs"
@@ -376,6 +357,29 @@
         job: "/opt/db.cue.tools/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1"
         user: "root"
 
-#0-59/10 * * * * /bin/docker exec ctdbweb php /var/www/html/utils/s3.php >> /var/log/s3 2>&1
-#20 6 * * * /opt/db.cue.tools/utils/repacklogs.sh >> /var/log/s3rl 2>&1
-#31 1 * * * /opt/db.cue.tools/utils/dobackup.sh >> /var/log/s3b 2>&1
+    - name: Create S3 sync cron job
+      ansible.builtin.cron:
+        name: "s3 sync"
+        minute: "0-59/10"
+        job: "/opt/db.cue.tools/utils/s3.php >> /var/log/s3 2>&1"
+        user: "root"
+        state: absent
+
+    - name: Create Repack logs cron job
+      ansible.builtin.cron:
+        name: "repack logs"
+        minute: "20"
+        hour: "6"
+        job: "/opt/db.cue.tools/utils/repacklogs.sh >> /var/log/s3rl 2>&1"
+        user: "root"
+        state: absent
+
+    - name: Create Backup cron job
+      ansible.builtin.cron:
+        name: "backup"
+        minute: "31"
+        hour: "1"
+        job: "/opt/db.cue.tools/utils/dobackup.sh >> /var/log/s3b 2>&1"
+        user: "root"
+        state: absent
+
