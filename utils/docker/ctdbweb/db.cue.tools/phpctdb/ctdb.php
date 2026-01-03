@@ -412,11 +412,12 @@ class phpCTDB{
 		    '  r.artist_credit, ' .
 		    '  r.notes, ' .
 		    '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
-		    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released ~ \'^\\d{4}\') as year ' .
+		    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE r.master_id != 0 AND rr.master_id = r.master_id AND rr.released ~ \'^\\d{4}\') as year ' .
 		    'FROM release r ' .
 		    'WHERE r.discogs_id IN ' . phpCTDB::pg_array_indexes($ids), $ids);
 		} else {
-	          $toff = explode(':', $fuzzy);
+			// return array();
+			$toff = explode(':', $fuzzy);
 	          $offsets = '';
 	          for ($tr = 1; $tr < count($toff); $tr++)
 	            $offsets .= ',' . round((abs($toff[$tr]) - abs($toff[$tr-1])) / 75);
@@ -431,7 +432,7 @@ class phpCTDB{
                     '  r.artist_credit, ' .
                     '  r.notes, ' .
                     '  (SELECT max(rf.qty) FROM releases_formats rf WHERE rf.release_id = r.discogs_id AND rf.format_name = \'CD\') as totaldiscs, ' .
-                    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE rr.master_id = r.master_id AND rr.released  ~ \'^\\d{4}\') as year ' .
+                    '  (SELECT min(substring(rr.released,1,4)::integer) FROM release rr WHERE r.master_id != 0 AND rr.master_id = r.master_id AND rr.released  ~ \'^\\d{4}\') as year ' .
 		    'FROM toc t ' .
 		    'INNER JOIN release r ON r.discogs_id = t.discogs_id ' .
 		    'WHERE create_cube_from_toc(t.duration) <@ create_bounding_cube($1,3) AND array_upper(t.duration, 1)=$2 '.
