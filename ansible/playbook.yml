@@ -357,6 +357,15 @@
         job: "/opt/db.cue.tools/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1"
         user: "root"
 
+    - name: Add certbot renewal cron job
+      ansible.builtin.cron:
+        name: "certbot renew"
+        minute: "0"
+        hour: "4"
+        day: "1"
+        job: "/opt/db.cue.tools/utils/certbotrenew.sh >> /var/log/certbot.log 2>&1"
+        user: "root"
+
     - name: Create S3 sync cron job
       ansible.builtin.cron:
         name: "s3 sync"
