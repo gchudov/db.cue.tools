@@ -168,6 +168,15 @@
         command: certonly --dns-route53 --agree-tos --domains cue.tools,db.cue.tools,www.cue.tools -n
       when: not certbot_cert.stat.exists
 
+    - name: Fetch http password file from AWS Secrets Manager
+      become: yes
+      copy:
+        content: "{{ lookup('amazon.aws.aws_secret', 'htpasswd-logspout', region='us-east-1') }}"
+        dest: /tmp/htpasswd-logspout
+        mode: '0644'
+        owner: root
+        group: root
+
     - name: Run apache2 reverse proxy container
       become: yes
       community.docker.docker_container:
@@ -179,7 +188,7 @@
         volumes:
           - /etc/letsencrypt:/etc/letsencrypt
           - /opt/db.cue.tools/utils/docker/proxy/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
-          - /opt/db.cue.tools/utils/docker/proxy/htpasswd-logspout:/usr/local/apache2/conf/htpasswd-logspout:ro
+          - /tmp/htpasswd-logspout:/usr/local/apache2/conf/htpasswd-logspout:ro
           - /opt/db.cue.tools/utils/docker/proxy/htdocs/:/usr/local/apache2/htdocs/:ro
         ports:
           - "80:80"
