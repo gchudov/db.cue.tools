@@ -21,7 +21,7 @@ function simpleQuery($dbconn,$query)
   ), 'rows' => $json_entries);
 }
 
-$json_entries = false;
+$json_entries = array();
 $stattype = $_GET['type'];
 if ($stattype == 'totals')
 {

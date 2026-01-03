@@ -80,38 +80,6 @@
       args:
         creates: /usr/local/bin/code
 
-  #   - name: Add freedb cron job
-  #     ansible.builtin.cron:
-  #       name: "freedb"
-  #       minute: "51"
-  #       hour: "1"
-  #       day: "5"
-  #       job: "/opt/ctdb/www/ctdbweb/utils/freedb/request_spot.sh >> /var/log/reqspot 2>&1"
-  #       user: "root"
-
-  #   - name: Add discogs cron job
-  #     ansible.builtin.cron:
-  #       name: "discogs"
-  #       minute: "41"
-  #       hour: "1"
-  #       day: "5"
-  #       job: "/opt/ctdb/www/ctdbweb/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1"
-  #       user: "root"
-
-  #   - name: Add mbslave cron job
-  #     ansible.builtin.cron:
-  #       name: "mbslave"
-  #       minute: "15"
-  #       job: "/root/mbslave/mbslave-sync.py >> /var/log/mbreplication 2>&1"
-  #       user: "root"
-
-  #   - name: Add stats cron job
-  #     ansible.builtin.cron:
-  #       name: "stats"
-  #       minute: "1"
-  #       job: "/usr/bin/psql -U ctdb_user ctdb -f /opt/ctdb/www/ctdbweb/utils/hourly_stats.sql >> /dev/null 2>&1"
-  #       user: "root"
-
     - name: Run PostgreSQL 16 container
       become: yes
       community.docker.docker_container:
@@ -328,6 +296,13 @@
           - ctparity:/var/www/html/parity
           - /var/run/postgresql:/var/run/postgresql
 
+    - name: Add hourly stats cron job
+      ansible.builtin.cron:
+        name: "hourly stats"
+        minute: "7"
+        job: "/bin/cat /opt/db.cue.tools/utils/hourly_stats.sql | /bin/docker exec -i postgres16 psql -U ctdb_user ctdb >> /var/log/hourly 2>&1"
+        user: root
+
     - name: Build MediaWiki container image
       become: yes
       community.docker.docker_image:
@@ -385,3 +360,21 @@
           AWS_SES_SMTP_USERNAME: "{{ lookup('amazon.aws.aws_secret', 'aws_ses_smtp_credentials', region='us-east-1') | from_json | json_query('AWS_SES_SMTP_USERNAME') }}"
           AWS_SES_SMTP_PASSWORD: "{{ lookup('amazon.aws.aws_secret', 'aws_ses_smtp_credentials', region='us-east-1') | from_json | json_query('AWS_SES_SMTP_PASSWORD') }}"
       no_log: true
+
+#   - name: Add freedb cron job
+  #     ansible.builtin.cron:
+  #       name: "freedb"
+  #       minute: "51"
+  #       hour: "1"
+  #       day: "5"
+  #       job: "/opt/ctdb/www/ctdbweb/utils/freedb/request_spot.sh >> /var/log/reqspot 2>&1"
+  #       user: "root"
+
+    - name: Add discogs cron job
+      ansible.builtin.cron:
+        name: "discogs"
+        minute: "41"
+        hour: "1"
+        day: "5"
+        job: "/opt/db.cue.tools/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1"
+        user: "root"
