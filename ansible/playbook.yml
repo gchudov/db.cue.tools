@@ -60,14 +60,11 @@
           - botocore
         state: present
 
-    - name: Check if Docker network 'ct' exists
-      command: docker network inspect ct
-      register: docker_network_check
-      ignore_errors: yes
-
-    - name: Create Docker network 'ct'
-      command: docker network create ct
-      when: docker_network_check.rc != 0
+    - name: Ensure Docker network 'ct' exists
+      become: yes
+      community.docker.docker_network:
+        name: ct
+        state: present
 
     - name: Download and install VS Code CLI for Amazon Graviton
       become: yes
@@ -378,3 +375,7 @@
         day: "5"
         job: "/opt/db.cue.tools/utils/discogs/request_spot.sh >> /var/log/reqspot 2>&1"
         user: "root"
+
+#0-59/10 * * * * /bin/docker exec ctdbweb php /var/www/html/utils/s3.php >> /var/log/s3 2>&1
+#20 6 * * * /opt/db.cue.tools/utils/repacklogs.sh >> /var/log/s3rl 2>&1
+#31 1 * * * /opt/db.cue.tools/utils/dobackup.sh >> /var/log/s3b 2>&1
