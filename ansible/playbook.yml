@@ -262,6 +262,7 @@
         volumes:
           - ctparity:/var/www/html/parity
           - /var/run/postgresql:/var/run/postgresql
+          - /opt/db.cue.tools/utils/docker/ctdbweb/php.ini:/usr/local/etc/php/php.ini:ro
 
     - name: Build MediaWiki container image
       become: yes

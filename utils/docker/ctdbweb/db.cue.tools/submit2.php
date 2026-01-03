@@ -100,7 +100,7 @@ if (@$_POST['parityfile'])
   $parfile = false;
 }
 
-$record3 = false;
+$record3 = array();
 $record3['quality'] = $quality;
 $record3['userid'] = @$_POST['userid'];
 $record3['drivename'] = @$_POST['drivename'];
