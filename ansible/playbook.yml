@@ -47,17 +47,6 @@
         name: ct
         state: present
 
-    - name: Download and install VS Code CLI for Amazon Graviton
-      become: yes
-      shell: |
-        if [ ! -f /usr/local/bin/code ]; then
-          curl -L --no-progress-meter "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o /tmp/vscode-cli.tar.gz
-          tar -xzf /tmp/vscode-cli.tar.gz -C /usr/local/bin
-          rm /tmp/vscode-cli.tar.gz
-        fi
-      args:
-        creates: /usr/local/bin/code
-
     - name: Run PostgreSQL 16 container
       become: yes
       community.docker.docker_container:
@@ -323,6 +312,17 @@
           AWS_SES_SMTP_USERNAME: "{{ lookup('amazon.aws.aws_secret', 'aws_ses_smtp_credentials', region='us-east-1') | from_json | json_query('AWS_SES_SMTP_USERNAME') }}"
           AWS_SES_SMTP_PASSWORD: "{{ lookup('amazon.aws.aws_secret', 'aws_ses_smtp_credentials', region='us-east-1') | from_json | json_query('AWS_SES_SMTP_PASSWORD') }}"
       no_log: true
+
+    - name: Run Logspout container
+      become: yes
+      community.docker.docker_container:
+        name: logspout
+        image: gliderlabs/logspout:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
 
 #   - name: Add freedb cron job
   #     ansible.builtin.cron:
