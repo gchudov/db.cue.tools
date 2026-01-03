@@ -33,6 +33,19 @@
         name: tmux
         state: present
 
+    - name: Install cronie (cron daemon)
+      become: yes
+      yum:
+        name: cronie
+        state: present
+
+    - name: Enable and start crond service
+      become: yes
+      service:
+        name: crond
+        enabled: yes
+        state: started
+
     - name: Install Pip
       become: yes
       yum:
@@ -339,6 +352,14 @@
           - ctwikiblacklist:/var/www/blacklist
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/mediawiki/LocalSettings.php:/var/www/html/LocalSettings.php
+
+    - name: Update MediaWiki blacklist
+      ansible.builtin.cron:
+        name: "update MediaWiki blacklist"
+        minute: "0"
+        hour: "3"
+        job: "/opt/db.cue.tools/utils/docker/mediawiki/updateBlacklist.sh >> /var/log/updateBlacklist.log 2>&1"
+        user: root
 
     - name: Build Sendmail container image
       become: yes

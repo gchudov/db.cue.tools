@@ -177,7 +177,8 @@ $wgCaptchaQuestions = [
 wfLoadExtension( 'AbuseFilter' );
 
 wfLoadExtension('StopForumSpam');
-$wgSFSIPListLocation = '/var/www/blacklist/listed_ip_30_all.zip';
+$wgSFSIPListLocation = '/var/www/blacklist/listed_ip_30_all.txt';
+// $wgSFSDenyListCacheDuration = 86400;
 
 wfLoadExtension('SpamBlacklist');
 

@@ -4,7 +4,7 @@ set -euo pipefail
 IP=`hostname -I`
 
 touch /var/log/mail.log
-# rsyslogd
+rsyslogd
 
 # set hostname conf
 echo "127.0.0.1 localhost localhost.localdomain" >> /etc/hosts
