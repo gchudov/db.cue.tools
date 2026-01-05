@@ -35,6 +35,60 @@ interface ApiResponse {
   rows: Row[]
 }
 
+// Convert country code to flag emoji
+function countryToFlag(countryCode: string): string | null {
+  if (!countryCode) return null
+  const code = countryCode.toUpperCase().trim()
+  // Special case: XE means worldwide
+  if (code === 'XE') return '🌍'
+  // Only convert valid 2-letter codes (A-Z only)
+  if (code.length !== 2 || !/^[A-Z]{2}$/.test(code)) return null
+  // Convert country code to regional indicator symbols
+  // Regional Indicator Symbol A = U+1F1E6 = 127462, 'A' = 65, so offset = 127397
+  const offset = 127397
+  return String.fromCodePoint(
+    code.charCodeAt(0) + offset,
+    code.charCodeAt(1) + offset
+  )
+}
+
+// Helper to format release data as flags with tooltips
+interface ReleaseItem {
+  country?: string
+  date?: string
+}
+
+function formatReleaseValue(value: unknown): { flags: React.ReactNode; tooltip: string } {
+  if (!Array.isArray(value)) {
+    return { flags: '', tooltip: '' }
+  }
+
+  const releases = value as ReleaseItem[]
+  const tooltipParts: string[] = []
+  const flagElements: React.ReactNode[] = []
+
+  releases.forEach((item, index) => {
+    if (typeof item === 'object' && item !== null && ('country' in item || 'date' in item)) {
+      const country = item.country || ''
+      const date = item.date || ''
+      const text = [country, date].filter(Boolean).join(': ')
+      if (text) tooltipParts.push(text)
+      
+      const flag = countryToFlag(country)
+      flagElements.push(
+        <span key={index} className="release-flag" title={text}>
+          {flag || country || '🌐'}
+        </span>
+      )
+    }
+  })
+
+  return {
+    flags: flagElements.length > 0 ? flagElements : tooltipParts.join(', '),
+    tooltip: tooltipParts.join(', ')
+  }
+}
+
 // Helper to format cell values (handles objects like Release and Label)
 function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) {
@@ -726,9 +780,11 @@ function App() {
                 <table>
                   <thead>
                     <tr>
-                      {visibleMetadataColIndices.map((colIndex) => (
-                        <th key={colIndex}>{metadata.cols[colIndex].label}</th>
-                      ))}
+                      {visibleMetadataColIndices.map((colIndex) => {
+                        const label = metadata.cols[colIndex].label
+                        const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
+                        return <th key={colIndex} className={colClass}>{label}</th>
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -738,9 +794,19 @@ function App() {
                         onClick={() => handleMetadataRowClick(rowIndex)}
                         className={selectedMetadataRow === rowIndex ? 'selected' : ''}
                       >
-                        {visibleMetadataColIndices.map((colIndex) => (
-                          <td key={colIndex}>{formatCellValue(row.c[colIndex]?.v)}</td>
-                        ))}
+                        {visibleMetadataColIndices.map((colIndex) => {
+                          const label = metadata.cols[colIndex].label
+                          const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
+                          const value = row.c[colIndex]?.v
+                          
+                          // Special handling for Release column - show flags
+                          if (label.toLowerCase() === 'release') {
+                            const { flags, tooltip } = formatReleaseValue(value)
+                            return <td key={colIndex} className={colClass} title={tooltip}>{flags}</td>
+                          }
+                          
+                          return <td key={colIndex} className={colClass}>{formatCellValue(value)}</td>
+                        })}
                       </tr>
                     ))}
                   </tbody>

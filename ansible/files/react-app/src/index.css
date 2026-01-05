@@ -658,6 +658,26 @@ h2 {
   box-shadow: inset 3px 0 0 #3b82f6;
 }
 
+/* Metadata table column sizing */
+.metadata-table .meta-col-date,
+.metadata-table .meta-col-disc,
+.metadata-table .meta-col-barcode,
+.metadata-table .meta-col-release {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Release flags */
+.release-flag {
+  font-size: 1.1em;
+  cursor: help;
+  margin-right: 0.25em;
+}
+
+.release-flag:last-child {
+  margin-right: 0;
+}
+
 .no-metadata {
   color: #737373;
   font-style: italic;
