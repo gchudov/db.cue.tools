@@ -1,5 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { tocs2mbid, tocs2mbtoc, buildTracks, type Track } from '@/lib/toc'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface Column {
   label: string
@@ -56,7 +63,15 @@ function formatCellValue(value: unknown): string {
 
 const METADATA_PAGE_SIZE = 5
 
+type ViewMode = 'latest' | 'popular'
+
+const VIEW_ENDPOINTS: Record<ViewMode, string> = {
+  latest: '/index.php',
+  popular: '/top.php',
+}
+
 function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('latest')
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,8 +89,15 @@ function App() {
     ctdbUrl: string
   } | null>(null)
 
+  // Fetch data when view mode changes
   useEffect(() => {
-    fetch('/index.php?json=1&start=0')
+    setLoading(true)
+    setError(null)
+    setSelectedRow(null)
+    setSelectedEntryInfo(null)
+    setMetadata(null)
+
+    fetch(`${VIEW_ENDPOINTS[viewMode]}?json=1&start=0`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch data')
@@ -90,7 +112,7 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
-  }, [])
+  }, [viewMode])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -253,7 +275,21 @@ function App() {
 
   return (
     <div className="container">
-      <h1>CUETools DB</h1>
+      <header className="page-header">
+        <h1>CUETools DB</h1>
+        <div className="view-selector">
+          <span className="view-label">View:</span>
+          <Select value={viewMode} onValueChange={(v: string) => setViewMode(v as ViewMode)}>
+            <SelectTrigger className="view-select-trigger">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" side="bottom" align="start">
+              <SelectItem value="latest">Latest</SelectItem>
+              <SelectItem value="popular">Popular</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </header>
       <div className="table-wrapper">
         <table>
           <thead>
