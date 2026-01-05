@@ -156,6 +156,60 @@ td:nth-child(7) {
   background: rgba(96, 165, 250, 0.6);
 }
 
+/* Links box */
+.links-box {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: rgba(30, 30, 46, 0.6);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.link-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.link-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.link-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.link-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+  color: #e4e4e7;
+}
+
+.mb-link .link-label {
+  color: #f472b6;
+}
+
+.mb-link:hover .link-value {
+  color: #f472b6;
+}
+
+.ctdb-link .link-label {
+  color: #60a5fa;
+}
+
+.ctdb-link:hover .link-value {
+  color: #60a5fa;
+}
+
 /* Metadata section */
 .metadata-section {
   margin-top: 2rem;
@@ -190,6 +244,42 @@ h2 {
   color: #71717a;
   font-style: italic;
   padding: 1rem;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.pagination button {
+  background: rgba(167, 139, 250, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  color: #a78bfa;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: rgba(167, 139, 250, 0.25);
+  border-color: rgba(167, 139, 250, 0.5);
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #71717a;
+  font-size: 0.8rem;
 }
 
 /* Tracks section */

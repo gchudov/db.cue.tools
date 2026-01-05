@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { tocs2mbid, tocs2mbtoc, buildTracks, type Track } from '@/lib/toc'
 
 interface Column {
   label: string
@@ -16,18 +17,6 @@ interface Row {
 interface ApiResponse {
   cols: Column[]
   rows: Row[]
-}
-
-interface Track {
-  number: number
-  name: string
-  artist: string | null
-  start: string
-  length: string
-  startSector: number
-  endSector: number
-  crc: string
-  isDataTrack: boolean
 }
 
 // Helper to format cell values (handles objects like Release and Label)
@@ -65,59 +54,7 @@ function formatCellValue(value: unknown): string {
   return String(value)
 }
 
-// Convert sectors to time string (MM:SS.FF)
-function sectorsToTime(sectors: number): string {
-  const totalSeconds = sectors / 75
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = Math.floor(totalSeconds % 60)
-  const frames = sectors % 75
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${frames.toString().padStart(2, '0')}`
-}
-
-// Build tracks from TOC, CRCs, and tracklist
-function buildTracks(
-  tocString: string,
-  crcsString: string | null,
-  tracklist: Array<{ name?: string; artist?: string }> | null,
-  mainArtist: string | null
-): Track[] {
-  const toc = tocString.split(':')
-  const crcs = crcsString ? crcsString.split(' ') : []
-  const tracks: Track[] = []
-  const ntracks = toc.length - 1
-
-  let crcIndex = 0
-  for (let i = 0; i < ntracks; i++) {
-    const isDataTrack = toc[i].startsWith('-')
-    const startOffset = 150 + Math.abs(Number(toc[i]))
-    let endOffset = 149 + Math.abs(Number(toc[i + 1]))
-    if (toc[i + 1].startsWith('-')) {
-      endOffset -= 11400
-    }
-
-    const trackInfo = tracklist?.[i]
-    const trackArtist = trackInfo?.artist
-    const showArtist = trackArtist && trackArtist !== mainArtist ? trackArtist : null
-
-    tracks.push({
-      number: i + 1,
-      name: trackInfo?.name || (isDataTrack ? '[data track]' : ''),
-      artist: showArtist,
-      start: sectorsToTime(startOffset),
-      length: sectorsToTime(endOffset + 1 - startOffset),
-      startSector: startOffset,
-      endSector: endOffset,
-      crc: !isDataTrack && crcIndex < crcs.length ? crcs[crcIndex] : '',
-      isDataTrack,
-    })
-
-    if (!isDataTrack) {
-      crcIndex++
-    }
-  }
-
-  return tracks
-}
+const METADATA_PAGE_SIZE = 5
 
 function App() {
   const [data, setData] = useState<ApiResponse | null>(null)
@@ -127,6 +64,15 @@ function App() {
   const [metadata, setMetadata] = useState<ApiResponse | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(false)
   const [selectedMetadataRow, setSelectedMetadataRow] = useState<number | null>(null)
+  const [metadataPage, setMetadataPage] = useState(0)
+  const [selectedEntryInfo, setSelectedEntryInfo] = useState<{
+    discId: string
+    toc: string
+    mbtoc: string
+    mbid: string | null
+    mbUrl: string
+    ctdbUrl: string
+  } | null>(null)
 
   useEffect(() => {
     fetch('/index.php?json=1&start=0')
@@ -163,6 +109,7 @@ function App() {
     setMetadataLoading(true)
     setMetadata(null)
     setSelectedMetadataRow(null)
+    setMetadataPage(0)
 
     fetch(`/lookup2.php?version=3&ctdb=0&metadata=default&fuzzy=1&type=json&toc=${encodeURIComponent(String(toc))}`)
       .then(response => {
@@ -185,8 +132,44 @@ function App() {
       })
   }, [selectedRow, data])
 
+  // Compute selected entry info (including async mbid) when row is selected
+  useEffect(() => {
+    if (selectedRow === null || !data) {
+      setSelectedEntryInfo(null)
+      return
+    }
+
+    const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
+    const discIdIndex = data.cols.findIndex(col => col.label === 'Disc Id')
+
+    if (tocIndex === -1 || discIdIndex === -1) {
+      setSelectedEntryInfo(null)
+      return
+    }
+
+    const toc = String(data.rows[selectedRow].c[tocIndex].v || '')
+    const discId = String(data.rows[selectedRow].c[discIdIndex].v || '')
+    const mbtoc = tocs2mbtoc(toc)
+
+    // Set initial info with null mbid
+    const info = {
+      discId,
+      toc,
+      mbtoc,
+      mbid: null as string | null,
+      mbUrl: `https://musicbrainz.org/bare/cdlookup.html?toc=${encodeURIComponent(mbtoc)}`,
+      ctdbUrl: `/lookup2.php?version=3&ctdb=1&metadata=extensive&fuzzy=1&toc=${encodeURIComponent(toc)}`,
+    }
+    setSelectedEntryInfo(info)
+
+    // Compute mbid async and update
+    tocs2mbid(toc)
+      .then(mbid => setSelectedEntryInfo(prev => prev ? { ...prev, mbid } : null))
+      .catch(() => {})
+  }, [selectedRow, data])
+
   // Build tracks data
-  const tracks = useMemo(() => {
+  const tracks = useMemo<Track[] | null>(() => {
     if (selectedRow === null || !data || !metadata || selectedMetadataRow === null) {
       return null
     }
@@ -253,12 +236,19 @@ function App() {
     .map(({ index }) => index)
 
   // Columns to hide in metadata table
-  const hiddenMetadataColumns = ['id', 'source', 'coverart', 'videos', 'tracklist']
+  const hiddenMetadataColumns = ['id', 'source', 'coverart', 'videos', 'tracklist', 'tracks']
   const visibleMetadataColIndices = metadata
     ? metadata.cols
         .map((col, index) => ({ col, index }))
         .filter(({ col }) => !hiddenMetadataColumns.includes(col.label.toLowerCase()))
         .map(({ index }) => index)
+    : []
+
+  // Pagination for metadata table
+  const metadataTotalPages = metadata ? Math.ceil(metadata.rows.length / METADATA_PAGE_SIZE) : 0
+  const metadataStartIndex = metadataPage * METADATA_PAGE_SIZE
+  const metadataPageRows = metadata
+    ? metadata.rows.slice(metadataStartIndex, metadataStartIndex + METADATA_PAGE_SIZE)
     : []
 
   return (
@@ -289,35 +279,83 @@ function App() {
         </table>
       </div>
 
+      {/* Links box */}
+      {selectedEntryInfo && (
+        <div className="links-box">
+          <a
+            href={selectedEntryInfo.mbUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link-item mb-link"
+          >
+            <span className="link-label">MusicBrainz</span>
+            <span className="link-value">{selectedEntryInfo.mbid || '...'}</span>
+          </a>
+          <a
+            href={selectedEntryInfo.ctdbUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link-item ctdb-link"
+          >
+            <span className="link-label">CTDB Lookup</span>
+            <span className="link-value">{selectedEntryInfo.discId}</span>
+          </a>
+        </div>
+      )}
+
       {/* Metadata table */}
       {selectedRow !== null && (
         <div className="metadata-section">
           {metadataLoading && <p className="loading">Loading metadata...</p>}
           {!metadataLoading && metadata && metadata.rows.length > 0 && (
-            <div className="table-wrapper metadata-table">
-              <table>
-                <thead>
-                  <tr>
-                    {visibleMetadataColIndices.map((colIndex) => (
-                      <th key={colIndex}>{metadata.cols[colIndex].label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {metadata.rows.map((row, rowIndex) => (
-                    <tr
-                      key={rowIndex}
-                      onClick={() => handleMetadataRowClick(rowIndex)}
-                      className={selectedMetadataRow === rowIndex ? 'selected' : ''}
-                    >
+            <>
+              <div className="table-wrapper metadata-table">
+                <table>
+                  <thead>
+                    <tr>
                       {visibleMetadataColIndices.map((colIndex) => (
-                        <td key={colIndex}>{formatCellValue(row.c[colIndex]?.v)}</td>
+                        <th key={colIndex}>{metadata.cols[colIndex].label}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {metadataPageRows.map((row, pageRowIndex) => {
+                      const actualRowIndex = metadataStartIndex + pageRowIndex
+                      return (
+                        <tr
+                          key={actualRowIndex}
+                          onClick={() => handleMetadataRowClick(actualRowIndex)}
+                          className={selectedMetadataRow === actualRowIndex ? 'selected' : ''}
+                        >
+                          {visibleMetadataColIndices.map((colIndex) => (
+                            <td key={colIndex}>{formatCellValue(row.c[colIndex]?.v)}</td>
+                          ))}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {metadataTotalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    onClick={() => setMetadataPage(p => Math.max(0, p - 1))}
+                    disabled={metadataPage === 0}
+                  >
+                    ← Prev
+                  </button>
+                  <span className="page-info">
+                    {metadataPage + 1} / {metadataTotalPages}
+                  </span>
+                  <button
+                    onClick={() => setMetadataPage(p => Math.min(metadataTotalPages - 1, p + 1))}
+                    disabled={metadataPage >= metadataTotalPages - 1}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
           )}
           {!metadataLoading && (!metadata || metadata.rows.length === 0) && (
             <p className="no-metadata">No metadata found</p>
