@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { tocs2mbid, tocs2mbtoc, buildTracks, type Track } from '@/lib/toc'
 import {
   Select,
@@ -67,8 +67,6 @@ function formatCellValue(value: unknown): string {
   return String(value)
 }
 
-const METADATA_PAGE_SIZE = 5
-
 type ViewMode = 'latest' | 'popular'
 
 const VIEW_ENDPOINTS: Record<ViewMode, string> = {
@@ -88,13 +86,14 @@ function App() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [pageStart, setPageStart] = useState(0)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
   const [selectedRow, setSelectedRow] = useState<number | null>(null)
   const [metadata, setMetadata] = useState<ApiResponse | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(false)
   const [selectedMetadataRow, setSelectedMetadataRow] = useState<number | null>(null)
-  const [metadataPage, setMetadataPage] = useState(0)
   const [selectedEntryInfo, setSelectedEntryInfo] = useState<{
     discId: string
     toc: string
@@ -105,20 +104,16 @@ function App() {
   } | null>(null)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
-  // Reset page when view mode or filters change
-  useEffect(() => {
-    setPageStart(0)
-  }, [viewMode, filters])
-
-  // Fetch data when view mode, filters, or page changes
+  // Fetch initial data when view mode or filters change
   useEffect(() => {
     setLoading(true)
     setError(null)
     setSelectedRow(null)
     setSelectedEntryInfo(null)
     setMetadata(null)
+    setHasMore(true)
 
-    const params = new URLSearchParams({ json: '1', start: String(pageStart) })
+    const params = new URLSearchParams({ json: '1', start: '0' })
     if (filters.tocid.trim()) {
       params.set('tocid', filters.tocid.trim())
     }
@@ -136,12 +131,75 @@ function App() {
       .then((json: ApiResponse) => {
         setData(json)
         setLoading(false)
+        if (json.rows.length < 10) {
+          setHasMore(false)
+        }
       })
       .catch(err => {
         setError(err.message)
         setLoading(false)
       })
-  }, [viewMode, filters, pageStart])
+  }, [viewMode, filters])
+
+  // Load more data function
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore || !data) return
+
+    setLoadingMore(true)
+    const nextStart = data.rows.length
+
+    const params = new URLSearchParams({ json: '1', start: String(nextStart) })
+    if (filters.tocid.trim()) {
+      params.set('tocid', filters.tocid.trim())
+    }
+    if (filters.artist.trim()) {
+      params.set('artist', filters.artist.trim())
+    }
+
+    fetch(`${VIEW_ENDPOINTS[viewMode]}?${params.toString()}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch data')
+        }
+        return response.json()
+      })
+      .then((json: ApiResponse) => {
+        setData(prev => prev ? {
+          ...prev,
+          rows: [...prev.rows, ...json.rows]
+        } : json)
+        setLoadingMore(false)
+        if (json.rows.length < 10) {
+          setHasMore(false)
+        }
+      })
+      .catch(() => {
+        setLoadingMore(false)
+      })
+  }, [loadingMore, hasMore, data, filters, viewMode])
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentRef = loadMoreRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [loadMore, hasMore, loadingMore])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -160,7 +218,6 @@ function App() {
     setMetadataLoading(true)
     setMetadata(null)
     setSelectedMetadataRow(null)
-    setMetadataPage(0)
 
     fetch(`/lookup2.php?version=3&ctdb=0&metadata=default&fuzzy=1&type=json&toc=${encodeURIComponent(String(toc))}`)
       .then(response => {
@@ -370,13 +427,6 @@ function App() {
         .map(({ index }) => index)
     : []
 
-  // Pagination for metadata table
-  const metadataTotalPages = metadata ? Math.ceil(metadata.rows.length / METADATA_PAGE_SIZE) : 0
-  const metadataStartIndex = metadataPage * METADATA_PAGE_SIZE
-  const metadataPageRows = metadata
-    ? metadata.rows.slice(metadataStartIndex, metadataStartIndex + METADATA_PAGE_SIZE)
-    : []
-
   return (
     <div className="container">
       <header className="page-header">
@@ -439,7 +489,7 @@ function App() {
           </Popover>
         </div>
       </header>
-      <div className="table-wrapper">
+      <div className="table-wrapper main-table">
         <table>
           <thead>
             <tr>
@@ -494,25 +544,11 @@ function App() {
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination for main table */}
-      <div className="pagination">
-        <button
-          onClick={() => setPageStart(p => Math.max(0, p - 10))}
-          disabled={pageStart === 0}
-        >
-          ← Prev
-        </button>
-        <span className="page-info">
-          {pageStart + 1} – {pageStart + (data?.rows.length || 0)}
-        </span>
-        <button
-          onClick={() => setPageStart(p => p + 10)}
-          disabled={!data || data.rows.length < 10}
-        >
-          Next →
-        </button>
+        {/* Infinite scroll trigger */}
+        <div ref={loadMoreRef} className="load-more-trigger">
+          {loadingMore && <span className="loading-more">Loading more...</span>}
+          {!hasMore && data.rows.length > 0 && <span className="no-more">No more entries</span>}
+        </div>
       </div>
 
       {/* Links box */}
@@ -555,42 +591,20 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {metadataPageRows.map((row, pageRowIndex) => {
-                      const actualRowIndex = metadataStartIndex + pageRowIndex
-                      return (
-                        <tr
-                          key={actualRowIndex}
-                          onClick={() => handleMetadataRowClick(actualRowIndex)}
-                          className={selectedMetadataRow === actualRowIndex ? 'selected' : ''}
-                        >
-                          {visibleMetadataColIndices.map((colIndex) => (
-                            <td key={colIndex}>{formatCellValue(row.c[colIndex]?.v)}</td>
-                          ))}
-                        </tr>
-                      )
-                    })}
+                    {metadata.rows.map((row, rowIndex) => (
+                      <tr
+                        key={rowIndex}
+                        onClick={() => handleMetadataRowClick(rowIndex)}
+                        className={selectedMetadataRow === rowIndex ? 'selected' : ''}
+                      >
+                        {visibleMetadataColIndices.map((colIndex) => (
+                          <td key={colIndex}>{formatCellValue(row.c[colIndex]?.v)}</td>
+                        ))}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-              {metadataTotalPages > 1 && (
-                <div className="pagination">
-                  <button
-                    onClick={() => setMetadataPage(p => Math.max(0, p - 1))}
-                    disabled={metadataPage === 0}
-                  >
-                    ← Prev
-                  </button>
-                  <span className="page-info">
-                    {metadataPage + 1} / {metadataTotalPages}
-                  </span>
-                  <button
-                    onClick={() => setMetadataPage(p => Math.min(metadataTotalPages - 1, p + 1))}
-                    disabled={metadataPage >= metadataTotalPages - 1}
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
             </>
           )}
           {!metadataLoading && (!metadata || metadata.rows.length === 0) && (

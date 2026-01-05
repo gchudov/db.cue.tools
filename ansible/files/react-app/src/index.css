@@ -236,6 +236,36 @@ h1 {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Main data table with infinite scroll */
+.main-table {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.main-table thead {
+  background: linear-gradient(180deg, rgb(35, 35, 55) 0%, rgb(30, 30, 50) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.load-more-trigger {
+  padding: 0.75rem;
+  text-align: center;
+  min-height: 2.5rem;
+}
+
+.loading-more {
+  color: #60a5fa;
+  font-size: 0.85rem;
+}
+
+.no-more {
+  color: #71717a;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -402,10 +432,15 @@ h2 {
 .metadata-table {
   background: rgba(40, 30, 50, 0.8);
   border-color: rgba(167, 139, 250, 0.2);
+  max-height: 220px; /* ~5 rows */
+  overflow-y: auto;
 }
 
 .metadata-table thead {
-  background: linear-gradient(180deg, rgba(167, 139, 250, 0.15) 0%, rgba(167, 139, 250, 0.05) 100%);
+  background: linear-gradient(180deg, rgb(55, 40, 70) 0%, rgb(45, 32, 58) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .metadata-table th {
@@ -516,6 +551,8 @@ h2 {
   flex-wrap: wrap;
   gap: 10px;
   max-width: 150px;
+  max-height: 390px; /* ~5 rows of 70px thumbnails + gaps */
+  overflow-y: auto;
 }
 
 .cover-art-secondary button {
@@ -581,10 +618,15 @@ h2 {
 .tracks-table {
   background: rgba(30, 50, 40, 0.8);
   border-color: rgba(52, 211, 153, 0.2);
+  max-height: 380px; /* ~10 rows */
+  overflow-y: auto;
 }
 
 .tracks-table thead {
-  background: linear-gradient(180deg, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.05) 100%);
+  background: linear-gradient(180deg, rgb(35, 55, 45) 0%, rgb(30, 48, 40) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .tracks-table th {
