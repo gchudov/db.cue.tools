@@ -33,6 +33,11 @@ interface PieData {
   value: number
 }
 
+interface TotalsData {
+  unique_tocs: number
+  submissions: number
+}
+
 const submissionsConfig: ChartConfig = {
   eac: { label: 'EAC', color: '#3b82f6' },
   cueripper: { label: 'CUERipper', color: '#ef4444' },
@@ -105,7 +110,7 @@ function PieChartCard({ title, data, loading }: PieChartCardProps) {
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
-                label={({ name, percent }) => 
+                label={({ name, percent }: { name: string; percent: number }) => 
                   percent > 0.03 ? `${name.substring(0, 12)}${name.length > 12 ? '…' : ''}` : ''
                 }
                 labelLine={false}
@@ -115,13 +120,13 @@ function PieChartCard({ title, data, loading }: PieChartCardProps) {
                 ))}
               </Pie>
               <ChartTooltip
-                content={({ active, payload }) => {
+                content={({ active, payload }: { active?: boolean; payload?: Array<{ name?: string; value?: number }> }) => {
                   if (!active || !payload?.length) return null
-                  const data = payload[0]
+                  const item = payload[0]
                   return (
                     <div className="chart-tooltip">
-                      <div className="tooltip-label">{data.name}</div>
-                      <div className="tooltip-value">{data.value?.toLocaleString()}</div>
+                      <div className="tooltip-label">{item.name}</div>
+                      <div className="tooltip-value">{item.value?.toLocaleString()}</div>
                     </div>
                   )
                 }}
@@ -135,6 +140,7 @@ function PieChartCard({ title, data, loading }: PieChartCardProps) {
 }
 
 export function Stats() {
+  const [totals, setTotals] = useState<TotalsData | null>(null)
   const [dailyData, setDailyData] = useState<SubmissionData[]>([])
   const [hourlyData, setHourlyData] = useState<SubmissionData[]>([])
   const [drivesData, setDrivesData] = useState<PieData[]>([])
@@ -147,6 +153,21 @@ export function Stats() {
     agents: true,
     pregaps: true,
   })
+
+  // Fetch totals every 5 seconds
+  useEffect(() => {
+    const fetchTotals = () => {
+      fetch('/statsjson.php?type=totals')
+        .then(res => res.json())
+        .then((data: TotalsData) => setTotals(data))
+        .catch(() => {})
+    }
+
+    fetchTotals() // Initial fetch
+    const interval = setInterval(fetchTotals, 5000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     // Fetch daily submissions
@@ -197,6 +218,20 @@ export function Stats() {
 
   return (
     <div className="stats-page">
+      {/* Totals counter */}
+      {totals && (
+        <div className="stats-totals">
+          <div className="totals-item">
+            <span className="totals-value">{totals.unique_tocs.toLocaleString()}</span>
+            <span className="totals-label">discs</span>
+          </div>
+          <div className="totals-item">
+            <span className="totals-value">{totals.submissions.toLocaleString()}</span>
+            <span className="totals-label">rips</span>
+          </div>
+        </div>
+      )}
+
       <ChartSection title="Daily Submissions" loading={loading.daily}>
         <ChartContainer config={submissionsConfig} className="area-chart">
           <AreaChart data={dailyData}>
@@ -205,14 +240,14 @@ export function Stats() {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => value.slice(5)} // Show MM-DD
+              tickFormatter={(value: string | number) => String(value).slice(5)} // Show MM-DD
               interval="preserveStartEnd"
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => value.toLocaleString()}
+              tickFormatter={(value: string | number) => Number(value).toLocaleString()}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Area

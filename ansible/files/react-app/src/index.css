@@ -896,6 +896,41 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: relative;
+}
+
+.stats-totals {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  z-index: 10;
+}
+
+.totals-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.totals-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.totals-label {
+  font-size: 0.75rem;
+  color: #737373;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .chart-section {
