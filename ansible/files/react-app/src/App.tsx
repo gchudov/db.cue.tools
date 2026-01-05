@@ -224,6 +224,9 @@ function App() {
 
   // Intersection observer for infinite scroll
   useEffect(() => {
+    // Only set up observer when on home page
+    if (currentPage !== 'home') return
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
@@ -243,7 +246,7 @@ function App() {
         observer.unobserve(currentRef)
       }
     }
-  }, [loadMore, hasMore, loadingMore])
+  }, [currentPage, loadMore, hasMore, loadingMore])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -326,25 +329,33 @@ function App() {
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
-    if (selectedRow === null || !data || !metadata || selectedMetadataRow === null) {
+    if (selectedRow === null || !data) {
       return null
     }
 
     const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
     const crcsIndex = data.cols.findIndex(col => col.label === 'Track CRCs')
-    const tracklistIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'tracks')
-    const artistIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'artist')
 
     if (tocIndex === -1) return null
 
     const tocString = String(data.rows[selectedRow].c[tocIndex].v || '')
     const crcsString = crcsIndex !== -1 ? String(data.rows[selectedRow].c[crcsIndex].v || '') : null
-    const tracklist = tracklistIndex !== -1 
-      ? (metadata.rows[selectedMetadataRow].c[tracklistIndex]?.v as Array<{ name?: string; artist?: string }> | null)
-      : null
-    const mainArtist = artistIndex !== -1
-      ? String(metadata.rows[selectedMetadataRow].c[artistIndex]?.v || '')
-      : null
+
+    // Get track info from metadata if available
+    let tracklist: Array<{ name?: string; artist?: string }> | null = null
+    let mainArtist: string | null = null
+
+    if (metadata && selectedMetadataRow !== null) {
+      const tracklistIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'tracks')
+      const artistIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'artist')
+
+      tracklist = tracklistIndex !== -1 
+        ? (metadata.rows[selectedMetadataRow].c[tracklistIndex]?.v as Array<{ name?: string; artist?: string }> | null)
+        : null
+      mainArtist = artistIndex !== -1
+        ? String(metadata.rows[selectedMetadataRow].c[artistIndex]?.v || '')
+        : null
+    }
 
     return buildTracks(tocString, crcsString, tracklist, mainArtist)
   }, [selectedRow, data, metadata, selectedMetadataRow])
