@@ -11,6 +11,15 @@ declare module 'lucide-react' {
   export type Icon = FC<IconProps>
 
   export const Filter: Icon
-  // Add more icons here as needed
+  export const Menu: Icon
+  export const X: Icon
+  export const Home: Icon
+  export const BarChart3: Icon
+  export const Info: Icon
+  export const MessageSquare: Icon
+  export const Plug: Icon
+  export const Wrench: Icon
+  export const ExternalLink: Icon
+  export const Heart: Icon
 }
 

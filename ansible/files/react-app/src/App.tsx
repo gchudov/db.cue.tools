@@ -12,7 +12,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Filter } from 'lucide-react'
+import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart } from 'lucide-react'
 
 interface Column {
   label: string
@@ -103,6 +103,7 @@ function App() {
     ctdbUrl: string
   } | null>(null)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   // Fetch initial data when view mode or filters change
   useEffect(() => {
@@ -429,7 +430,57 @@ function App() {
 
   return (
     <div className="container">
+      {/* Slide-out menu */}
+      <div className={`menu-overlay ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)} />
+      <nav className={`side-menu ${menuOpen ? 'open' : ''}`}>
+        <div className="side-menu-header">
+          <span>Menu</span>
+          <button className="menu-close-btn" onClick={() => setMenuOpen(false)}>
+            <X className="size-5" />
+          </button>
+        </div>
+        <div className="side-menu-items">
+          <button className="menu-item active" onClick={() => setMenuOpen(false)}>
+            <Home className="size-5" />
+            <span>Home</span>
+          </button>
+          <a className="menu-item" href="/stats.php">
+            <BarChart3 className="size-5" />
+            <span>Stats</span>
+          </a>
+          <a className="menu-item" href="http://cue.tools/wiki/CUETools_Database" target="_blank" rel="noopener noreferrer">
+            <Info className="size-5" />
+            <span>About</span>
+            <ExternalLink className="size-4 external-icon" />
+          </a>
+          <a className="menu-item" href="http://www.hydrogenaudio.org/forums/index.php?showtopic=79882" target="_blank" rel="noopener noreferrer">
+            <MessageSquare className="size-5" />
+            <span>Forum</span>
+            <ExternalLink className="size-4 external-icon" />
+          </a>
+          <a className="menu-item" href="http://cue.tools/wiki/CTDB_EAC_Plugin" target="_blank" rel="noopener noreferrer">
+            <Plug className="size-5" />
+            <span>EAC Plugin</span>
+            <ExternalLink className="size-4 external-icon" />
+          </a>
+          <a className="menu-item" href="http://cue.tools/wiki/CUETools" target="_blank" rel="noopener noreferrer">
+            <Wrench className="size-5" />
+            <span>CUETools</span>
+            <ExternalLink className="size-4 external-icon" />
+          </a>
+          <div className="menu-divider" />
+          <a className="menu-item sponsor" href="https://github.com/sponsors/gchudov" target="_blank" rel="noopener noreferrer">
+            <Heart className="size-5" />
+            <span>Sponsor</span>
+            <ExternalLink className="size-4 external-icon" />
+          </a>
+        </div>
+      </nav>
+
       <header className="page-header">
+        <button className="menu-toggle-btn" onClick={() => setMenuOpen(true)}>
+          <Menu className="size-6" />
+        </button>
         <h1>CUETools DB</h1>
         <div className="header-controls">
           <div className="view-selector">
