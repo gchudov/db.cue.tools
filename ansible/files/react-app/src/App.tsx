@@ -248,25 +248,35 @@ function App() {
     }
   }, [currentPage, loadMore, hasMore, loadingMore])
 
+  // Memoize selected row data to avoid re-fetching when more rows are loaded
+  const selectedRowData = useMemo(() => {
+    if (selectedRow === null || !data) return null
+    const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
+    const discIdIndex = data.cols.findIndex(col => col.label === 'Disc Id')
+    if (tocIndex === -1 || discIdIndex === -1) return null
+    const row = data.rows[selectedRow]
+    if (!row) return null
+    return {
+      toc: String(row.c[tocIndex]?.v || ''),
+      discId: String(row.c[discIdIndex]?.v || ''),
+    }
+  }, [selectedRow, data?.rows[selectedRow ?? -1]])
+
   // Fetch metadata when a row is selected
   useEffect(() => {
-    if (selectedRow === null || !data) {
+    if (!selectedRowData?.toc) {
       setMetadata(null)
       setSelectedMetadataRow(null)
       return
     }
 
-    const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
-    if (tocIndex === -1) return
-
-    const toc = data.rows[selectedRow].c[tocIndex].v
-    if (!toc) return
+    const toc = selectedRowData.toc
 
     setMetadataLoading(true)
     setMetadata(null)
     setSelectedMetadataRow(null)
 
-    fetch(`/lookup2.php?version=3&ctdb=0&metadata=default&fuzzy=1&type=json&toc=${encodeURIComponent(String(toc))}`)
+    fetch(`/lookup2.php?version=3&ctdb=0&metadata=default&fuzzy=1&type=json&toc=${encodeURIComponent(toc)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch metadata')
@@ -285,25 +295,16 @@ function App() {
         setMetadata(null)
         setMetadataLoading(false)
       })
-  }, [selectedRow, data])
+  }, [selectedRowData?.toc])
 
   // Compute selected entry info (including async mbid) when row is selected
   useEffect(() => {
-    if (selectedRow === null || !data) {
+    if (!selectedRowData) {
       setSelectedEntryInfo(null)
       return
     }
 
-    const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
-    const discIdIndex = data.cols.findIndex(col => col.label === 'Disc Id')
-
-    if (tocIndex === -1 || discIdIndex === -1) {
-      setSelectedEntryInfo(null)
-      return
-    }
-
-    const toc = String(data.rows[selectedRow].c[tocIndex].v || '')
-    const discId = String(data.rows[selectedRow].c[discIdIndex].v || '')
+    const { toc, discId } = selectedRowData
     const mbtoc = tocs2mbtoc(toc)
     const cddbid = tocs2cddbid(toc)
     const arid = tocs2arid(toc)
@@ -325,7 +326,7 @@ function App() {
     tocs2mbid(toc)
       .then(mbid => setSelectedEntryInfo(prev => prev ? { ...prev, mbid } : null))
       .catch(() => {})
-  }, [selectedRow, data])
+  }, [selectedRowData])
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
