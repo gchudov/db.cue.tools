@@ -890,3 +890,89 @@ h2 {
   color: #737373;
   font-size: 0.85em;
 }
+
+/* Stats page */
+.stats-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.chart-section {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #3b82f6;
+  margin: 0 0 1rem 0;
+}
+
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #737373;
+}
+
+.area-chart {
+  height: 300px !important;
+  aspect-ratio: auto !important;
+}
+
+.pie-charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.pie-chart-card {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.pie-chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+
+.pie-chart-container {
+  width: 100%;
+}
+
+.chart-tooltip {
+  background: rgb(20, 20, 20);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Override shadcn chart tooltip */
+[data-slot="chart"] .recharts-tooltip-wrapper .border-border\/50 {
+  background: rgb(20, 20, 20) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tooltip-label {
+  font-size: 0.8rem;
+  color: #a3a3a3;
+}
+
+.tooltip-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  font-family: "JetBrains Mono", monospace;
+}

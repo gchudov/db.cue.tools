@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { tocs2mbid, tocs2mbtoc, tocs2cddbid, tocs2arid, buildTracks, type Track } from '@/lib/toc'
+import { Stats } from '@/components/Stats'
 import {
   Select,
   SelectContent,
@@ -13,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart } from 'lucide-react'
+
+type Page = 'home' | 'stats'
 
 interface Column {
   label: string
@@ -106,6 +109,7 @@ function App() {
   } | null>(null)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState<Page>('home')
 
   // Fetch initial data when view mode or filters change
   useEffect(() => {
@@ -446,14 +450,20 @@ function App() {
           </button>
         </div>
         <div className="side-menu-items">
-          <button className="menu-item active" onClick={() => setMenuOpen(false)}>
+          <button 
+            className={`menu-item ${currentPage === 'home' ? 'active' : ''}`} 
+            onClick={() => { setCurrentPage('home'); setMenuOpen(false); }}
+          >
             <Home className="size-5" />
             <span>Home</span>
           </button>
-          <a className="menu-item" href="/stats.php">
+          <button 
+            className={`menu-item ${currentPage === 'stats' ? 'active' : ''}`}
+            onClick={() => { setCurrentPage('stats'); setMenuOpen(false); }}
+          >
             <BarChart3 className="size-5" />
             <span>Stats</span>
-          </a>
+          </button>
           <a className="menu-item" href="http://cue.tools/wiki/CUETools_Database" target="_blank" rel="noopener noreferrer">
             <Info className="size-5" />
             <span>About</span>
@@ -491,64 +501,71 @@ function App() {
           <img src="http://s3.cuetools.net/ctdb64.png" alt="CUETools DB" className="header-logo" />
           <h1>CUETools DB</h1>
         </div>
-        <div className="header-controls">
-          <div className="view-selector">
-            <span className="view-label">View:</span>
-            <Select value={viewMode} onValueChange={(v: string) => setViewMode(v as ViewMode)}>
-              <SelectTrigger className="view-select-trigger">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper" side="bottom" align="start">
-                <SelectItem value="latest">Latest</SelectItem>
-                <SelectItem value="popular">Popular</SelectItem>
-              </SelectContent>
-            </Select>
+        {currentPage === 'home' && (
+          <div className="header-controls">
+            <div className="view-selector">
+              <span className="view-label">View:</span>
+              <Select value={viewMode} onValueChange={(v: string) => setViewMode(v as ViewMode)}>
+                <SelectTrigger className="view-select-trigger">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" side="bottom" align="start">
+                  <SelectItem value="latest">Latest</SelectItem>
+                  <SelectItem value="popular">Popular</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`filter-button ${hasActiveFilters ? 'active' : ''}`}
+                >
+                  <Filter className="size-4" />
+                  Filter
+                  {hasActiveFilters && <span className="filter-badge" />}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="filter-popover" align="end" side="bottom">
+                <div className="filter-form">
+                  <div className="filter-field">
+                    <Label htmlFor="filter-tocid">TOCID</Label>
+                    <Input
+                      id="filter-tocid"
+                      placeholder="e.g. ABC123..."
+                      value={pendingFilters.tocid}
+                      onChange={(e) => setPendingFilters(p => ({ ...p, tocid: e.target.value }))}
+                    />
+                  </div>
+                  <div className="filter-field">
+                    <Label htmlFor="filter-artist">Artist</Label>
+                    <Input
+                      id="filter-artist"
+                      placeholder="e.g. Pink Floyd"
+                      value={pendingFilters.artist}
+                      onChange={(e) => setPendingFilters(p => ({ ...p, artist: e.target.value }))}
+                    />
+                  </div>
+                  <div className="filter-actions">
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      Clear
+                    </Button>
+                    <Button size="sm" onClick={applyFilters}>
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`filter-button ${hasActiveFilters ? 'active' : ''}`}
-              >
-                <Filter className="size-4" />
-                Filter
-                {hasActiveFilters && <span className="filter-badge" />}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="filter-popover" align="end" side="bottom">
-              <div className="filter-form">
-                <div className="filter-field">
-                  <Label htmlFor="filter-tocid">TOCID</Label>
-                  <Input
-                    id="filter-tocid"
-                    placeholder="e.g. ABC123..."
-                    value={pendingFilters.tocid}
-                    onChange={(e) => setPendingFilters(p => ({ ...p, tocid: e.target.value }))}
-                  />
-                </div>
-                <div className="filter-field">
-                  <Label htmlFor="filter-artist">Artist</Label>
-                  <Input
-                    id="filter-artist"
-                    placeholder="e.g. Pink Floyd"
-                    value={pendingFilters.artist}
-                    onChange={(e) => setPendingFilters(p => ({ ...p, artist: e.target.value }))}
-                  />
-                </div>
-                <div className="filter-actions">
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    Clear
-                  </Button>
-                  <Button size="sm" onClick={applyFilters}>
-                    Apply
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+        )}
       </header>
+
+      {currentPage === 'stats' ? (
+        <Stats />
+      ) : (
+      <>
       <div className="table-wrapper main-table">
         <table>
           <thead>
@@ -747,6 +764,8 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* Cover art lightbox */}
