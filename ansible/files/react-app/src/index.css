@@ -659,6 +659,21 @@ h2 {
 }
 
 /* Metadata table column sizing */
+.metadata-table .meta-col-source-icon {
+  width: 32px;
+  min-width: 32px;
+  padding: 0.4rem 0.5rem !important;
+  text-align: center;
+}
+
+.metadata-table .source-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .metadata-table .meta-col-date,
 .metadata-table .meta-col-disc,
 .metadata-table .meta-col-barcode,

@@ -541,6 +541,17 @@ function App() {
         .map(({ index }) => index)
     : []
 
+  // Get source column index for metadata table icons
+  const sourceColIndex = metadata?.cols.findIndex(col => col.label.toLowerCase() === 'source') ?? -1
+
+  // Map source names to icon URLs
+  const sourceIcons: Record<string, string> = {
+    musicbrainz: 'https://s3.cuetools.net/icons/musicbrainz.png',
+    cdstub: 'https://s3.cuetools.net/icons/cdstub.png',
+    discogs: 'https://s3.cuetools.net/icons/discogs.png',
+    freedb: 'https://s3.cuetools.net/icons/freedb.png',
+  }
+
   return (
     <div className="container">
       {/* Slide-out menu */}
@@ -780,6 +791,7 @@ function App() {
                 <table>
                   <thead>
                     <tr>
+                      <th className="meta-col-source-icon"></th>
                       {visibleMetadataColIndices.map((colIndex) => {
                         const label = metadata.cols[colIndex].label
                         const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
@@ -788,27 +800,38 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {metadata.rows.map((row, rowIndex) => (
-                      <tr
-                        key={rowIndex}
-                        onClick={() => handleMetadataRowClick(rowIndex)}
-                        className={selectedMetadataRow === rowIndex ? 'selected' : ''}
-                      >
-                        {visibleMetadataColIndices.map((colIndex) => {
-                          const label = metadata.cols[colIndex].label
-                          const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
-                          const value = row.c[colIndex]?.v
-                          
-                          // Special handling for Release column - show flags
-                          if (label.toLowerCase() === 'release') {
-                            const { flags, tooltip } = formatReleaseValue(value)
-                            return <td key={colIndex} className={colClass} title={tooltip}>{flags}</td>
-                          }
-                          
-                          return <td key={colIndex} className={colClass}>{formatCellValue(value)}</td>
-                        })}
-                      </tr>
-                    ))}
+                    {metadata.rows.map((row, rowIndex) => {
+                      const source = sourceColIndex >= 0 ? String(row.c[sourceColIndex]?.v || '').toLowerCase() : ''
+                      const iconUrl = sourceIcons[source]
+                      return (
+                        <tr
+                          key={rowIndex}
+                          onClick={() => handleMetadataRowClick(rowIndex)}
+                          className={selectedMetadataRow === rowIndex ? 'selected' : ''}
+                        >
+                          <td className="meta-col-source-icon">
+                            {iconUrl ? (
+                              <img src={iconUrl} alt={source} className="source-icon" title={source} />
+                            ) : (
+                              <span title={source || 'unknown'}>•</span>
+                            )}
+                          </td>
+                          {visibleMetadataColIndices.map((colIndex) => {
+                            const label = metadata.cols[colIndex].label
+                            const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
+                            const value = row.c[colIndex]?.v
+                            
+                            // Special handling for Release column - show flags
+                            if (label.toLowerCase() === 'release') {
+                              const { flags, tooltip } = formatReleaseValue(value)
+                              return <td key={colIndex} className={colClass} title={tooltip}>{flags}</td>
+                            }
+                            
+                            return <td key={colIndex} className={colClass}>{formatCellValue(value)}</td>
+                          })}
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
