@@ -48,6 +48,64 @@ export async function tocs2mbid(tocString: string): Promise<string> {
 }
 
 /**
+ * Convert TOC string to FreeDB/CDDB disc ID
+ * @param tocString - Colon-separated TOC string
+ * @returns 8-character hex CDDB ID
+ */
+export function tocs2cddbid(tocString: string): string {
+  const ids = tocString.split(':')
+  const trackcount = ids.length - 1
+  let tocid = ''
+  
+  const absIds = ids.map(id => Math.abs(Number(id)))
+  
+  for (let tr = 0; tr < trackcount; tr++) {
+    tocid += String(Math.floor(absIds[tr] / 75) + 2)
+  }
+  
+  let id0 = 0
+  for (let i = 0; i < tocid.length; i++) {
+    id0 += tocid.charCodeAt(i) - '0'.charCodeAt(0)
+  }
+  
+  const part1 = (id0 % 255).toString(16).toUpperCase().padStart(2, '0')
+  const part2 = (Math.floor(absIds[trackcount] / 75) - Math.floor(absIds[0] / 75)).toString(16).toUpperCase().padStart(4, '0')
+  const part3 = trackcount.toString(16).toUpperCase().padStart(2, '0')
+  
+  return part1 + part2 + part3
+}
+
+/**
+ * Convert TOC string to AccurateRip disc ID
+ * @param tocString - Colon-separated TOC string
+ * @returns AccurateRip ID in format "xxxxxxxx-xxxxxxxx-cddbid"
+ */
+export function tocs2arid(tocString: string): string {
+  const ids = tocString.split(':')
+  const trackcount = ids.length - 1
+  let discId1 = 0
+  let discId2 = 0
+  let n = 0
+  
+  for (let tr = 0; tr < trackcount; tr++) {
+    if (!ids[tr].startsWith('-')) {
+      const offs = Number(ids[tr])
+      discId1 += offs
+      discId2 += Math.max(1, offs) * (++n)
+    }
+  }
+  
+  const leadout = Math.abs(Number(ids[trackcount]))
+  discId1 += leadout
+  discId2 += Math.max(1, leadout) * (++n)
+  
+  const hex1 = (discId1 >>> 0).toString(16).padStart(8, '0')
+  const hex2 = (discId2 >>> 0).toString(16).padStart(8, '0')
+  
+  return (hex1 + '-' + hex2 + '-' + tocs2cddbid(tocString)).toLowerCase()
+}
+
+/**
  * Convert TOC string to MusicBrainz TOC format for lookup URL
  * @param tocString - Colon-separated TOC string
  * @returns Space-separated MusicBrainz TOC format

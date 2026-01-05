@@ -612,6 +612,16 @@ td:nth-child(7) {
   color: #60a5fa;
 }
 
+.freedb-link,
+.ar-link {
+  cursor: default;
+}
+
+.freedb-link .link-value,
+.ar-link .link-value {
+  color: #a3a3a3;
+}
+
 /* Metadata section */
 .metadata-section {
   flex: 1;

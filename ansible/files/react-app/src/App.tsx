@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { tocs2mbid, tocs2mbtoc, buildTracks, type Track } from '@/lib/toc'
+import { tocs2mbid, tocs2mbtoc, tocs2cddbid, tocs2arid, buildTracks, type Track } from '@/lib/toc'
 import {
   Select,
   SelectContent,
@@ -99,6 +99,8 @@ function App() {
     toc: string
     mbtoc: string
     mbid: string | null
+    cddbid: string
+    arid: string
     mbUrl: string
     ctdbUrl: string
   } | null>(null)
@@ -259,6 +261,8 @@ function App() {
     const toc = String(data.rows[selectedRow].c[tocIndex].v || '')
     const discId = String(data.rows[selectedRow].c[discIdIndex].v || '')
     const mbtoc = tocs2mbtoc(toc)
+    const cddbid = tocs2cddbid(toc)
+    const arid = tocs2arid(toc)
 
     // Set initial info with null mbid
     const info = {
@@ -266,6 +270,8 @@ function App() {
       toc,
       mbtoc,
       mbid: null as string | null,
+      cddbid,
+      arid,
       mbUrl: `https://musicbrainz.org/bare/cdlookup.html?toc=${encodeURIComponent(mbtoc)}`,
       ctdbUrl: `/lookup2.php?version=3&ctdb=1&metadata=extensive&fuzzy=1&toc=${encodeURIComponent(toc)}`,
     }
@@ -614,6 +620,16 @@ function App() {
           {selectedEntryInfo && (
             <div className="links-box">
               <a
+                href={selectedEntryInfo.ctdbUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-item ctdb-link"
+                title="CTDB Lookup"
+              >
+                <img src="https://s3.cuetools.net/icons/cueripper.png" alt="CTDB" className="link-icon" />
+                <span className="link-value">{selectedEntryInfo.discId}</span>
+              </a>
+              <a
                 href={selectedEntryInfo.mbUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -623,16 +639,14 @@ function App() {
                 <img src="https://s3.cuetools.net/icons/musicbrainz.png" alt="MusicBrainz" className="link-icon" />
                 <span className="link-value">{selectedEntryInfo.mbid || '...'}</span>
               </a>
-              <a
-                href={selectedEntryInfo.ctdbUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-item ctdb-link"
-                title="CTDB Lookup"
-              >
-                <img src="https://s3.cuetools.net/icons/cueripper.png" alt="CTDB Lookup" className="link-icon" />
-                <span className="link-value">{selectedEntryInfo.discId}</span>
-              </a>
+              <div className="link-item freedb-link" title="FreeDB/CDDB">
+                <img src="https://s3.cuetools.net/icons/freedb.png" alt="FreeDB" className="link-icon" />
+                <span className="link-value">{selectedEntryInfo.cddbid}</span>
+              </div>
+              <div className="link-item ar-link" title="AccurateRip">
+                <img src="https://s3.cuetools.net/icons/ar.png" alt="AccurateRip" className="link-icon" />
+                <span className="link-value">{selectedEntryInfo.arid}</span>
+              </div>
             </div>
           )}
 
