@@ -478,10 +478,13 @@ function App() {
       </nav>
 
       <header className="page-header">
-        <button className="menu-toggle-btn" onClick={() => setMenuOpen(true)}>
-          <Menu className="size-6" />
-        </button>
-        <h1>CUETools DB</h1>
+        <div className="header-left">
+          <button className="menu-toggle-btn" onClick={() => setMenuOpen(true)}>
+            <Menu className="size-6" />
+          </button>
+          <img src="http://s3.cuetools.net/ctdb64.png" alt="CUETools DB" className="header-logo" />
+          <h1>CUETools DB</h1>
+        </div>
         <div className="header-controls">
           <div className="view-selector">
             <span className="view-label">View:</span>
@@ -545,7 +548,9 @@ function App() {
           <thead>
             <tr>
               {visibleColIndices.map((colIndex) => (
-                <th key={colIndex}>{data.cols[colIndex].label}</th>
+                <th key={colIndex} className={`col-${data.cols[colIndex].label.toLowerCase().replace(/\s+/g, '-')}`}>
+                  {data.cols[colIndex].label}
+                </th>
               ))}
             </tr>
           </thead>
@@ -557,7 +562,7 @@ function App() {
                 className={selectedRow === rowIndex ? 'selected' : ''}
               >
                 {visibleColIndices.map((colIndex) => (
-                  <td key={colIndex}>
+                  <td key={colIndex} className={`col-${data.cols[colIndex].label.toLowerCase().replace(/\s+/g, '-')}`}>
                     {colIndex === discIdColIndex ? (
                       <span className="filterable-cell">
                         <button
@@ -602,36 +607,39 @@ function App() {
         </div>
       </div>
 
-      {/* Links box */}
-      {selectedEntryInfo && (
-        <div className="links-box">
-          <a
-            href={selectedEntryInfo.mbUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link-item mb-link"
-          >
-            <span className="link-label">MusicBrainz</span>
-            <span className="link-value">{selectedEntryInfo.mbid || '...'}</span>
-          </a>
-          <a
-            href={selectedEntryInfo.ctdbUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link-item ctdb-link"
-          >
-            <span className="link-label">CTDB Lookup</span>
-            <span className="link-value">{selectedEntryInfo.discId}</span>
-          </a>
-        </div>
-      )}
-
-      {/* Metadata table */}
+      {/* Metadata section with links */}
       {selectedRow !== null && (
-        <div className="metadata-section">
-          {metadataLoading && <p className="loading">Loading metadata...</p>}
-          {!metadataLoading && metadata && metadata.rows.length > 0 && (
-            <>
+        <div className="metadata-layout">
+          {/* Links box */}
+          {selectedEntryInfo && (
+            <div className="links-box">
+              <a
+                href={selectedEntryInfo.mbUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-item mb-link"
+                title="MusicBrainz"
+              >
+                <img src="https://s3.cuetools.net/icons/musicbrainz.png" alt="MusicBrainz" className="link-icon" />
+                <span className="link-value">{selectedEntryInfo.mbid || '...'}</span>
+              </a>
+              <a
+                href={selectedEntryInfo.ctdbUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-item ctdb-link"
+                title="CTDB Lookup"
+              >
+                <img src="https://s3.cuetools.net/icons/cueripper.png" alt="CTDB Lookup" className="link-icon" />
+                <span className="link-value">{selectedEntryInfo.discId}</span>
+              </a>
+            </div>
+          )}
+
+          {/* Metadata table */}
+          <div className="metadata-section">
+            {metadataLoading && <p className="loading">Loading metadata...</p>}
+            {!metadataLoading && metadata && metadata.rows.length > 0 && (
               <div className="table-wrapper metadata-table">
                 <table>
                   <thead>
@@ -656,11 +664,11 @@ function App() {
                   </tbody>
                 </table>
               </div>
-            </>
-          )}
-          {!metadataLoading && (!metadata || metadata.rows.length === 0) && (
-            <p className="no-metadata">No metadata found</p>
-          )}
+            )}
+            {!metadataLoading && (!metadata || metadata.rows.length === 0) && (
+              <p className="no-metadata">No metadata found</p>
+            )}
+          </div>
         </div>
       )}
 

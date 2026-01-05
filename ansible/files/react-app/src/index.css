@@ -6,8 +6,8 @@
   font-weight: 400;
 
   color-scheme: dark;
-  color: #e4e4e7;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  color: #e5e5e5;
+  background: linear-gradient(135deg, #0a0a0a 0%, #141414 50%, #0f0f0f 100%);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -35,6 +35,18 @@ body {
   gap: 1rem;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
 /* Menu toggle button */
 .menu-toggle-btn {
   display: flex;
@@ -44,21 +56,21 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  color: #d4d4d8;
+  color: #a3a3a3;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .menu-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #60a5fa;
+  color: #3b82f6;
 }
 
 /* Menu overlay */
 .menu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
   opacity: 0;
   visibility: hidden;
@@ -78,9 +90,9 @@ body {
   left: 0;
   width: 280px;
   height: 100vh;
-  background: linear-gradient(180deg, rgba(25, 25, 40, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.98) 0%, rgba(15, 15, 15, 0.98) 100%);
   backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   transform: translateX(-100%);
   transition: transform 0.3s ease;
   z-index: 101;
@@ -97,10 +109,10 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e4e4e7;
+  color: #e5e5e5;
 }
 
 .menu-close-btn {
@@ -111,14 +123,14 @@ body {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #71717a;
+  color: #737373;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .menu-close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #e4e4e7;
+  color: #e5e5e5;
 }
 
 .side-menu-items {
@@ -136,7 +148,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: #a1a1aa;
+  color: #a3a3a3;
   font-size: 0.95rem;
   text-decoration: none;
   cursor: pointer;
@@ -146,13 +158,13 @@ body {
 }
 
 .menu-item:hover {
-  background: rgba(96, 165, 250, 0.1);
-  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
 }
 
 .menu-item.active {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
   font-weight: 500;
 }
 
@@ -167,17 +179,17 @@ body {
 
 .menu-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   margin: 0.5rem 0.75rem;
 }
 
 .menu-item.sponsor {
-  color: #f472b6;
+  color: #dc2626;
 }
 
 .menu-item.sponsor:hover {
-  background: rgba(244, 114, 182, 0.15);
-  color: #f472b6;
+  background: rgba(220, 38, 38, 0.1);
+  color: #ef4444;
 }
 
 .menu-item.sponsor svg:first-child {
@@ -188,10 +200,7 @@ h1 {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #3b82f6;
 }
 
 .view-selector {
@@ -202,37 +211,37 @@ h1 {
 
 .view-label {
   font-size: 0.9rem;
-  color: #a1a1aa;
+  color: #a3a3a3;
   font-weight: 500;
 }
 
 /* Shadcn Select styling */
 .view-select-trigger {
-  background: rgba(30, 30, 46, 0.9) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(20, 20, 20, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   min-width: 100px;
 }
 
 .view-select-trigger:hover {
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 .view-select-trigger:focus {
-  border-color: #60a5fa !important;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
 }
 
 [data-slot="select-content"] {
-  background: rgba(30, 30, 46, 0.98) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(20, 20, 20, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 [data-slot="select-item"]:focus {
-  background: rgba(96, 165, 250, 0.15) !important;
+  background: rgba(59, 130, 246, 0.15) !important;
 }
 
 [data-slot="select-item"][data-state="checked"] {
-  background: rgba(96, 165, 250, 0.2) !important;
+  background: rgba(59, 130, 246, 0.2) !important;
 }
 
 /* Header controls */
@@ -244,21 +253,21 @@ h1 {
 
 /* Filter button */
 .filter-button {
-  background: rgba(30, 30, 46, 0.9) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: #a1a1aa !important;
+  background: rgba(20, 20, 20, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #a3a3a3 !important;
   gap: 0.5rem;
   position: relative;
 }
 
 .filter-button:hover {
-  border-color: rgba(255, 255, 255, 0.25) !important;
-  color: #e4e4e7 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #e5e5e5 !important;
 }
 
 .filter-button.active {
-  border-color: #60a5fa !important;
-  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
 }
 
 .filter-badge {
@@ -267,14 +276,14 @@ h1 {
   right: -2px;
   width: 8px;
   height: 8px;
-  background: #60a5fa;
+  background: #3b82f6;
   border-radius: 50%;
 }
 
 /* Filter popover */
 .filter-popover {
-  background: rgba(30, 30, 46, 0.98) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(20, 20, 20, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   width: 280px;
 }
 
@@ -292,23 +301,23 @@ h1 {
 
 .filter-field label {
   font-size: 0.8rem;
-  color: #a1a1aa;
+  color: #a3a3a3;
   font-weight: 500;
 }
 
 .filter-field input {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #e4e4e7 !important;
+  color: #e5e5e5 !important;
 }
 
 .filter-field input:focus {
-  border-color: #60a5fa !important;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
 
 .filter-field input::placeholder {
-  color: #52525b;
+  color: #525252;
 }
 
 .filter-actions {
@@ -323,16 +332,16 @@ h1 {
 }
 
 .filter-actions button:first-child {
-  color: #a1a1aa;
+  color: #a3a3a3;
 }
 
 .filter-actions button:last-child {
-  background: #60a5fa !important;
-  color: #0f0f23 !important;
+  background: #3b82f6 !important;
+  color: #0a0a0a !important;
 }
 
 .filter-actions button:last-child:hover {
-  background: #3b82f6 !important;
+  background: #2563eb !important;
 }
 
 /* Inline filter buttons (Disc ID, Artist columns) */
@@ -350,19 +359,19 @@ h1 {
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: #52525b;
+  color: #525252;
   cursor: pointer;
   transition: color 0.15s, background-color 0.15s;
   flex-shrink: 0;
 }
 
 .inline-filter-btn:hover {
-  color: #60a5fa;
-  background: rgba(96, 165, 250, 0.15);
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .inline-filter-btn:active {
-  background: rgba(96, 165, 250, 0.25);
+  background: rgba(59, 130, 246, 0.25);
 }
 
 .loading, .error {
@@ -372,28 +381,28 @@ h1 {
 }
 
 .error {
-  color: #f87171;
+  color: #dc2626;
 }
 
 .table-wrapper {
   overflow-x: auto;
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 
-              0 2px 4px -2px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  background: rgba(30, 30, 46, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 
+              0 2px 4px -2px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: rgba(20, 20, 20, 0.8);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Main data table with infinite scroll */
 .main-table {
-  max-height: 450px;
+  max-height: 300px; /* ~8 rows */
   overflow-y: auto;
 }
 
 .main-table thead {
-  background: linear-gradient(180deg, rgb(35, 35, 55) 0%, rgb(30, 30, 50) 100%);
+  background: linear-gradient(180deg, rgb(25, 25, 25) 0%, rgb(20, 20, 20) 100%);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -406,12 +415,12 @@ h1 {
 }
 
 .loading-more {
-  color: #60a5fa;
+  color: #3b82f6;
   font-size: 0.85rem;
 }
 
 .no-more {
-  color: #71717a;
+  color: #737373;
   font-size: 0.85rem;
   font-style: italic;
 }
@@ -423,7 +432,7 @@ table {
 }
 
 thead {
-  background: linear-gradient(180deg, rgba(96, 165, 250, 0.15) 0%, rgba(96, 165, 250, 0.05) 100%);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.03) 100%);
   position: sticky;
   top: 0;
 }
@@ -432,22 +441,55 @@ th {
   padding: 0.5rem 1rem;
   text-align: left;
   font-weight: 600;
-  color: #60a5fa;
+  color: #3b82f6;
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
-  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+  border-bottom: 2px solid rgba(59, 130, 246, 0.25);
   white-space: nowrap;
 }
 
 td {
   padding: 0.35rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: #d4d4d8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #d4d4d4;
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Column-specific widths for main table */
+.col-disc-id {
+  width: 1%;
+  white-space: nowrap;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.8rem;
+}
+
+.col-tracks {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.col-ctdb-id {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.85rem;
+}
+
+.col-cf {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.col-artist,
+.col-album {
+  max-width: 250px;
 }
 
 tbody tr {
@@ -456,7 +498,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: rgba(96, 165, 250, 0.08);
+  background: rgba(59, 130, 246, 0.08);
 }
 
 tbody tr:nth-child(even) {
@@ -464,39 +506,41 @@ tbody tr:nth-child(even) {
 }
 
 tbody tr:nth-child(even):hover {
-  background: rgba(96, 165, 250, 0.08);
+  background: rgba(59, 130, 246, 0.08);
 }
 
 tbody tr.selected {
-  background: rgba(96, 165, 250, 0.2) !important;
-  box-shadow: inset 3px 0 0 #60a5fa;
+  background: rgba(59, 130, 246, 0.15) !important;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 tbody tr.selected:hover {
-  background: rgba(96, 165, 250, 0.25) !important;
+  background: rgba(59, 130, 246, 0.2) !important;
 }
 
-/* Make Artist and Album columns stand out */
+/* Artist column - slightly brighter */
 td:nth-child(1) {
-  color: #fbbf24;
+  color: #fafafa;
   font-weight: 500;
 }
 
+/* Album column */
 td:nth-child(2) {
-  color: #a78bfa;
+  color: #d4d4d4;
 }
 
-/* Style numeric columns */
+/* Numeric columns - subtle blue tint */
 td:nth-child(5),
 td:nth-child(6),
 td:nth-child(7) {
   font-family: "JetBrains Mono", monospace;
-  color: #34d399;
+  color: #60a5fa;
 }
 
 /* Scrollbar styling */
 .table-wrapper::-webkit-scrollbar {
   height: 8px;
+  width: 8px;
 }
 
 .table-wrapper::-webkit-scrollbar-track {
@@ -505,29 +549,38 @@ td:nth-child(7) {
 }
 
 .table-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.4);
+  background: rgba(59, 130, 246, 0.3);
   border-radius: 4px;
 }
 
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(96, 165, 250, 0.6);
+  background: rgba(59, 130, 246, 0.5);
+}
+
+/* Metadata layout - links on left, table on right */
+.metadata-layout {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: flex-start;
 }
 
 /* Links box */
 .links-box {
   display: flex;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-  padding: 1rem 1.25rem;
-  background: rgba(30, 30, 46, 0.6);
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(20, 20, 20, 0.6);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 .link-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.5rem;
   text-decoration: none;
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -538,29 +591,21 @@ td:nth-child(7) {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.link-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
+.link-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .link-value {
   font-family: "JetBrains Mono", monospace;
   font-size: 0.85rem;
-  color: #e4e4e7;
-}
-
-.mb-link .link-label {
-  color: #f472b6;
+  color: #e5e5e5;
 }
 
 .mb-link:hover .link-value {
-  color: #f472b6;
-}
-
-.ctdb-link .link-label {
-  color: #60a5fa;
+  color: #ef4444;
 }
 
 .ctdb-link:hover .link-value {
@@ -569,41 +614,42 @@ td:nth-child(7) {
 
 /* Metadata section */
 .metadata-section {
-  margin-top: 2rem;
+  flex: 1;
+  min-width: 0;
 }
 
 h2 {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #a78bfa;
+  color: #3b82f6;
 }
 
 .metadata-table {
-  background: rgba(40, 30, 50, 0.8);
-  border-color: rgba(167, 139, 250, 0.2);
+  background: rgba(20, 20, 20, 0.8);
+  border-color: rgba(59, 130, 246, 0.15);
   max-height: 220px; /* ~5 rows */
   overflow-y: auto;
 }
 
 .metadata-table thead {
-  background: linear-gradient(180deg, rgb(55, 40, 70) 0%, rgb(45, 32, 58) 100%);
+  background: linear-gradient(180deg, rgb(25, 28, 35) 0%, rgb(20, 22, 28) 100%);
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
 .metadata-table th {
-  color: #a78bfa;
-  border-bottom-color: rgba(167, 139, 250, 0.3);
+  color: #60a5fa;
+  border-bottom-color: rgba(59, 130, 246, 0.2);
 }
 
 .metadata-table tbody tr.selected {
-  box-shadow: inset 3px 0 0 #a78bfa;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 .no-metadata {
-  color: #71717a;
+  color: #737373;
   font-style: italic;
   padding: 1rem;
 }
@@ -618,9 +664,9 @@ h2 {
 }
 
 .pagination button {
-  background: rgba(167, 139, 250, 0.15);
-  border: 1px solid rgba(167, 139, 250, 0.3);
-  color: #a78bfa;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #3b82f6;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   cursor: pointer;
@@ -630,8 +676,8 @@ h2 {
 }
 
 .pagination button:hover:not(:disabled) {
-  background: rgba(167, 139, 250, 0.25);
-  border-color: rgba(167, 139, 250, 0.5);
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .pagination button:disabled {
@@ -640,7 +686,7 @@ h2 {
 }
 
 .page-info {
-  color: #71717a;
+  color: #737373;
   font-size: 0.8rem;
 }
 
@@ -650,7 +696,7 @@ h2 {
 }
 
 .tracks-section h2 {
-  color: #34d399;
+  color: #3b82f6;
 }
 
 .tracks-layout {
@@ -675,7 +721,7 @@ h2 {
   display: block;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: none;
   padding: 0;
@@ -685,7 +731,7 @@ h2 {
 
 .cover-art-primary:hover {
   transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
 }
 
 .cover-art-primary img {
@@ -693,7 +739,7 @@ h2 {
   width: 150px;
   height: 150px;
   object-fit: cover;
-  background: rgba(30, 30, 46, 0.8);
+  background: rgba(20, 20, 20, 0.8);
 }
 
 .cover-art-secondary {
@@ -709,7 +755,7 @@ h2 {
   display: block;
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   border: none;
   padding: 0;
@@ -719,7 +765,7 @@ h2 {
 
 .cover-art-secondary button:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
 .cover-art-secondary img {
@@ -727,7 +773,7 @@ h2 {
   width: 70px;
   height: 70px;
   object-fit: cover;
-  background: rgba(30, 30, 46, 0.8);
+  background: rgba(20, 20, 20, 0.8);
 }
 
 /* Cover art lightbox dialog */
@@ -757,7 +803,7 @@ h2 {
   max-height: 85vh;
   object-fit: contain;
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
 }
 
 .tracks-layout .tracks-table {
@@ -766,43 +812,59 @@ h2 {
 }
 
 .tracks-table {
-  background: rgba(30, 50, 40, 0.8);
-  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(20, 20, 20, 0.8);
+  border-color: rgba(59, 130, 246, 0.15);
   max-height: 380px; /* ~10 rows */
   overflow-y: auto;
 }
 
 .tracks-table thead {
-  background: linear-gradient(180deg, rgb(35, 55, 45) 0%, rgb(30, 48, 40) 100%);
+  background: linear-gradient(180deg, rgb(25, 28, 35) 0%, rgb(20, 22, 28) 100%);
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
 .tracks-table th {
-  color: #34d399;
-  border-bottom-color: rgba(52, 211, 153, 0.3);
+  color: #60a5fa;
+  border-bottom-color: rgba(59, 130, 246, 0.2);
 }
 
 .tracks-table tbody tr {
   cursor: default;
 }
 
+/* Track # column */
+.tracks-table th:nth-child(1),
 .tracks-table td:nth-child(1) {
-  color: #71717a;
-  font-weight: 400;
+  width: 1%;
+  white-space: nowrap;
   text-align: center;
-  width: 3rem;
+  color: #737373;
+  font-weight: 400;
 }
 
+/* Track name column - takes remaining space */
+.tracks-table th:nth-child(2),
 .tracks-table td:nth-child(2) {
-  color: #e4e4e7;
-  max-width: 400px;
+  width: auto;
+  color: #e5e5e5;
+}
+
+/* Start, Length, CRC columns - shrink to fit */
+.tracks-table th:nth-child(3),
+.tracks-table th:nth-child(4),
+.tracks-table th:nth-child(5),
+.tracks-table td:nth-child(3),
+.tracks-table td:nth-child(4),
+.tracks-table td:nth-child(5) {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .tracks-table .mono {
   font-family: "JetBrains Mono", monospace;
-  color: #34d399;
+  color: #60a5fa;
 }
 
 .tracks-table .data-track td {
@@ -810,11 +872,11 @@ h2 {
 }
 
 .data-track-name {
-  color: #a88;
+  color: #a3a3a3;
   font-style: italic;
 }
 
 .track-artist {
-  color: #71717a;
+  color: #737373;
   font-size: 0.85em;
 }
