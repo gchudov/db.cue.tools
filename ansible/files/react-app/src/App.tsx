@@ -13,7 +13,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart } from 'lucide-react'
+import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw } from 'lucide-react'
 
 type Page = 'home' | 'stats'
 
@@ -196,6 +196,7 @@ function App() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState<Page>(initialState.page)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Sync state changes to URL
   useEffect(() => {
@@ -237,7 +238,7 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
-  }, [viewMode, filters])
+  }, [viewMode, filters, refreshKey])
 
   // Load more data function
   const loadMore = useCallback(() => {
@@ -674,6 +675,15 @@ function App() {
                 </div>
               </PopoverContent>
             </Popover>
+            <Button
+              variant="outline"
+              size="sm"
+              className="refresh-button"
+              onClick={() => setRefreshKey(k => k + 1)}
+              title="Refresh data"
+            >
+              <RefreshCw className="size-4" />
+            </Button>
           </div>
         )}
       </header>

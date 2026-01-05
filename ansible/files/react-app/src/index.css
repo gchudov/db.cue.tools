@@ -280,6 +280,18 @@ h1 {
   border-radius: 50%;
 }
 
+.refresh-button {
+  background: rgba(20, 20, 20, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #a3a3a3 !important;
+  padding: 0.5rem !important;
+}
+
+.refresh-button:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #3b82f6 !important;
+}
+
 /* Filter popover */
 .filter-popover {
   background: rgba(20, 20, 20, 0.98) !important;

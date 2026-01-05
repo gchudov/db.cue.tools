@@ -21,5 +21,6 @@ declare module 'lucide-react' {
   export const Wrench: Icon
   export const ExternalLink: Icon
   export const Heart: Icon
+  export const RefreshCw: Icon
 }
 
