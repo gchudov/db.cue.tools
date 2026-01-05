@@ -584,6 +584,7 @@ function App() {
                       placeholder="e.g. ABC123..."
                       value={pendingFilters.tocid}
                       onChange={(e) => setPendingFilters(p => ({ ...p, tocid: e.target.value }))}
+                      onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
                     />
                   </div>
                   <div className="filter-field">
@@ -593,6 +594,7 @@ function App() {
                       placeholder="e.g. Pink Floyd"
                       value={pendingFilters.artist}
                       onChange={(e) => setPendingFilters(p => ({ ...p, artist: e.target.value }))}
+                      onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
                     />
                   </div>
                   <div className="filter-actions">

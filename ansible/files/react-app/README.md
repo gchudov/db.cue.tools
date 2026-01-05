@@ -34,8 +34,8 @@ command: sh -c "npm run dev -- --host 0.0.0.0 --port 80"
 
 ### Access URLs
 
-- **Production URL**: https://db.cue.tools/react/
-- **Internal (within Docker network)**: http://react-dev:80/react/
+- **Production URL**: https://db.cue.tools/ui/
+- **Internal (within Docker network)**: http://react-dev:80/ui/
 
 ### Apache Reverse Proxy
 
@@ -48,22 +48,22 @@ Key proxy configuration:
 RewriteEngine On
 RewriteCond %{HTTP:Upgrade} websocket [NC]
 RewriteCond %{HTTP:Connection} upgrade [NC]
-RewriteRule ^/react/(.*) "ws://react-dev:80/react/$1" [P,L]
+RewriteRule ^/ui/(.*) "ws://react-dev:80/ui/$1" [P,L]
 
-<Location /react/>
-  ProxyPass "http://react-dev:80/react/"
-  ProxyPassReverse "http://react-dev:80/react/"
+<Location /ui/>
+  ProxyPass "http://react-dev:80/ui/"
+  ProxyPassReverse "http://react-dev:80/ui/"
 </Location>
 ```
 
 ### Vite Configuration
 
-The app is configured to work behind the reverse proxy at `/react/`:
+The app is configured to work behind the reverse proxy at `/ui/`:
 
 ```typescript
 // vite.config.ts
 export default defineConfig({
-  base: "/react/",
+  base: "/ui/",
   server: {
     allowedHosts: ["react-dev"],
     origin: "https://db.cue.tools",
