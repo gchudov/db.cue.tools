@@ -468,6 +468,116 @@ h2 {
   color: #34d399;
 }
 
+.tracks-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.cover-art,
+.cover-art-placeholder {
+  flex-shrink: 0;
+  width: 150px;
+}
+
+.cover-art {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cover-art-primary {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+}
+
+.cover-art-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.cover-art-primary img {
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  background: rgba(30, 30, 46, 0.8);
+}
+
+.cover-art-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 150px;
+}
+
+.cover-art-secondary button {
+  display: block;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+}
+
+.cover-art-secondary button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.cover-art-secondary img {
+  display: block;
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  background: rgba(30, 30, 46, 0.8);
+}
+
+/* Cover art lightbox dialog */
+.lightbox-dialog {
+  max-width: fit-content !important;
+  max-height: 90vh;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.lightbox-dialog > button {
+  /* Close button styling */
+  position: absolute;
+  top: -2.5rem;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6) !important;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+}
+
+.lightbox-image {
+  display: block;
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.tracks-layout .tracks-table {
+  flex: 1;
+  min-width: 0;
+}
+
 .tracks-table {
   background: rgba(30, 50, 40, 0.8);
   border-color: rgba(52, 211, 153, 0.2);

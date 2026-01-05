@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -101,6 +102,7 @@ function App() {
     mbUrl: string
     ctdbUrl: string
   } | null>(null)
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
   // Fetch data when view mode or filters change
   useEffect(() => {
@@ -235,6 +237,52 @@ function App() {
 
     return buildTracks(tocString, crcsString, tracklist, mainArtist)
   }, [selectedRow, data, metadata, selectedMetadataRow])
+
+  // Extract cover art from metadata
+  interface CoverArtImage {
+    uri: string
+    uri150: string
+  }
+
+  const coverArt = useMemo<{ primary: CoverArtImage | null; secondary: CoverArtImage[] }>(() => {
+    if (!metadata || selectedMetadataRow === null) return { primary: null, secondary: [] }
+
+    const coverartIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'coverart')
+    if (coverartIndex === -1) return { primary: null, secondary: [] }
+
+    const coverartList = metadata.rows[selectedMetadataRow]?.c[coverartIndex]?.v as Array<{
+      uri?: string
+      uri150?: string
+      primary?: boolean
+    }> | null
+
+    if (!coverartList || coverartList.length === 0) return { primary: null, secondary: [] }
+
+    // Filter out duplicates and invalid entries
+    const seen = new Set<string>()
+    const validImages: Array<{ uri: string; uri150: string; isPrimary: boolean }> = []
+    
+    for (const img of coverartList) {
+      if (!img.uri150) continue
+      // Skip Amazon images (as in ctdbCoverart)
+      if (img.uri?.includes('images.amazon.com')) continue
+      if (seen.has(img.uri150)) continue
+      seen.add(img.uri150)
+      validImages.push({
+        uri: img.uri || img.uri150,
+        uri150: img.uri150,
+        isPrimary: img.primary || false,
+      })
+    }
+
+    // Sort: primary first, then others
+    validImages.sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
+
+    const primary = validImages[0] ? { uri: validImages[0].uri, uri150: validImages[0].uri150 } : null
+    const secondary = validImages.slice(1).map(img => ({ uri: img.uri, uri150: img.uri150 }))
+
+    return { primary, secondary }
+  }, [metadata, selectedMetadataRow])
 
   const handleRowClick = (rowIndex: number) => {
     setSelectedRow(selectedRow === rowIndex ? null : rowIndex)
@@ -526,41 +574,77 @@ function App() {
         </div>
       )}
 
-      {/* Tracks table */}
+      {/* Tracks table with cover art */}
       {tracks && tracks.length > 0 && (
         <div className="tracks-section">
-          <h2>Tracks</h2>
-          <div className="table-wrapper tracks-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Track</th>
-                  <th>Start</th>
-                  <th>Length</th>
-                  <th>CRC</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tracks.map((track) => (
-                  <tr key={track.number} className={track.isDataTrack ? 'data-track' : ''}>
-                    <td>{track.number}</td>
-                    <td>
-                      <span className={track.isDataTrack ? 'data-track-name' : ''}>
-                        {track.name}
-                      </span>
-                      {track.artist && <span className="track-artist"> ({track.artist})</span>}
-                    </td>
-                    <td className="mono">{track.start}</td>
-                    <td className="mono">{track.length}</td>
-                    <td className="mono">{track.crc}</td>
+          <div className="tracks-layout">
+            {coverArt.primary ? (
+              <div className="cover-art">
+                <button
+                  type="button"
+                  className="cover-art-primary"
+                  onClick={() => setLightboxImage(coverArt.primary!.uri)}
+                >
+                  <img src={coverArt.primary.uri150} alt="Cover art" />
+                </button>
+                {coverArt.secondary.length > 0 && (
+                  <div className="cover-art-secondary">
+                    {coverArt.secondary.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setLightboxImage(img.uri)}
+                      >
+                        <img src={img.uri150} alt={`Cover art ${idx + 2}`} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="cover-art-placeholder" />
+            )}
+            <div className="table-wrapper tracks-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Track</th>
+                    <th>Start</th>
+                    <th>Length</th>
+                    <th>CRC</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {tracks.map((track) => (
+                    <tr key={track.number} className={track.isDataTrack ? 'data-track' : ''}>
+                      <td>{track.number}</td>
+                      <td>
+                        <span className={track.isDataTrack ? 'data-track-name' : ''}>
+                          {track.name}
+                        </span>
+                        {track.artist && <span className="track-artist"> ({track.artist})</span>}
+                      </td>
+                      <td className="mono">{track.start}</td>
+                      <td className="mono">{track.length}</td>
+                      <td className="mono">{track.crc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Cover art lightbox */}
+      <Dialog open={!!lightboxImage} onOpenChange={(open: boolean) => !open && setLightboxImage(null)}>
+        <DialogContent className="lightbox-dialog">
+          {lightboxImage && (
+            <img src={lightboxImage} alt="Cover art full size" className="lightbox-image" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
