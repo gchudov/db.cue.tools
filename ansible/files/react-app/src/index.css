@@ -85,6 +85,136 @@ h1 {
   background: rgba(96, 165, 250, 0.2) !important;
 }
 
+/* Header controls */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Filter button */
+.filter-button {
+  background: rgba(30, 30, 46, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #a1a1aa !important;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.filter-button:hover {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #e4e4e7 !important;
+}
+
+.filter-button.active {
+  border-color: #60a5fa !important;
+  color: #60a5fa !important;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #60a5fa;
+  border-radius: 50%;
+}
+
+/* Filter popover */
+.filter-popover {
+  background: rgba(30, 30, 46, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  width: 280px;
+}
+
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-field label {
+  font-size: 0.8rem;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.filter-field input {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #e4e4e7 !important;
+}
+
+.filter-field input:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+}
+
+.filter-field input::placeholder {
+  color: #52525b;
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.filter-actions button {
+  font-size: 0.85rem;
+}
+
+.filter-actions button:first-child {
+  color: #a1a1aa;
+}
+
+.filter-actions button:last-child {
+  background: #60a5fa !important;
+  color: #0f0f23 !important;
+}
+
+.filter-actions button:last-child:hover {
+  background: #3b82f6 !important;
+}
+
+/* Inline filter buttons (Disc ID, Artist columns) */
+.filterable-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.inline-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #52525b;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.inline-filter-btn:hover {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.inline-filter-btn:active {
+  background: rgba(96, 165, 250, 0.25);
+}
+
 .loading, .error {
   text-align: center;
   font-size: 1.2rem;

@@ -7,6 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Filter } from 'lucide-react'
 
 interface Column {
   label: string
@@ -70,8 +75,16 @@ const VIEW_ENDPOINTS: Record<ViewMode, string> = {
   popular: '/top.php',
 }
 
+interface Filters {
+  tocid: string
+  artist: string
+}
+
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('latest')
+  const [filters, setFilters] = useState<Filters>({ tocid: '', artist: '' })
+  const [pendingFilters, setPendingFilters] = useState<Filters>({ tocid: '', artist: '' })
+  const [filterOpen, setFilterOpen] = useState(false)
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -89,7 +102,7 @@ function App() {
     ctdbUrl: string
   } | null>(null)
 
-  // Fetch data when view mode changes
+  // Fetch data when view mode or filters change
   useEffect(() => {
     setLoading(true)
     setError(null)
@@ -97,7 +110,15 @@ function App() {
     setSelectedEntryInfo(null)
     setMetadata(null)
 
-    fetch(`${VIEW_ENDPOINTS[viewMode]}?json=1&start=0`)
+    const params = new URLSearchParams({ json: '1', start: '0' })
+    if (filters.tocid.trim()) {
+      params.set('tocid', filters.tocid.trim())
+    }
+    if (filters.artist.trim()) {
+      params.set('artist', filters.artist.trim())
+    }
+
+    fetch(`${VIEW_ENDPOINTS[viewMode]}?${params.toString()}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch data')
@@ -112,7 +133,7 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
-  }, [viewMode])
+  }, [viewMode, filters])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -223,6 +244,32 @@ function App() {
     setSelectedMetadataRow(selectedMetadataRow === rowIndex ? null : rowIndex)
   }
 
+  const applyFilters = () => {
+    setFilters(pendingFilters)
+    setFilterOpen(false)
+  }
+
+  const clearFilters = () => {
+    const empty = { tocid: '', artist: '' }
+    setPendingFilters(empty)
+    setFilters(empty)
+    setFilterOpen(false)
+  }
+
+  const hasActiveFilters = filters.tocid.trim() !== '' || filters.artist.trim() !== ''
+
+  const setTocidFilter = (tocid: string) => {
+    const newFilters = { ...filters, tocid }
+    setFilters(newFilters)
+    setPendingFilters(newFilters)
+  }
+
+  const setArtistFilter = (artist: string) => {
+    const newFilters = { ...filters, artist }
+    setFilters(newFilters)
+    setPendingFilters(newFilters)
+  }
+
   if (loading) {
     return (
       <div className="container">
@@ -256,6 +303,9 @@ function App() {
     .map((col, index) => ({ col, index }))
     .filter(({ col }) => !hiddenColumns.includes(col.label))
     .map(({ index }) => index)
+  
+  const discIdColIndex = data.cols.findIndex(col => col.label === 'Disc Id')
+  const artistColIndex = data.cols.findIndex(col => col.label === 'Artist')
 
   // Columns to hide in metadata table
   const hiddenMetadataColumns = ['id', 'source', 'coverart', 'videos', 'tracklist', 'tracks']
@@ -277,17 +327,62 @@ function App() {
     <div className="container">
       <header className="page-header">
         <h1>CUETools DB</h1>
-        <div className="view-selector">
-          <span className="view-label">View:</span>
-          <Select value={viewMode} onValueChange={(v: string) => setViewMode(v as ViewMode)}>
-            <SelectTrigger className="view-select-trigger">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" side="bottom" align="start">
-              <SelectItem value="latest">Latest</SelectItem>
-              <SelectItem value="popular">Popular</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="header-controls">
+          <div className="view-selector">
+            <span className="view-label">View:</span>
+            <Select value={viewMode} onValueChange={(v: string) => setViewMode(v as ViewMode)}>
+              <SelectTrigger className="view-select-trigger">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" side="bottom" align="start">
+                <SelectItem value="latest">Latest</SelectItem>
+                <SelectItem value="popular">Popular</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`filter-button ${hasActiveFilters ? 'active' : ''}`}
+              >
+                <Filter className="size-4" />
+                Filter
+                {hasActiveFilters && <span className="filter-badge" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="filter-popover" align="end" side="bottom">
+              <div className="filter-form">
+                <div className="filter-field">
+                  <Label htmlFor="filter-tocid">TOCID</Label>
+                  <Input
+                    id="filter-tocid"
+                    placeholder="e.g. ABC123..."
+                    value={pendingFilters.tocid}
+                    onChange={(e) => setPendingFilters(p => ({ ...p, tocid: e.target.value }))}
+                  />
+                </div>
+                <div className="filter-field">
+                  <Label htmlFor="filter-artist">Artist</Label>
+                  <Input
+                    id="filter-artist"
+                    placeholder="e.g. Pink Floyd"
+                    value={pendingFilters.artist}
+                    onChange={(e) => setPendingFilters(p => ({ ...p, artist: e.target.value }))}
+                  />
+                </div>
+                <div className="filter-actions">
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear
+                  </Button>
+                  <Button size="sm" onClick={applyFilters}>
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </header>
       <div className="table-wrapper">
@@ -307,7 +402,39 @@ function App() {
                 className={selectedRow === rowIndex ? 'selected' : ''}
               >
                 {visibleColIndices.map((colIndex) => (
-                  <td key={colIndex}>{formatCellValue(row.c[colIndex].v)}</td>
+                  <td key={colIndex}>
+                    {colIndex === discIdColIndex ? (
+                      <span className="filterable-cell">
+                        <button
+                          className="inline-filter-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTocidFilter(String(row.c[colIndex].v || ''))
+                          }}
+                          title="Filter by this Disc ID"
+                        >
+                          <Filter className="size-3" />
+                        </button>
+                        {formatCellValue(row.c[colIndex].v)}
+                      </span>
+                    ) : colIndex === artistColIndex ? (
+                      <span className="filterable-cell">
+                        <button
+                          className="inline-filter-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setArtistFilter(String(row.c[colIndex].v || ''))
+                          }}
+                          title="Filter by this Artist"
+                        >
+                          <Filter className="size-3" />
+                        </button>
+                        {formatCellValue(row.c[colIndex].v)}
+                      </span>
+                    ) : (
+                      formatCellValue(row.c[colIndex].v)
+                    )}
+                  </td>
                 ))}
               </tr>
             ))}
