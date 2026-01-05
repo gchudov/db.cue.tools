@@ -191,3 +191,61 @@ h2 {
   font-style: italic;
   padding: 1rem;
 }
+
+/* Tracks section */
+.tracks-section {
+  margin-top: 2rem;
+}
+
+.tracks-section h2 {
+  color: #34d399;
+}
+
+.tracks-table {
+  background: rgba(30, 50, 40, 0.8);
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.tracks-table thead {
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.05) 100%);
+}
+
+.tracks-table th {
+  color: #34d399;
+  border-bottom-color: rgba(52, 211, 153, 0.3);
+}
+
+.tracks-table tbody tr {
+  cursor: default;
+}
+
+.tracks-table td:nth-child(1) {
+  color: #71717a;
+  font-weight: 400;
+  text-align: center;
+  width: 3rem;
+}
+
+.tracks-table td:nth-child(2) {
+  color: #e4e4e7;
+  max-width: 400px;
+}
+
+.tracks-table .mono {
+  font-family: "JetBrains Mono", monospace;
+  color: #34d399;
+}
+
+.tracks-table .data-track td {
+  opacity: 0.5;
+}
+
+.data-track-name {
+  color: #a88;
+  font-style: italic;
+}
+
+.track-artist {
+  color: #71717a;
+  font-size: 0.85em;
+}
