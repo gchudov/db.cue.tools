@@ -82,10 +82,42 @@ interface Filters {
   artist: string
 }
 
+// Helper to read state from URL parameters
+function getInitialStateFromUrl() {
+  const params = new URLSearchParams(window.location.search)
+  const page = params.get('page') as Page | null
+  const view = params.get('view') as ViewMode | null
+  const tocid = params.get('tocid') || ''
+  const artist = params.get('artist') || ''
+  
+  return {
+    page: page === 'stats' ? 'stats' : 'home' as Page,
+    viewMode: view === 'popular' ? 'popular' : 'latest' as ViewMode,
+    filters: { tocid, artist },
+  }
+}
+
+// Helper to update URL without triggering navigation
+function updateUrl(page: Page, viewMode: ViewMode, filters: Filters) {
+  const params = new URLSearchParams()
+  if (page !== 'home') params.set('page', page)
+  if (viewMode !== 'latest') params.set('view', viewMode)
+  if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
+  if (filters.artist.trim()) params.set('artist', filters.artist.trim())
+  
+  const newUrl = params.toString() 
+    ? `${window.location.pathname}?${params.toString()}`
+    : window.location.pathname
+  window.history.replaceState({}, '', newUrl)
+}
+
 function App() {
-  const [viewMode, setViewMode] = useState<ViewMode>('latest')
-  const [filters, setFilters] = useState<Filters>({ tocid: '', artist: '' })
-  const [pendingFilters, setPendingFilters] = useState<Filters>({ tocid: '', artist: '' })
+  // Initialize state from URL
+  const initialState = useMemo(() => getInitialStateFromUrl(), [])
+  
+  const [viewMode, setViewMode] = useState<ViewMode>(initialState.viewMode)
+  const [filters, setFilters] = useState<Filters>(initialState.filters)
+  const [pendingFilters, setPendingFilters] = useState<Filters>(initialState.filters)
   const [filterOpen, setFilterOpen] = useState(false)
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -109,7 +141,12 @@ function App() {
   } | null>(null)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState<Page>('home')
+  const [currentPage, setCurrentPage] = useState<Page>(initialState.page)
+
+  // Sync state changes to URL
+  useEffect(() => {
+    updateUrl(currentPage, viewMode, filters)
+  }, [currentPage, viewMode, filters])
 
   // Fetch initial data when view mode or filters change
   useEffect(() => {
