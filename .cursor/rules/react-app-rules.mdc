@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+For React APP context, see ansible/files/react-app README.md

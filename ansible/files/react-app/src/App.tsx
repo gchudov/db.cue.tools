@@ -89,6 +89,7 @@ function App() {
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pageStart, setPageStart] = useState(0)
   const [selectedRow, setSelectedRow] = useState<number | null>(null)
   const [metadata, setMetadata] = useState<ApiResponse | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(false)
@@ -104,7 +105,12 @@ function App() {
   } | null>(null)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
-  // Fetch data when view mode or filters change
+  // Reset page when view mode or filters change
+  useEffect(() => {
+    setPageStart(0)
+  }, [viewMode, filters])
+
+  // Fetch data when view mode, filters, or page changes
   useEffect(() => {
     setLoading(true)
     setError(null)
@@ -112,7 +118,7 @@ function App() {
     setSelectedEntryInfo(null)
     setMetadata(null)
 
-    const params = new URLSearchParams({ json: '1', start: '0' })
+    const params = new URLSearchParams({ json: '1', start: String(pageStart) })
     if (filters.tocid.trim()) {
       params.set('tocid', filters.tocid.trim())
     }
@@ -135,7 +141,7 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
-  }, [viewMode, filters])
+  }, [viewMode, filters, pageStart])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -490,6 +496,25 @@ function App() {
         </table>
       </div>
 
+      {/* Pagination for main table */}
+      <div className="pagination">
+        <button
+          onClick={() => setPageStart(p => Math.max(0, p - 10))}
+          disabled={pageStart === 0}
+        >
+          ← Prev
+        </button>
+        <span className="page-info">
+          {pageStart + 1} – {pageStart + (data?.rows.length || 0)}
+        </span>
+        <button
+          onClick={() => setPageStart(p => p + 10)}
+          disabled={!data || data.rows.length < 10}
+        >
+          Next →
+        </button>
+      </div>
+
       {/* Links box */}
       {selectedEntryInfo && (
         <div className="links-box">
@@ -638,8 +663,11 @@ function App() {
       )}
 
       {/* Cover art lightbox */}
-      <Dialog open={!!lightboxImage} onOpenChange={(open: boolean) => !open && setLightboxImage(null)}>
-        <DialogContent className="lightbox-dialog">
+      <Dialog modal={false} open={!!lightboxImage} onOpenChange={(open: boolean) => !open && setLightboxImage(null)}>
+        <DialogContent
+          className="lightbox-dialog"
+          onInteractOutside={() => setLightboxImage(null)}
+        >
           {lightboxImage && (
             <img src={lightboxImage} alt="Cover art full size" className="lightbox-image" />
           )}
