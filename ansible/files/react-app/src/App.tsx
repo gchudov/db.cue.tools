@@ -40,7 +40,8 @@ function countryToFlag(countryCode: string): string | null {
   if (!countryCode) return null
   const code = countryCode.toUpperCase().trim()
   // Special case: XE means worldwide
-  if (code === 'XE') return '🌍'
+  if (code === 'XE') return '🇪🇺'
+  if (code === 'XW') return '🌍'
   // Only convert valid 2-letter codes (A-Z only)
   if (code.length !== 2 || !/^[A-Z]{2}$/.test(code)) return null
   // Convert country code to regional indicator symbols
