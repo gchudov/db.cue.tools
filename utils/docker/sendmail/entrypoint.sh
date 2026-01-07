@@ -22,7 +22,7 @@ sed -i "s|127.0.0.1|${IP}|" /etc/mail/submit.mc
 
 # https://docs.aws.amazon.com/ses/latest/dg/send-email-sendmail.html
 # AuthInfo:email-smtp.us-west-2.amazonaws.com "U:root" "I:smtpUsername" "P:smtpPassword" "M:PLAIN"
-echo "email-smtp.us-east-1.amazonaws.com \"U:root\" \"I:${AWS_SES_SMTP_USERNAME}\" \"P:${AWS_SES_SMTP_PASSWORD}\" \"M:PLAIN\"" >> /etc/mail/authinfo
+echo "email-smtp.us-east-1.amazonaws.com \"U:root\" \"I:${AWS_SES_SMTP_USERNAME}\" \"P:${AWS_SES_SMTP_PASSWORD}\" \"M:PLAIN\"" > /etc/mail/authinfo
 /usr/sbin/makemap hash /etc/mail/authinfo.db < /etc/mail/authinfo
 
 #cd /etc/mail && make access.db

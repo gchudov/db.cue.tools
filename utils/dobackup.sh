@@ -1,4 +1,4 @@
-backup_path="/tmp/backup"
+backup_path="/var/tmp/backup"
 s3_path="`date +%Y-%m-%d-%s`"
 mkdir -p $backup_path
 docker exec postgres16 pg_dump -Z 3 -Fc ctdb -U postgres > $backup_path/ctdb.bin

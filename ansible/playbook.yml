@@ -172,7 +172,7 @@
       become: yes
       copy:
         content: "{{ lookup('amazon.aws.aws_secret', 'htpasswd-logspout', region='us-east-1') }}"
-        dest: /tmp/htpasswd-logspout
+        dest: /var/tmp/htpasswd-logspout
         mode: '0644'
         owner: root
         group: root
@@ -188,7 +188,7 @@
         volumes:
           - /etc/letsencrypt:/etc/letsencrypt
           - /opt/db.cue.tools/utils/docker/proxy/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
-          - /tmp/htpasswd-logspout:/usr/local/apache2/conf/htpasswd-logspout:ro
+          - /var/tmp/htpasswd-logspout:/usr/local/apache2/conf/htpasswd-logspout:ro
           - /opt/db.cue.tools/utils/docker/proxy/htdocs/:/usr/local/apache2/htdocs/:ro
         ports:
           - "80:80"
@@ -323,6 +323,8 @@
         state: started
         restart_policy: always
         network_mode: ct
+        env:
+          TAIL: "100"
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
 
@@ -393,15 +395,6 @@
         name: "s3 sync"
         minute: "0-59/10"
         job: "/bin/docker exec ctdbweb php /var/www/html/utils/s3.php >> /var/log/s3 2>&1"
-        user: "root"
-        # state: absent
-
-    - name: Create Repack logs cron job
-      ansible.builtin.cron:
-        name: "repack logs"
-        minute: "20"
-        hour: "6"
-        job: "/opt/db.cue.tools/utils/repacklogs.sh >> /var/log/s3rl 2>&1"
         user: "root"
         # state: absent
 
