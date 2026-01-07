@@ -148,6 +148,8 @@
           PGBOUNCER_AUTH_TYPE: trust
           PGBOUNCER_AUTH_FILE: /etc/pgbouncer/userlist.txt
           PGBOUNCER_UNIX_SOCKET_DIR: /var/run/postgresql
+          PGBOUNCER_LOG_CONNECTIONS: "0"
+          PGBOUNCER_LOG_DISCONNECTIONS: "0"
         # PGBOUNCER_LISTEN_PORT: 6544
 
     - name: Check if Certbot certificate exists
