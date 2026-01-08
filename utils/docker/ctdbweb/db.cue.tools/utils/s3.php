@@ -22,7 +22,7 @@ $s3 = new Aws\S3\S3Client([
 while (true)
 {
 pg_query($dbconn, "BEGIN");
-$result = pg_query($dbconn, "SELECT * FROM submissions2 WHERE hasparity AND NOT s3 LIMIT 10")
+$result = pg_query($dbconn, "SELECT * FROM submissions2 WHERE hasparity = true AND s3 = false ORDER BY id LIMIT 10")
         or die('Query failed: ' . pg_last_error($dbconn));
 $records = pg_fetch_all($result);
 pg_free_result($result);
