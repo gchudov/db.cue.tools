@@ -94,8 +94,6 @@ $json_tracks_table = array('cols' => array(
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
     <!--script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.min.js?id=<?php echo $ctdbcfg_s3_id?>"></script-->
-    <script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
     <script type='text/javascript'>
       google.setOnLoadCallback(drawTable);
       function drawTable() {
@@ -112,7 +110,6 @@ $json_tracks_table = array('cols' => array(
         }
         table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
 
-        Shadowbox.init();
         var mbdiv = $('#releases_div');
         mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
         $.ajax({
@@ -150,12 +147,10 @@ $json_tracks_table = array('cols' => array(
               for(var tr=0; tr < data.getNumberOfRows(); tr++)
                 data.setValue(tr,0,tr in tracklist ? tracklist[tr].name : '' /*'[data track]'*/);
               table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
-              Shadowbox.teardown('a.thumbnail');
               var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
               coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4);
               var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
               videosElement.innerHTML = ctdbVideos(vidlist, 3);
-              Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
             }
           }
           resetCoverart();

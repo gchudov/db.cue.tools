@@ -4,8 +4,6 @@
 <script type="text/javascript" src="https://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22visualization%22%2C%22version%22%3A%221%22%2C%22packages%22%3A%5B%22table%22%5D%7D%5D%7D"></script>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 <script type='text/javascript' src="<?php echo $ctdbcfg_s3?>/ctdb.js?id=<?php echo $ctdbcfg_s3_id?>"></script>
-<script type="text/javascript" src="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.js"></script>
-<link rel="stylesheet" type="text/css" href="<?php echo $ctdbcfg_s3?>/shadowbox-3.0.3/shadowbox.css">
 <script type='text/javascript'>
 google.setOnLoadCallback(drawTable);
 function drawTable() 
@@ -26,8 +24,6 @@ function drawTable()
   var mbdata = new google.visualization.DataTable();
 
 //  mbdiv.each(function() { $(this).data('gvtable', new google.visualization.Table($(this)[0])); });
-
-  Shadowbox.init();
 
   trdata.addColumn('string', 'Track');
   trdata.addColumn('string', 'Start');
@@ -95,7 +91,6 @@ function drawTable()
       var tropts = {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true, page: 'enable', pageSize: 13};
       trtable.draw(trdata, tropts);
     } 
-    Shadowbox.teardown('a.thumbnail');
     var imglist1 = new Array();
     var vidlist1 = new Array();
     for (var row = 0; row < mbdata.getNumberOfRows(); row++) {
@@ -108,7 +103,6 @@ function drawTable()
     $("#coverart").html(ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4));
     var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : vidlist1;
     $("#videos").html(ctdbVideos(vidlist, 3));
-    Shadowbox.setup('a.thumbnail', {autoplayMovies: true});
     ctdbbox_div.show();
   }
 
@@ -218,7 +212,6 @@ function drawTable()
   var view = new google.visualization.DataView(data);
   view.hideColumns([6,7,8]);
   table.draw(view, opts);
-  //document.getElementById('entries_div').children[0].children[0].style["box-shadow"] = "rgb(204, 204, 204) 3px 3px 5px";
   <?php if (isset($where_id)) { ?>
   table.setSelection([{row:0}]);
   resetMetadata();
