@@ -117,6 +117,7 @@ function submit_error($dbconn, $submission, $reason) {
 
 $needparfile = false;
 $neednpar = 8;
+$checkduplicate = true;
 if ($confirmid)
 { 
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE id=$1", array($confirmid))
@@ -132,6 +133,7 @@ if ($confirmid)
     $needparfile = true;
     $neednpar = 16;
   }
+  if ($oldrecord['subcount'] > 100) $checkduplicate = false;
 
     if ($crc32 != $oldrecord['crc32'])
       submit_error($dbconn, $record3, "crc32 mismatch");
@@ -171,10 +173,12 @@ if ($parfile && !$needparfile)
   pg_free_result($result);
 
 if ($confirmid) {
+  if ($checkduplicate) {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions WHERE entryid=$1 AND (userid=$2 OR ip=$3) AND drivename=$4", array($confirmid, $record3['userid'], $record3['ip'], $record3['drivename']))
-    or fatal_error('Query failed: ' . pg_last_error($dbconn));
-  if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "already submitted");
-  pg_free_result($result);
+      or fatal_error('Query failed: ' . pg_last_error($dbconn));
+    if (pg_num_rows($result) > 0) submit_error($dbconn, $record3, "already submitted");
+    pg_free_result($result);
+  }
 } else {
   $result = pg_query_params($dbconn, "SELECT * FROM submissions2 WHERE tocid=$1 AND crc32=$2 AND trackoffsets=$3", array($tocid, $crc32, $toc['trackoffsets']))
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
