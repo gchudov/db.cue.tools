@@ -2,6 +2,8 @@
 include 'logo_start.php'; 
 require_once( 'phpctdb/ctdb.php' );
 
+die('disabled');
+
 $count = 50;
 $query = "select * from submissions2 a where exists(select *from submissions2 t where t.tocid=a.tocid and t.trackoffsets=a.trackoffsets and t.id != a.id and t.agent ilike 'CUERipper%' and a.agent ilike 'CUERipper%')";
 $url = '';

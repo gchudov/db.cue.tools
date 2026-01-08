@@ -2,6 +2,8 @@
 include 'logo_start1.php'; 
 require_once( 'phpctdb/ctdb.php' );
 
+die('disabled');
+
 $count = 50;
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
 pg_query("BEGIN TRANSACTION; DECLARE curs CURSOR FOR " . 

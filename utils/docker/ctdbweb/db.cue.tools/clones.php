@@ -2,6 +2,8 @@
 include 'logo_start1.php';
 require_once( 'phpctdb/ctdb.php' );
 
+die('disabled');
+
 $count = 20;
 $term = ' WHERE ';
 $query = "SELECT * FROM submissions2 a";

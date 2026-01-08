@@ -267,6 +267,29 @@
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/ctdbweb/php.ini:/usr/local/etc/php/php.ini:ro
 
+    # - name: Build a container image for the s3uploader
+    #   become: yes
+    #   community.docker.docker_image:
+    #     name: s3uploader
+    #     tag: latest
+    #     source: build
+    #     state: present
+    #     build:
+    #       path: /opt/db.cue.tools/utils/s3uploader
+    #       dockerfile: Dockerfile
+
+    # - name: Run s3uploader container
+    #   become: yes
+    #   community.docker.docker_container:
+    #     name: s3uploader
+    #     image: s3uploader:latest
+    #     state: present
+    #     restart_policy: no
+    #     network_mode: ct
+    #     volumes:
+    #       - ctparity:/var/www/html/parity
+    #       - /var/run/postgresql:/var/run/postgresql
+
     - name: Build MediaWiki container image
       become: yes
       community.docker.docker_image:
