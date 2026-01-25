@@ -377,6 +377,26 @@
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
 
+    - name: Build React production container image
+      become: yes
+      community.docker.docker_image:
+        name: react-prod
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/ansible/files/react-app
+          dockerfile: Dockerfile.prod
+
+    - name: Run React production container
+      become: yes
+      community.docker.docker_container:
+        name: react-prod
+        image: react-prod:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+
     - name: Run React development container
       become: yes
       community.docker.docker_container:
