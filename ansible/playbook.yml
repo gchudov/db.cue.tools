@@ -167,7 +167,7 @@
         volumes:
           - /etc/letsencrypt:/etc/letsencrypt
           - /var/lib/letsencrypt:/var/lib/letsencrypt
-        command: certonly --dns-route53 --agree-tos --domains cue.tools,db.cue.tools,www.cue.tools -n
+        command: certonly --dns-route53 --agree-tos --domains cue.tools,db.cue.tools,www.cue.tools,dev.db.cue.tools -n
       when: not certbot_cert.stat.exists
 
     - name: Fetch http password file from AWS Secrets Manager

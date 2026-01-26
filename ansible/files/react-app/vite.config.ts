@@ -8,10 +8,10 @@ export default defineConfig({
   base: "/ui/",
   plugins: [react(), tailwindcss()],
   server: {
-    allowedHosts: ["react-dev"],
-    origin: "https://db.cue.tools",
+    allowedHosts: ["react-dev", "dev.db.cue.tools"],
+    origin: "https://dev.db.cue.tools",
     hmr: {
-      host: "db.cue.tools",
+      host: "dev.db.cue.tools",
       protocol: "wss",
       clientPort: 443,
     },
