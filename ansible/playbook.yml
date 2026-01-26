@@ -253,6 +253,7 @@
         build:
           path: /opt/db.cue.tools/utils/docker/ctdbweb
           dockerfile: Dockerfile
+          target: production
 
     - name: Run CTDB database container
       become: yes
@@ -267,11 +268,23 @@
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/ctdbweb/php.ini:/usr/local/etc/php/php.ini:ro
 
+    - name: Build a container image for CTDB Web Dev
+      become: yes
+      community.docker.docker_image:
+        name: ctdbweb-dev
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/ctdbweb
+          dockerfile: Dockerfile
+          target: development
+
     - name: Run CTDB Web Dev container
       become: yes
       community.docker.docker_container:
         name: ctdbweb-dev
-        image: php:8.4-apache
+        image: ctdbweb-dev:latest
         state: started
         restart_policy: unless-stopped
         network_mode: ct
@@ -282,14 +295,6 @@
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/ctdbweb/php.ini:/usr/local/etc/php/php.ini:ro
           - /opt/db.cue.tools/utils/docker/ctdbweb/remoteip.conf:/etc/apache2/conf-available/remoteip.conf:ro
-        command: |
-          bash -c "apt-get update &&
-                   apt-get install -y postgresql-client libpq-dev libzip-dev &&
-                   docker-php-ext-configure pgsql &&
-                   docker-php-ext-install -j$(nproc) pgsql zip &&
-                   a2enmod remoteip &&
-                   a2enconf remoteip &&
-                   apache2-foreground"
 
     # - name: Build a container image for the s3uploader
     #   become: yes
