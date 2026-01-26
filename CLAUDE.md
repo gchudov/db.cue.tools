@@ -14,8 +14,11 @@ The application runs on AWS EC2 (Amazon Linux 2023) using a Docker-based microse
 
 - **postgres16**: PostgreSQL 16 database (main data store)
 - **pgbouncer**: Connection pooler for PostgreSQL
-- **ctdbweb**: PHP 8.4 + Apache backend (API endpoints and legacy UI)
-- **react-dev**: Node.js 24 development server (React/Vite frontend)
+- **ctdbweb-go**: Go 1.23 JSON API backend (production)
+- **ctdbweb-go-dev**: Go development server with Air hot-reload
+- **ctdbweb**: PHP 8.4 + Apache backend (legacy XML endpoints and HTML UI)
+- **react-prod**: Production React frontend (nginx)
+- **react-dev**: Node.js 24 development server (React/Vite frontend with HMR)
 - **proxy**: Apache 2.4 reverse proxy (TLS termination, routing)
 - **adminer**: Database administration interface
 - **musicbrainz-docker**: MusicBrainz database mirror
@@ -52,17 +55,84 @@ The system uses PostgreSQL with three main databases:
 
 ### Application Components
 
+#### Go Backend (`utils/docker/ctdbweb-go/`)
+
+Modern Go 1.23 backend serving JSON APIs at https://db.cue.tools/api/
+
+**JSON API Endpoints:**
+
+- **GET /api/stats?type=totals** - Database totals (unique_tocs, submissions)
+  ```json
+  {"unique_tocs": 7585649, "submissions": 90513228}
+  ```
+
+- **GET /api/stats?type=drives** - CD drive statistics (top 100)
+  ```json
+  [{"drive": "HL-DT-STDVDRAM", "count": 10898}, ...]
+  ```
+
+- **GET /api/stats?type=agents** - User agent statistics (top 100)
+  ```json
+  [{"agent": "EACv1.8 CTDB 2.2.6", "count": 515167}, ...]
+  ```
+
+- **GET /api/stats?type=pregaps** - Pregap statistics (top 100)
+  ```json
+  [{"pregap": "32", "count": 57134}, ...]
+  ```
+
+- **GET /api/stats?type=submissions&count=365** - Daily submission history
+  ```json
+  [{"date": "2026-01-26", "eac": 28508, "cueripper": 670, "cuetools": 0}, ...]
+  ```
+
+- **GET /api/stats?type=submissions&count=336&hourly=1** - Hourly submission history
+  ```json
+  [{"date": "01-26 22:00", "eac": 1016, "cueripper": 25, "cuetools": 0}, ...]
+  ```
+
+- **GET /api/latest?limit=10&start=0** - Latest CD submissions
+- **GET /api/top?limit=10&start=0** - Most popular CD submissions
+- **GET /api/lookup?toc=...** - CD metadata lookup (in development)
+
+**Key characteristics:**
+- Multi-stage Docker build (development with Air hot-reload, production optimized binary)
+- Connects to PostgreSQL via pgbouncer TCP (host=pgbouncer port=6432)
+- Parallel metadata queries using goroutines (MusicBrainz, Discogs, FreeDB)
+- Modular architecture: handlers, database clients, models, TOC transformation library
+- Production: ctdbweb-go container (port 8080 internal only)
+- Development: ctdbweb-go-dev container with Air hot-reload (~1 second rebuild)
+- Access via Apache proxy at `/api/*` (no direct port exposure)
+
+**File structure:**
+```
+utils/docker/ctdbweb-go/
+├── cmd/server/          # Main application entry point
+├── internal/
+│   ├── handlers/        # HTTP handlers (stats, latest, top, lookup)
+│   ├── database/        # Database clients (CTDB, MusicBrainz, Discogs, FreeDB)
+│   ├── metadata/        # Metadata query clients
+│   ├── models/          # Data models (Submission, Track, etc.)
+│   └── toc/            # TOC transformation library (28 functions)
+├── pkg/pgarray/         # PostgreSQL array parser
+├── Dockerfile           # Multi-stage build (dev + prod)
+├── docker-compose.yml   # Local development only
+├── .air.toml           # Hot-reload configuration
+└── go.mod              # Go 1.23 dependencies
+```
+
 #### PHP Backend (`utils/docker/ctdbweb/db.cue.tools/`)
 
-The PHP backend provides JSON API endpoints:
+Legacy PHP backend provides XML API endpoints and HTML UI:
 
-- `index.php` - Latest CD entries (`?json=1&start=0`)
-- `top.php` - Popular CD entries (`?json=1&start=0`)
-- `lookup2.php` - Metadata lookup by TOC (`?version=3&ctdb=0&metadata=default&fuzzy=1&toc=...`)
+- `index.php` - Latest CD entries (HTML/JSON via `?json=1&start=0`)
+- `top.php` - Popular CD entries (HTML/JSON via `?json=1&start=0`)
+- `lookup2.php` - Metadata lookup by TOC (XML format)
 - `submit2.php` - CD submission endpoint
 - `list1.php` - Original HTML/JS metadata display
 - `show.php` - Display individual CD entry
-- `stats.php`, `statsjson.php` - Statistics endpoints
+
+**Note:** JSON endpoints have been migrated to Go backend. PHP serves legacy XML endpoints and HTML UI.
 
 Key characteristics:
 - Uses PostgreSQL via Unix socket `/var/run/postgresql` (port 6432)
@@ -75,6 +145,7 @@ Modern React + TypeScript + Vite frontend at https://db.cue.tools/ui/
 
 Key features:
 - Displays latest/popular CD entries
+- Real-time statistics dashboard (consumes Go API)
 - Metadata lookup via MusicBrainz, CTDB, Discogs
 - Track details with CRC checksums
 - shadcn/ui components for UI elements
@@ -84,21 +155,33 @@ Technology stack:
 - Vite 7.2 for bundling
 - Tailwind CSS 4.1 for styling
 - shadcn/ui components (Radix UI primitives)
+- Recharts for statistics visualization
+
+API Integration:
+- Statistics: `/api/stats` (Go backend)
+- CD listings: `/api/latest`, `/api/top` (Go backend)
+- Legacy endpoints: PHP backend for XML compatibility
 
 Important configuration:
 - Base path: `/ui/`
 - Vite proxy configuration for HMR over WSS
-- Runs in Docker container `react-dev` on port 80
+- Production: `react-prod` container (nginx)
+- Development: `react-dev` container (Vite dev server on port 80)
 
-#### Go Utilities
+#### Go Applications
 
-1. **s3uploader** (`utils/s3uploader/`)
+1. **ctdbweb-go** (`utils/docker/ctdbweb-go/`)
+   - Main JSON API backend (documented above)
+   - Serves `/api/*` endpoints
+   - Multi-database support (CTDB, MusicBrainz, Discogs, FreeDB)
+
+2. **s3uploader** (`utils/s3uploader/`)
    - Uploads parity files from local storage to S3 bucket `p.cuetools.net`
    - Processes batches of 10 submissions at a time
    - Updates `submissions2.s3` flag in database
    - Connection: `dbname=ctdb user=ctdb_user host=/var/run/postgresql port=6432`
 
-2. **discogs2psql** (`utils/discogs/discogs2psql/`)
+3. **discogs2psql** (`utils/discogs/discogs2psql/`)
    - Converts Discogs XML dumps to PostgreSQL COPY format
    - Performs artist/label/title deduplication
    - Generates enum types dynamically
@@ -147,6 +230,70 @@ docker logs ctdbweb
 docker restart ctdbweb
 ```
 
+### Go Backend
+
+**Development workflow (with hot-reload):**
+
+```bash
+# Dev container runs automatically with Air hot-reload
+docker logs -f ctdbweb-go-dev
+
+# Edit code - Air detects changes and rebuilds (~1 second)
+vim utils/docker/ctdbweb-go/internal/handlers/stats.go
+
+# Test dev endpoint
+curl "https://dev.db.cue.tools/api/stats?type=totals" -k
+
+# Or test locally in container
+docker exec ctdbweb-go-dev wget -qO- "http://localhost:8080/api/stats?type=totals"
+```
+
+**Production deployment:**
+
+```bash
+# ALWAYS deploy via Ansible (never docker-compose for production)
+cd /opt/db.cue.tools
+ansible-playbook ansible/playbook.yml --start-at-task="Build a container image for CTDB Web Go Backend"
+
+# Test production endpoint
+curl "https://db.cue.tools/api/stats?type=totals" -k
+```
+
+**Local development (outside Docker):**
+
+```bash
+cd utils/docker/ctdbweb-go
+
+# Install Air for hot-reload
+go install github.com/air-verse/air@v1.61.1
+
+# Run with Air
+air -c .air.toml
+
+# Or build and run directly
+go build -o server ./cmd/server
+PORT=8080 POSTGRES_HOST=pgbouncer POSTGRES_PORT=6432 ./server
+```
+
+**Testing endpoints:**
+
+```bash
+# Statistics
+curl "http://localhost:8080/api/stats?type=totals"
+curl "http://localhost:8080/api/stats?type=drives"
+curl "http://localhost:8080/api/stats?type=agents"
+curl "http://localhost:8080/api/stats?type=pregaps"
+curl "http://localhost:8080/api/stats?type=submissions&count=7"
+curl "http://localhost:8080/api/stats?type=submissions&count=24&hourly=1"
+
+# CD listings
+curl "http://localhost:8080/api/latest?limit=5"
+curl "http://localhost:8080/api/top?limit=5"
+
+# Health check
+curl "http://localhost:8080/health"
+```
+
 ### Go Utilities
 
 ```bash
@@ -180,21 +327,36 @@ docker exec -it pgbouncer psql -h /var/run/postgresql -p 6432 -U ctdb_user -d ct
 
 ### Deployment
 
+**IMPORTANT:** All production deployments MUST go through Ansible. Never use docker-compose or direct docker commands for production changes.
+
 The application is deployed via Ansible playbooks:
 
 ```bash
 # Deploy entire stack
 ansible-playbook ansible/playbook.yml
 
+# Deploy specific component (start at a specific task)
+ansible-playbook ansible/playbook.yml --start-at-task="Build React production container image"
+
 # Deploy MusicBrainz mirror
 ansible-playbook ansible/musicbrainz.yml
 ```
+
+Deployment workflow:
+1. **Development**: Test changes in dev containers (ctdbweb-go-dev, react-dev)
+   - Dev containers have hot-reload for rapid iteration
+   - Accessible at dev.db.cue.tools subdomain
+2. **Production**: Deploy via Ansible once changes are tested
+   - Ansible rebuilds production Docker images
+   - Restarts production containers with new images
+   - Ensures consistent deployment across environments
 
 Key deployment features:
 - Automatic database backup restore from S3 (`backups.cuetools.net`)
 - SSL certificates via Certbot (Let's Encrypt DNS-01 with Route53)
 - Docker container orchestration
 - PGBouncer connection pooling
+- Force rebuild with `force_source: true` in docker_image tasks
 
 ## Key Implementation Patterns
 
@@ -235,7 +397,29 @@ References use integer foreign keys instead of repeating strings.
 
 ### API Response Format
 
-PHP endpoints return JSON in Google Visualization API format:
+**Go Backend (JSON API)** - Returns clean, structured JSON:
+
+```json
+// GET /api/stats?type=totals
+{"unique_tocs": 7585649, "submissions": 90513228}
+
+// GET /api/stats?type=drives
+[{"drive": "HL-DT-STDVDRAM", "count": 10898}, ...]
+
+// GET /api/latest?limit=2
+[
+  {
+    "id": 12616939,
+    "artist": "Unknown Artist",
+    "title": "Unknown Title",
+    "tocid": "...",
+    "crc32": -1978947008,
+    "track_crcs": [123456, 789012, ...]
+  }
+]
+```
+
+**PHP Backend (Legacy XML/Google Viz format)** - Returns Google Visualization API format:
 
 ```json
 {
@@ -250,7 +434,7 @@ PHP endpoints return JSON in Google Visualization API format:
 }
 ```
 
-This format is consumed by the React frontend.
+The React frontend consumes the Go JSON API for modern features.
 
 ## File Structure
 
@@ -264,6 +448,13 @@ This format is consumed by the React frontend.
 ├── terraform/                   # AWS infrastructure as code
 ├── utils/
 │   ├── docker/                  # Docker container configs
+│   │   ├── ctdbweb-go/         # Go JSON API backend
+│   │   │   ├── cmd/            # Main application
+│   │   │   ├── internal/       # Handlers, database, models, TOC lib
+│   │   │   ├── pkg/            # PostgreSQL array parser
+│   │   │   ├── Dockerfile      # Multi-stage build (dev + prod)
+│   │   │   ├── .air.toml       # Hot-reload config
+│   │   │   └── go.mod          # Go 1.23 dependencies
 │   │   ├── ctdbweb/            # PHP backend + Dockerfile
 │   │   ├── proxy/              # Apache reverse proxy config
 │   │   ├── pgbouncer/          # Connection pooler config
@@ -293,9 +484,13 @@ This format is consumed by the React frontend.
 ### Database Connections
 
 - PostgreSQL listens on Unix socket `/var/run/postgresql` (shared via Docker volume)
-- PGBouncer pools connections on port 6432
+- PGBouncer pools connections on port 6432 (accessible via both Unix socket and TCP)
 - Use `ctdb_user` role for application connections
-- Connection string format: `dbname=ctdb user=ctdb_user host=/var/run/postgresql port=6432 sslmode=disable`
+
+**Connection methods:**
+- PHP: Unix socket `host=/var/run/postgresql port=6432`
+- Go: TCP `host=pgbouncer port=6432`
+- Connection string: `dbname=ctdb user=ctdb_user host=pgbouncer port=6432 sslmode=disable`
 
 ### Backup and Restore
 
@@ -307,19 +502,36 @@ This format is consumed by the React frontend.
 ### Production URLs
 
 - Main site: https://db.cue.tools/
+- JSON API: https://db.cue.tools/api/ (Go backend)
 - React UI: https://db.cue.tools/ui/
 - Wiki: https://cue.tools/
 - Log viewer: https://db.cue.tools/logs/ (HTTP auth required)
+
+**Development URLs:**
+- Dev API: https://dev.db.cue.tools/api/ (Go dev backend with hot-reload)
+- Dev UI: https://dev.db.cue.tools/ui/ (React dev with HMR)
 
 ### Docker Network
 
 All services communicate via Docker network `ct`. Internal hostnames:
 - `postgres16` - PostgreSQL database
-- `pgbouncer` - Connection pooler
-- `ctdbweb` - PHP backend
-- `react-dev` - React dev server
-- `proxy` - Reverse proxy (externally accessible)
+- `pgbouncer` - Connection pooler (port 6432)
+- `ctdbweb-go` - Go production backend (port 8080)
+- `ctdbweb-go-dev` - Go dev backend with hot-reload (port 8080)
+- `ctdbweb` - PHP backend (port 80)
+- `react-prod` - React production UI (nginx, port 80)
+- `react-dev` - React dev server (Vite, port 80)
+- `proxy` - Reverse proxy (externally accessible, ports 80/443)
 - `adminer` - Database admin UI
+
+**Routing via proxy:**
+- `db.cue.tools/api/*` → ctdbweb-go:8080 (Go production JSON API)
+- `dev.db.cue.tools/api/*` → ctdbweb-go-dev:8080 (Go dev JSON API)
+- `db.cue.tools/ui/*` → react-prod:80 (React production UI)
+- `dev.db.cue.tools/ui/*` → react-dev:80 (React dev UI with HMR)
+- `db.cue.tools/*` → ctdbweb:80 (PHP legacy endpoints and HTML)
+
+All backend containers use internal ports only (no external exposure).
 
 ### Security Considerations
 
@@ -327,3 +539,35 @@ All services communicate via Docker network `ct`. Internal hostnames:
 - Apache proxy handles TLS termination
 - Secrets managed via AWS Secrets Manager
 - Log viewer protected by HTTP basic auth (htpasswd)
+- No direct port exposure - all backend access via Apache proxy
+
+## Migration Notes
+
+### PHP to Go Backend Migration
+
+The project is actively migrating from PHP to Go for improved performance and type safety.
+
+**Completed:**
+- ✅ Statistics API (`/api/stats`) - All 5 stat types (totals, drives, agents, pregaps, submissions)
+- ✅ Latest/Top listings (`/api/latest`, `/api/top`)
+- ✅ React frontend updated to consume Go JSON APIs
+- ✅ Development environment with Air hot-reload
+- ✅ Production deployment via Ansible
+
+**In Progress:**
+- 🚧 Metadata lookup API (`/api/lookup`) - TOC transformation and parallel queries implemented
+- 🚧 Submission API (`/api/submit`) - Handler structure in place
+
+**Legacy PHP endpoints (maintained for compatibility):**
+- `lookup2.php` - XML metadata lookup (used by legacy clients)
+- `submit2.php` - CD submission endpoint
+- `index.php`, `top.php` - HTML UI and XML endpoints
+- `show.php`, `list1.php` - Individual CD display
+
+**Migration Benefits:**
+- 3-4x lower memory usage (30-50 MB vs 150-200 MB)
+- 10x smaller Docker image (50 MB vs 500+ MB)
+- Parallel database queries (goroutines vs sequential PHP)
+- Compile-time type safety
+- Clean JSON API (vs Google Visualization API format)
+- Hot-reload development (~1 second rebuild vs full restart)

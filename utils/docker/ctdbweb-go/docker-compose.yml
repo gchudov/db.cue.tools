@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Development server with Air hot-reload
+  # NOTE: This is for LOCAL DEVELOPMENT ONLY
+  # For server deployment, use: ansible-playbook ansible/playbook.yml
+  ctdbweb-go-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: ctdbweb-go-dev
+    # No port forwarding - access via proxy or exec into container
+    volumes:
+      # Mount source code for hot-reload
+      - .:/app
+      # Cache Go modules
+      - go-modules:/go/pkg/mod
+    environment:
+      - PORT=8080
+      - POSTGRES_HOST=pgbouncer
+      - POSTGRES_PORT=6432
+    networks:
+      - ct
+    restart: unless-stopped
+    profiles:
+      - dev  # Only start with --profile dev
+
+  # Production server (optimized binary)
+  ctdbweb-go:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ctdbweb-go
+    # No port forwarding - accessed via proxy only
+    environment:
+      - PORT=8080
+      - POSTGRES_HOST=pgbouncer
+      - POSTGRES_PORT=6432
+    networks:
+      - ct
+    restart: unless-stopped
+
+volumes:
+  go-modules:
+
+networks:
+  ct:
+    external: true

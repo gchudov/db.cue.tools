@@ -296,6 +296,61 @@
           - /opt/db.cue.tools/utils/docker/ctdbweb/php.ini:/usr/local/etc/php/php.ini:ro
           - /opt/db.cue.tools/utils/docker/ctdbweb/remoteip.conf:/etc/apache2/conf-available/remoteip.conf:ro
 
+    - name: Build a container image for CTDB Web Go Backend
+      become: yes
+      community.docker.docker_image:
+        name: ctdbweb-go
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/ctdbweb-go
+          dockerfile: Dockerfile
+          target: production
+
+    - name: Run CTDB Web Go Backend container
+      become: yes
+      community.docker.docker_container:
+        name: ctdbweb-go
+        image: ctdbweb-go:latest
+        state: started
+        restart_policy: always
+        network_mode: ct
+        env:
+          PORT: "8080"
+          POSTGRES_HOST: "pgbouncer"
+          POSTGRES_PORT: "6432"
+        # No port forwarding - accessed via proxy only
+
+    - name: Build a container image for CTDB Web Go Backend Dev
+      become: yes
+      community.docker.docker_image:
+        name: ctdbweb-go-dev
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/docker/ctdbweb-go
+          dockerfile: Dockerfile
+          target: development
+
+    - name: Run CTDB Web Go Backend Dev container
+      become: yes
+      community.docker.docker_container:
+        name: ctdbweb-go-dev
+        image: ctdbweb-go-dev:latest
+        state: started
+        restart_policy: unless-stopped
+        network_mode: ct
+        volumes:
+          - /opt/db.cue.tools/utils/docker/ctdbweb-go:/app:rw
+          - ctdbweb-go-modules:/go/pkg/mod
+        env:
+          PORT: "8080"
+          POSTGRES_HOST: "pgbouncer"
+          POSTGRES_PORT: "6432"
+        # No port forwarding - access via Apache proxy
+
     # - name: Build a container image for the s3uploader
     #   become: yes
     #   community.docker.docker_image:
@@ -389,6 +444,7 @@
         tag: latest
         source: build
         state: present
+        force_source: true
         build:
           path: /opt/db.cue.tools/ansible/files/react-app
           dockerfile: Dockerfile.prod

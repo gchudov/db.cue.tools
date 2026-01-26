@@ -157,7 +157,7 @@ export function Stats() {
   // Fetch totals every 5 seconds
   useEffect(() => {
     const fetchTotals = () => {
-      fetch('/statsjson.php?type=totals')
+      fetch('/api/stats?type=totals')
         .then(res => res.json())
         .then((data: TotalsData) => setTotals(data))
         .catch(() => {})
@@ -171,46 +171,46 @@ export function Stats() {
 
   useEffect(() => {
     // Fetch daily submissions
-    fetch('/statsjson.php?type=submissions&count=365')
+    fetch('/api/stats?type=submissions&count=365')
       .then(res => res.json())
-      .then((data: ApiResponse) => {
-        setDailyData(transformSubmissions(data))
+      .then((data: SubmissionData[]) => {
+        setDailyData(data)
         setLoading(prev => ({ ...prev, daily: false }))
       })
       .catch(() => setLoading(prev => ({ ...prev, daily: false })))
 
     // Fetch hourly submissions
-    fetch('/statsjson.php?type=submissions&count=336&hourly=1')
+    fetch('/api/stats?type=submissions&count=336&hourly=1')
       .then(res => res.json())
-      .then((data: ApiResponse) => {
-        setHourlyData(transformSubmissions(data))
+      .then((data: SubmissionData[]) => {
+        setHourlyData(data)
         setLoading(prev => ({ ...prev, hourly: false }))
       })
       .catch(() => setLoading(prev => ({ ...prev, hourly: false })))
 
     // Fetch drives
-    fetch('/statsjson.php?type=drives')
+    fetch('/api/stats?type=drives')
       .then(res => res.json())
-      .then((data: ApiResponse) => {
-        setDrivesData(transformPieData(data))
+      .then((data: Array<{ drive: string; count: number }>) => {
+        setDrivesData(data.map(d => ({ name: d.drive, value: d.count })).slice(0, 15))
         setLoading(prev => ({ ...prev, drives: false }))
       })
       .catch(() => setLoading(prev => ({ ...prev, drives: false })))
 
     // Fetch agents
-    fetch('/statsjson.php?type=agents')
+    fetch('/api/stats?type=agents')
       .then(res => res.json())
-      .then((data: ApiResponse) => {
-        setAgentsData(transformPieData(data))
+      .then((data: Array<{ agent: string; count: number }>) => {
+        setAgentsData(data.map(a => ({ name: a.agent, value: a.count })).slice(0, 15))
         setLoading(prev => ({ ...prev, agents: false }))
       })
       .catch(() => setLoading(prev => ({ ...prev, agents: false })))
 
     // Fetch pregaps
-    fetch('/statsjson.php?type=pregaps')
+    fetch('/api/stats?type=pregaps')
       .then(res => res.json())
-      .then((data: ApiResponse) => {
-        setPregapsData(transformPieData(data))
+      .then((data: Array<{ pregap: string; count: number }>) => {
+        setPregapsData(data.map(p => ({ name: p.pregap, value: p.count })).slice(0, 15))
         setLoading(prev => ({ ...prev, pregaps: false }))
       })
       .catch(() => setLoading(prev => ({ ...prev, pregaps: false })))
