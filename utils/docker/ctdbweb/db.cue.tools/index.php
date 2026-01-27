@@ -5,6 +5,12 @@ require_once( 'phpctdb/ctdb.php' );
 if ((@$_GET['login'] && !$userinfo) || (@$_GET['logout'] && $userinfo)) makeAuth1($realm, 'Login requested');
 
 $count = 10;
+if (isset($_GET['count'])) {
+    $count = intval($_GET['count']);
+    if ($count < 1) $count = 1;
+    if ($count > 10) $count = 10;
+}
+
 $query = 'SELECT * FROM submissions2';
 $term = ' WHERE ';
 $url = '';
@@ -29,6 +35,15 @@ if ($where_artist != '')
   $term = ' AND ';
   $url = $url . '&artist=' . urlencode($where_artist);
 }
+$where_title = @$_GET['title'];
+if ($where_title != '')
+{
+  $query = $query . $term . "title ilike '%" . pg_escape_string($dbconn, $where_title) . "%'";
+  $term = ' AND ';
+  $url = $url . '&title=' . urlencode($where_title);
+}
+
+$url = $url . '&count=' . $count;
 
 $start = @$_GET['start'] == '' ? 0 : @$_GET['start'];
 $query = $query . " ORDER BY id DESC OFFSET " . pg_escape_string($dbconn, $start) . " LIMIT " . pg_escape_string($dbconn, $count);
