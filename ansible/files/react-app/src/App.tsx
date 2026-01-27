@@ -128,8 +128,8 @@ function formatCellValue(value: unknown): string {
 type ViewMode = 'latest' | 'popular'
 
 const VIEW_ENDPOINTS: Record<ViewMode, string> = {
-  latest: '/index.php',
-  popular: '/top.php',
+  latest: '/api/latest',
+  popular: '/api/top',
 }
 
 interface Filters {

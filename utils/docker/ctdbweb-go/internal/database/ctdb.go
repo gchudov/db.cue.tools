@@ -5,15 +5,25 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cuetools/ctdbweb/internal/models"
 	"github.com/cuetools/ctdbweb/pkg/pgarray"
 )
 
-// GetLatestSubmissions retrieves the latest CD submissions from CTDB
-func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
-	query := `
+// SubmissionFilters holds optional filter parameters for submission queries
+type SubmissionFilters struct {
+	TOCID  string // Exact match on TOCID
+	Artist string // Case-insensitive match on artist name
+}
+
+// GetSubmissions retrieves CD submissions from CTDB with different sort modes
+// sortBy: "latest" (newest first) or "top" (most popular first)
+// filters: optional filters for TOCID and artist
+func GetSubmissions(db *sql.DB, start, limit int, sortBy string, filters *SubmissionFilters) ([]models.Submission, error) {
+	// Build base SELECT clause
+	selectClause := `
 		SELECT
 			s.id,
 			s.artist,
@@ -26,12 +36,63 @@ func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, er
 			s.subcount,
 			s.crc32,
 			s.track_crcs
-		FROM submissions2 s
-		ORDER BY s.id DESC
-		LIMIT $1 OFFSET $2
-	`
+		FROM submissions2 s`
 
-	rows, err := db.Query(query, limit, start)
+	// Build WHERE clause based on sort type and filters
+	var whereClauses []string
+	var args []interface{}
+	paramCounter := 1
+
+	// Add filter conditions first
+	hasFilters := false
+	if filters != nil {
+		if filters.TOCID != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("s.tocid = $%d", paramCounter))
+			args = append(args, filters.TOCID)
+			paramCounter++
+			hasFilters = true
+		}
+		if filters.Artist != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("s.artist ILIKE $%d", paramCounter))
+			args = append(args, filters.Artist)
+			paramCounter++
+			hasFilters = true
+		}
+	}
+
+	// Add sort-specific WHERE clause only if no filters are provided
+	// This matches PHP behavior: top.php only adds subcount constraint when no filters
+	if sortBy == "top" && !hasFilters {
+		whereClauses = append(whereClauses, fmt.Sprintf("s.subcount > 50"))
+	}
+
+	// Build WHERE clause
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Build ORDER BY clause
+	var orderByClause string
+	switch sortBy {
+	case "latest":
+		orderByClause = " ORDER BY s.id DESC"
+	case "top":
+		orderByClause = " ORDER BY s.subcount DESC, s.id DESC"
+	default:
+		return nil, fmt.Errorf("invalid sortBy parameter: %s (must be 'latest' or 'top')", sortBy)
+	}
+
+	// Add LIMIT and OFFSET parameters
+	limitParam := fmt.Sprintf("$%d", paramCounter)
+	paramCounter++
+	offsetParam := fmt.Sprintf("$%d", paramCounter)
+	args = append(args, limit, start)
+
+	// Build complete query
+	query := selectClause + whereClause + orderByClause + fmt.Sprintf(" LIMIT %s OFFSET %s", limitParam, offsetParam)
+
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -96,90 +157,16 @@ func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, er
 	return submissions, nil
 }
 
+// GetLatestSubmissions retrieves the latest CD submissions from CTDB
+// Deprecated: Use GetSubmissions(db, start, limit, "latest", filters) instead
+func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
+	return GetSubmissions(db, start, limit, "latest", nil)
+}
+
 // GetTopSubmissions retrieves the most popular CD submissions from CTDB
+// Deprecated: Use GetSubmissions(db, start, limit, "top", filters) instead
 func GetTopSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
-	query := `
-		SELECT
-			s.id,
-			s.artist,
-			s.title,
-			s.tocid,
-			s.firstaudio,
-			s.audiotracks,
-			s.trackcount,
-			s.trackoffsets,
-			s.subcount,
-			s.crc32,
-			s.track_crcs
-		FROM submissions2 s
-		WHERE s.subcount > 1
-		ORDER BY s.subcount DESC, s.id DESC
-		LIMIT $1 OFFSET $2
-	`
-
-	rows, err := db.Query(query, limit, start)
-	if err != nil {
-		return nil, fmt.Errorf("query failed: %w", err)
-	}
-	defer rows.Close()
-
-	var submissions []models.Submission
-	for rows.Next() {
-		var s models.Submission
-		var artist, title, tocid sql.NullString
-		var trackCRCsStr sql.NullString
-
-		err := rows.Scan(
-			&s.ID,
-			&artist,
-			&title,
-			&tocid,
-			&s.FirstAudio,
-			&s.AudioTracks,
-			&s.TrackCount,
-			&s.TrackOffsets,
-			&s.SubCount,
-			&s.CRC32,
-			&trackCRCsStr,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan failed: %w", err)
-		}
-
-		// Handle NULL strings
-		if artist.Valid {
-			s.Artist = artist.String
-		}
-		if title.Valid {
-			s.Title = title.String
-		}
-		if tocid.Valid {
-			s.TOCID = tocid.String
-		}
-
-		// Parse track CRCs if present
-		if trackCRCsStr.Valid {
-			trackCRCs, err := pgarray.Parse(trackCRCsStr.String)
-			if err == nil {
-				s.TrackCRCs = make([]int32, len(trackCRCs))
-				for i, crc := range trackCRCs {
-					if crcStr, ok := crc.(string); ok {
-						var crcVal int32
-						fmt.Sscanf(crcStr, "%d", &crcVal)
-						s.TrackCRCs[i] = crcVal
-					}
-				}
-			}
-		}
-
-		submissions = append(submissions, s)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration failed: %w", err)
-	}
-
-	return submissions, nil
+	return GetSubmissions(db, start, limit, "top", nil)
 }
 
 // GetStats retrieves statistics from CTDB

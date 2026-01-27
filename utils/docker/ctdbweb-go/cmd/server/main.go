@@ -26,8 +26,8 @@ func main() {
 	// Create handlers
 	lookupHandler := handlers.NewLookupHandler(db)
 	submitHandler := handlers.NewSubmitHandler(db)
-	latestHandler := handlers.NewLatestHandler(db)
-	topHandler := handlers.NewTopHandler(db)
+	latestHandler := handlers.NewSubmissionsHandler(db, "latest")
+	topHandler := handlers.NewSubmissionsHandler(db, "top")
 	statsHandler := handlers.NewStatsHandler(db)
 
 	// Create router
