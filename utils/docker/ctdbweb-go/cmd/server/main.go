@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/cuetools/ctdbweb/internal/auth"
 	"github.com/cuetools/ctdbweb/internal/database"
 	"github.com/cuetools/ctdbweb/internal/handlers"
 )
@@ -23,12 +24,16 @@ func main() {
 	defer db.Close()
 	log.Println("Database connections established")
 
+	// Initialize auth configuration
+	authConfig := auth.LoadConfig()
+
 	// Create handlers
 	lookupHandler := handlers.NewLookupHandler(db)
 	submitHandler := handlers.NewSubmitHandler(db)
 	latestHandler := handlers.NewSubmissionsHandler(db, "latest")
 	topHandler := handlers.NewSubmissionsHandler(db, "top")
 	statsHandler := handlers.NewStatsHandler(db)
+	authHandler := handlers.NewAuthHandler(db, authConfig)
 
 	// Create router
 	r := mux.NewRouter()
@@ -40,7 +45,18 @@ func main() {
 		fmt.Fprintf(w, `{"status":"ok","service":"ctdbweb-go"}`)
 	}).Methods("GET")
 
-	// API routes
+	// Auth routes (public)
+	authRoutes := r.PathPrefix("/api/auth").Subrouter()
+	authRoutes.HandleFunc("/login", authHandler.LoginHandler).Methods("GET")
+	authRoutes.HandleFunc("/callback", authHandler.CallbackHandler).Methods("GET")
+	authRoutes.HandleFunc("/logout", authHandler.LogoutHandler).Methods("POST")
+
+	// Protected auth routes
+	authProtected := r.PathPrefix("/api/auth").Subrouter()
+	authProtected.Use(auth.RequireAuth(authConfig.JWTSecret))
+	authProtected.HandleFunc("/me", authHandler.MeHandler).Methods("GET")
+
+	// API routes (currently public)
 	api := r.PathPrefix("/api").Subrouter()
 	api.Handle("/lookup", lookupHandler).Methods("GET")
 	api.Handle("/submit", submitHandler).Methods("POST")

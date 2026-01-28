@@ -35,6 +35,7 @@ The system uses PostgreSQL with three main databases:
 1. **ctdb** - Main CUETools database containing:
    - `submissions2`: Deduplicated CD TOC submissions with parity data
    - `submissions`: Raw submission data with user agent info
+   - `users`: Authentication (email PK, role, created_at, last_login)
    - Statistics tables (`hourly_stats`, `stats_totals`, `stats_drives`, `stats_agents`)
 
 2. **discogs** - Discogs music release metadata:
@@ -95,6 +96,12 @@ Modern Go 1.23 backend serving JSON APIs at https://db.cue.tools/api/
 - **GET /api/top?limit=10&start=0** - Most popular CD submissions
 - **GET /api/lookup?toc=...** - CD metadata lookup (in development)
 
+**Authentication endpoints:**
+- **GET /api/auth/login** - Redirects to Google OAuth consent screen
+- **GET /api/auth/callback** - OAuth callback handler (sets JWT cookie)
+- **POST /api/auth/logout** - Clears authentication cookie
+- **GET /api/auth/me** - Returns current user info (requires authentication)
+
 **Key characteristics:**
 - Multi-stage Docker build (development with Air hot-reload, production optimized binary)
 - Connects to PostgreSQL via pgbouncer TCP (host=pgbouncer port=6432)
@@ -109,8 +116,9 @@ Modern Go 1.23 backend serving JSON APIs at https://db.cue.tools/api/
 utils/docker/ctdbweb-go/
 ├── cmd/server/          # Main application entry point
 ├── internal/
-│   ├── handlers/        # HTTP handlers (stats, latest, top, lookup)
-│   ├── database/        # Database clients (CTDB, MusicBrainz, Discogs, FreeDB)
+│   ├── auth/            # Authentication (OAuth2, JWT, middleware)
+│   ├── handlers/        # HTTP handlers (stats, latest, top, lookup, auth)
+│   ├── database/        # Database clients (CTDB, MusicBrainz, Discogs, FreeDB, users)
 │   ├── metadata/        # Metadata query clients
 │   ├── models/          # Data models (Submission, Track, etc.)
 │   └── toc/            # TOC transformation library (28 functions)
@@ -167,6 +175,50 @@ Important configuration:
 - Vite proxy configuration for HMR over WSS
 - Production: `react-prod` container (nginx)
 - Development: `react-dev` container (Vite dev server on port 80)
+
+#### Authentication System
+
+The application uses Google OAuth 2.0 with JWT tokens for authentication.
+
+**Backend (`internal/auth/`):**
+- `config.go` - OAuth2 and JWT configuration from environment variables
+- `jwt.go` - Token generation/validation (24-hour expiry, HMAC-SHA256)
+- `middleware.go` - `RequireAuth()` and `RequireRole()` middleware
+- `internal/handlers/auth.go` - OAuth handlers (login, callback, logout, me)
+- `internal/database/users.go` - User lookup and last login tracking
+
+**Database:**
+- `users` table in `ctdb` database (email PK, role, timestamps)
+- Permissions: `GRANT SELECT, UPDATE ON users TO ctdb_user`
+
+**Auth endpoints:**
+- `GET /api/auth/login` - Redirects to Google OAuth
+- `GET /api/auth/callback` - Handles OAuth callback, sets JWT cookie
+- `POST /api/auth/logout` - Clears auth cookie
+- `GET /api/auth/me` - Returns current user (protected)
+
+**Frontend:**
+- `LoginButton.tsx` - Icon-only login button with tooltip
+- `UserMenu.tsx` - User popover with email/role and logout
+- Auth state in `App.tsx` - Checks `/api/auth/me` on mount
+
+**Environment variables (required):**
+- `GOOGLE_CLIENT_ID` - OAuth2 client ID from Google Cloud Console
+- `GOOGLE_CLIENT_SECRET` - OAuth2 client secret
+- `GOOGLE_REDIRECT_URL` - e.g., `https://dev.db.cue.tools/api/auth/callback`
+- `JWT_SECRET` - Random key for signing tokens (generate with `openssl rand -base64 32`)
+- `COOKIE_DOMAIN` - e.g., `.db.cue.tools`
+
+**Security:**
+- httpOnly cookies (no JavaScript access)
+- Secure flag (HTTPS only), SameSite=Lax
+- Manual user authorization (add users to database)
+- No self-registration
+
+**Adding users:**
+```sql
+INSERT INTO users (email, role) VALUES ('user@example.com', 'admin');
+```
 
 #### Go Applications
 
@@ -458,7 +510,8 @@ The React frontend consumes the Go JSON API for modern features.
 │   │   ├── ctdbweb/            # PHP backend + Dockerfile
 │   │   ├── proxy/              # Apache reverse proxy config
 │   │   ├── pgbouncer/          # Connection pooler config
-│   │   └── mediawiki/          # Wiki container
+│   │   ├── mediawiki/          # Wiki container
+│   │   └── migrations/         # SQL migration scripts
 │   ├── s3uploader/             # Go utility for S3 uploads
 │   ├── discogs/                # Discogs data import
 │   │   ├── discogs2psql/       # Go converter

@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw } from 'lucide-react'
+import { LoginButton } from '@/components/LoginButton'
+import { UserMenu } from '@/components/UserMenu'
 
 type Page = 'home' | 'stats'
 
@@ -198,6 +200,22 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState<Page>(initialState.page)
   const [refreshKey, setRefreshKey] = useState(0)
+
+  // Auth state
+  const [user, setUser] = useState<{ email: string; role: string } | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  // Check authentication on mount
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json()
+        throw new Error('Not authenticated')
+      })
+      .then(data => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setAuthLoading(false))
+  }, [])
 
   // Sync state changes to URL
   useEffect(() => {
@@ -616,6 +634,15 @@ function App() {
           </button>
           <img src="http://s3.cuetools.net/ctdb64.png" alt="CUETools DB" className="header-logo" />
           <h1>CUETools DB</h1>
+        </div>
+        <div className="header-actions">
+          {authLoading ? (
+            <div className="text-sm text-muted-foreground">Loading...</div>
+          ) : user ? (
+            <UserMenu user={user} onLogout={() => setUser(null)} />
+          ) : (
+            <LoginButton />
+          )}
         </div>
         {currentPage === 'home' && (
           <div className="header-controls">

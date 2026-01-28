@@ -41,6 +41,13 @@ body {
   gap: 0.75rem;
 }
 
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .header-logo {
   width: 48px;
   height: 48px;
@@ -297,6 +304,13 @@ h1 {
   background: rgba(20, 20, 20, 0.98) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   width: 280px;
+}
+
+/* User menu popup */
+.user-menu-popup {
+  background: rgba(20, 20, 20, 0.98) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .filter-form {

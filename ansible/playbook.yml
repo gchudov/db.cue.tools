@@ -320,6 +320,11 @@
           PORT: "8080"
           POSTGRES_HOST: "pgbouncer"
           POSTGRES_PORT: "6432"
+          GOOGLE_CLIENT_ID: "{{ lookup('amazon.aws.aws_secret', 'GOOGLE_OPENID', region='us-east-1') | from_json | json_query('CLIENT_ID') }}"
+          GOOGLE_CLIENT_SECRET: "{{ lookup('amazon.aws.aws_secret', 'GOOGLE_OPENID', region='us-east-1') | from_json | json_query('CLIENT_SECRET') }}"
+          GOOGLE_REDIRECT_URL: "https://db.cue.tools/api/auth/callback"
+          JWT_SECRET: "{{ lookup('amazon.aws.aws_secret', 'GOOGLE_OPENID', region='us-east-1') | from_json | json_query('JWT_SECRET') }}"
+          COOKIE_DOMAIN: ".db.cue.tools"
         # No port forwarding - accessed via proxy only
 
     - name: Build a container image for CTDB Web Go Backend Dev
@@ -349,6 +354,11 @@
           PORT: "8080"
           POSTGRES_HOST: "pgbouncer"
           POSTGRES_PORT: "6432"
+          GOOGLE_CLIENT_ID: "{{ lookup('amazon.aws.aws_secret', 'GOOGLE_OPENID', region='us-east-1') | from_json | json_query('CLIENT_ID') }}"
+          GOOGLE_CLIENT_SECRET: "{{ lookup('amazon.aws.aws_secret', 'GOOGLE_OPENID', region='us-east-1') | from_json | json_query('CLIENT_SECRET') }}"
+          GOOGLE_REDIRECT_URL: "https://dev.db.cue.tools/api/auth/callback"
+          JWT_SECRET: "{{ lookup('amazon.aws.aws_secret', 'GOOGLE_OPENID', region='us-east-1') | from_json | json_query('JWT_SECRET') }}"
+          COOKIE_DOMAIN: ".db.cue.tools"
         # No port forwarding - access via Apache proxy
 
     # - name: Build a container image for the s3uploader
