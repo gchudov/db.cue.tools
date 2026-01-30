@@ -18,6 +18,17 @@ type SubmissionFilters struct {
 	Artist string // Case-insensitive match on artist name
 }
 
+// RecentSubmissionFilters holds optional filter parameters for recent submission queries
+type RecentSubmissionFilters struct {
+	TOC       string // Convert to tocid, then exact match
+	TOCID     string // Exact match on tocid
+	Artist    string // Case-insensitive contains (ILIKE '%value%')
+	Agent     string // Case-insensitive prefix (ILIKE 'value%')
+	DriveName string // Case-insensitive prefix (ILIKE 'value%')
+	UserID    string // Exact match on userid
+	IP        string // Exact match on IP address
+}
+
 // GetSubmissions retrieves CD submissions from CTDB with different sort modes
 // sortBy: "latest" (newest first) or "top" (most popular first)
 // filters: optional filters for TOCID and artist
@@ -167,6 +178,177 @@ func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, er
 // Deprecated: Use GetSubmissions(db, start, limit, "top", filters) instead
 func GetTopSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
 	return GetSubmissions(db, start, limit, "top", nil)
+}
+
+// GetRecentSubmissions retrieves recent CD submissions with optional filters
+// Returns up to 'limit' most recent submissions ordered by subid DESC
+// Joins submissions with submissions2 to get both submission metadata and CD info
+func GetRecentSubmissions(db *sql.DB, limit int, filters *RecentSubmissionFilters) ([]models.RecentSubmission, error) {
+	// Default and cap limit
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	// Build base SELECT clause
+	selectClause := `
+		SELECT
+			s.time, s.agent, s.drivename, s.userid, s.ip,
+			s.quality, s.barcode, s.entryid,
+			e.subcount, e.crc32, e.tocid, e.artist, e.title,
+			e.firstaudio, e.audiotracks, e.trackcount, e.trackoffsets
+		FROM submissions s
+		INNER JOIN submissions2 e ON e.id = s.entryid`
+
+	// Build WHERE clause based on filters
+	var whereClauses []string
+	var args []interface{}
+	paramCounter := 1
+
+	if filters != nil {
+		// TOC filter (convert to TOCID first)
+		if filters.TOC != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("e.tocid = $%d", paramCounter))
+			args = append(args, filters.TOC)
+			paramCounter++
+		}
+
+		// TOCID filter (exact match)
+		if filters.TOCID != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("e.tocid = $%d", paramCounter))
+			args = append(args, filters.TOCID)
+			paramCounter++
+		}
+
+		// Artist filter (case-insensitive contains)
+		if filters.Artist != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("e.artist ILIKE $%d", paramCounter))
+			args = append(args, "%"+filters.Artist+"%")
+			paramCounter++
+		}
+
+		// Agent filter (case-insensitive prefix)
+		if filters.Agent != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("s.agent ILIKE $%d", paramCounter))
+			args = append(args, filters.Agent+"%")
+			paramCounter++
+		}
+
+		// DriveName filter (case-insensitive prefix)
+		if filters.DriveName != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("s.drivename ILIKE $%d", paramCounter))
+			args = append(args, filters.DriveName+"%")
+			paramCounter++
+		}
+
+		// UserID filter (exact match)
+		if filters.UserID != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("s.userid = $%d", paramCounter))
+			args = append(args, filters.UserID)
+			paramCounter++
+		}
+
+		// IP filter (exact match)
+		if filters.IP != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("s.ip = $%d", paramCounter))
+			args = append(args, filters.IP)
+			paramCounter++
+		}
+	}
+
+	// Build WHERE clause
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Add ORDER BY and LIMIT
+	limitParam := fmt.Sprintf("$%d", paramCounter)
+	args = append(args, limit)
+
+	// Build complete query
+	query := selectClause + whereClause + " ORDER BY s.subid DESC LIMIT " + limitParam
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var submissions []models.RecentSubmission
+	for rows.Next() {
+		var rs models.RecentSubmission
+		var agent, drivename, userid, ip, barcode, artist, title, tocid, trackOffsets sql.NullString
+		var quality sql.NullInt64
+
+		err := rows.Scan(
+			&rs.Time,
+			&agent,
+			&drivename,
+			&userid,
+			&ip,
+			&quality,
+			&barcode,
+			&rs.ID,
+			&rs.SubCount,
+			&rs.CRC32,
+			&tocid,
+			&artist,
+			&title,
+			&rs.FirstAudio,
+			&rs.AudioTracks,
+			&rs.TrackCount,
+			&trackOffsets,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+
+		// Handle NULL strings
+		if agent.Valid {
+			rs.Agent = agent.String
+		}
+		if drivename.Valid {
+			rs.DriveName = drivename.String
+		}
+		if userid.Valid {
+			rs.UserID = userid.String
+		}
+		if ip.Valid {
+			rs.IP = ip.String
+		}
+		if barcode.Valid {
+			rs.Barcode = barcode.String
+		}
+		if artist.Valid {
+			rs.Artist = artist.String
+		}
+		if title.Valid {
+			rs.Title = title.String
+		}
+		if tocid.Valid {
+			rs.TOCID = tocid.String
+		}
+		if trackOffsets.Valid {
+			rs.TrackOffsets = trackOffsets.String
+		}
+
+		// Handle NULL quality
+		if quality.Valid {
+			qualityInt := int(quality.Int64)
+			rs.Quality = &qualityInt
+		}
+
+		submissions = append(submissions, rs)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration failed: %w", err)
+	}
+
+	return submissions, nil
 }
 
 // GetStats retrieves statistics from CTDB

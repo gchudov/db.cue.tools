@@ -34,6 +34,7 @@ func main() {
 	topHandler := handlers.NewSubmissionsHandler(db, "top")
 	statsHandler := handlers.NewStatsHandler(db)
 	authHandler := handlers.NewAuthHandler(db, authConfig)
+	recentHandler := handlers.NewRecentHandler(db)
 
 	// Create router
 	r := mux.NewRouter()
@@ -55,6 +56,11 @@ func main() {
 	authProtected := r.PathPrefix("/api/auth").Subrouter()
 	authProtected.Use(auth.RequireAuth(authConfig.JWTSecret))
 	authProtected.HandleFunc("/me", authHandler.MeHandler).Methods("GET")
+
+	// Admin routes (protected with role check)
+	adminRoutes := r.PathPrefix("/api").Subrouter()
+	adminRoutes.Use(auth.RequireRole("admin", authConfig.JWTSecret))
+	adminRoutes.Handle("/recent", recentHandler).Methods("GET")
 
 	// API routes (currently public)
 	api := r.PathPrefix("/api").Subrouter()
