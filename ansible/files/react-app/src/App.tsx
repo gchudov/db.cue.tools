@@ -127,6 +127,27 @@ function formatCellValue(value: unknown): string {
   return String(value)
 }
 
+// Format timestamp as relative time (e.g., "2 hours ago")
+function formatRelativeTime(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })
+}
+
 type ViewMode = 'latest' | 'popular'
 
 const VIEW_ENDPOINTS: Record<ViewMode, string> = {
@@ -204,6 +225,14 @@ function App() {
   // Auth state
   const [user, setUser] = useState<{ email: string; role: string } | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
+
+  // Submissions log state (admin only)
+  const [submissions, setSubmissions] = useState<ApiResponse | null>(null)
+  const [submissionsLoading, setSubmissionsLoading] = useState(false)
+  const [submissionsOpen, setSubmissionsOpen] = useState(true)
+  const [submissionsLoadingMore, setSubmissionsLoadingMore] = useState(false)
+  const [submissionsHasMore, setSubmissionsHasMore] = useState(true)
+  const submissionsLoadMoreRef = useRef<HTMLDivElement>(null)
 
   // Check authentication on mount
   useEffect(() => {
@@ -401,6 +430,94 @@ function App() {
       .then(mbid => setSelectedEntryInfo(prev => prev ? { ...prev, mbid } : null))
       .catch(() => {})
   }, [selectedRowData])
+
+  // Fetch submissions when a row is selected (admin only)
+  useEffect(() => {
+    if (user?.role !== 'admin' || !selectedRowData?.discId) {
+      setSubmissions(null)
+      setSubmissionsHasMore(true)
+      return
+    }
+
+    const discId = selectedRowData.discId
+
+    setSubmissionsLoading(true)
+    setSubmissions(null)
+    setSubmissionsHasMore(true)
+
+    fetch(`/api/recent?tocid=${encodeURIComponent(discId)}&limit=20&start=0`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch submissions')
+        }
+        return response.json()
+      })
+      .then((json: ApiResponse) => {
+        setSubmissions(json)
+        setSubmissionsLoading(false)
+        if (json.rows.length < 20) {
+          setSubmissionsHasMore(false)
+        }
+      })
+      .catch(() => {
+        setSubmissions(null)
+        setSubmissionsLoading(false)
+      })
+  }, [user?.role, selectedRowData?.discId])
+
+  // Load more submissions
+  const loadMoreSubmissions = useCallback(() => {
+    if (submissionsLoadingMore || !submissionsHasMore || !submissions || !selectedRowData?.discId) return
+
+    setSubmissionsLoadingMore(true)
+    const nextStart = submissions.rows.length
+
+    fetch(`/api/recent?tocid=${encodeURIComponent(selectedRowData.discId)}&limit=20&start=${nextStart}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch submissions')
+        }
+        return response.json()
+      })
+      .then((json: ApiResponse) => {
+        setSubmissions(prev => prev ? {
+          ...prev,
+          rows: [...prev.rows, ...json.rows]
+        } : json)
+        setSubmissionsLoadingMore(false)
+        if (json.rows.length < 20) {
+          setSubmissionsHasMore(false)
+        }
+      })
+      .catch(() => {
+        setSubmissionsLoadingMore(false)
+      })
+  }, [submissionsLoadingMore, submissionsHasMore, submissions, selectedRowData?.discId])
+
+  // Intersection observer for submissions infinite scroll
+  useEffect(() => {
+    if (!submissionsOpen) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && submissionsHasMore && !submissionsLoadingMore) {
+          loadMoreSubmissions()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentRef = submissionsLoadMoreRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [submissionsOpen, loadMoreSubmissions, submissionsHasMore, submissionsLoadingMore])
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
@@ -941,6 +1058,82 @@ function App() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Submissions log (admin only) */}
+      {user?.role === 'admin' && selectedRow !== null && (
+        <div className="submissions-section">
+          <button
+            className="submissions-header"
+            onClick={() => setSubmissionsOpen(!submissionsOpen)}
+          >
+            <span className="submissions-title">
+              {submissionsOpen ? '▼' : '▶'} Recent Submissions
+              {submissions && ` (${submissions.rows.length})`}
+            </span>
+          </button>
+
+          {submissionsOpen && (
+            <div className="submissions-content">
+              {submissionsLoading && (
+                <p className="loading">Loading submissions...</p>
+              )}
+
+              {!submissionsLoading && (!submissions || submissions.rows.length === 0) && (
+                <p className="no-submissions">No submissions found</p>
+              )}
+
+              {!submissionsLoading && submissions && submissions.rows.length > 0 && (
+                <div className="table-wrapper submissions-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Agent</th>
+                        <th>Drive</th>
+                        <th>User</th>
+                        <th>Artist</th>
+                        <th>Album</th>
+                        <th>Q</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {submissions.rows.map((row, idx) => {
+                        const timestamp = Number(row.c[0]?.v || 0) * 1000
+                        const date = new Date(timestamp)
+                        const agent = String(row.c[1]?.v || '')
+                        const drive = String(row.c[2]?.v || '')
+                        const user = String(row.c[3]?.v || '')
+                        const artist = String(row.c[5]?.v || '')
+                        const album = String(row.c[6]?.v || '')
+                        const quality = row.c[13]?.v !== null ? Number(row.c[13]?.v) : null
+
+                        return (
+                          <tr key={idx}>
+                            <td className="mono" title={date.toLocaleString()}>
+                              {formatRelativeTime(date)}
+                            </td>
+                            <td>{agent}</td>
+                            <td>{drive}</td>
+                            <td>{user}</td>
+                            <td>{artist}</td>
+                            <td>{album}</td>
+                            <td className="mono">{quality !== null ? quality : '-'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {/* Infinite scroll trigger */}
+                  <div ref={submissionsLoadMoreRef} className="load-more-trigger">
+                    {submissionsLoadingMore && <span className="loading-more">Loading more...</span>}
+                    {!submissionsHasMore && submissions.rows.length > 0 && <span className="no-more">No more submissions</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       </>

@@ -952,6 +952,80 @@ h2 {
   font-size: 0.85em;
 }
 
+/* Submissions section (admin only) */
+.submissions-section {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  background: rgba(20, 20, 20, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  overflow: hidden;
+}
+
+.submissions-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(25, 28, 35, 0.8);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.submissions-header:hover {
+  background: rgba(35, 38, 45, 0.9);
+}
+
+.submissions-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #3b82f6;
+  user-select: none;
+}
+
+.submissions-content {
+  padding: 1rem;
+}
+
+.submissions-table {
+  background: rgba(20, 20, 20, 0.8);
+  border-color: rgba(59, 130, 246, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.submissions-table thead {
+  background: linear-gradient(180deg, rgb(25, 28, 35) 0%, rgb(20, 22, 28) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.submissions-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #a3a3a3;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.submissions-table td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.submissions-table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.no-submissions {
+  color: #737373;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1.5rem;
+}
+
 /* Stats page */
 .stats-page {
   display: flex;

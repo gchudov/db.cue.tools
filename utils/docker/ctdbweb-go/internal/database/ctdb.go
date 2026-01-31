@@ -183,13 +183,18 @@ func GetTopSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error
 // GetRecentSubmissions retrieves recent CD submissions with optional filters
 // Returns up to 'limit' most recent submissions ordered by subid DESC
 // Joins submissions with submissions2 to get both submission metadata and CD info
-func GetRecentSubmissions(db *sql.DB, limit int, filters *RecentSubmissionFilters) ([]models.RecentSubmission, error) {
+func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubmissionFilters) ([]models.RecentSubmission, error) {
 	// Default and cap limit
 	if limit <= 0 {
 		limit = 100
 	}
 	if limit > 1000 {
 		limit = 1000
+	}
+
+	// Ensure offset is non-negative
+	if offset < 0 {
+		offset = 0
 	}
 
 	// Build base SELECT clause
@@ -264,12 +269,16 @@ func GetRecentSubmissions(db *sql.DB, limit int, filters *RecentSubmissionFilter
 		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	// Add ORDER BY and LIMIT
+	// Add ORDER BY, LIMIT, and OFFSET
 	limitParam := fmt.Sprintf("$%d", paramCounter)
 	args = append(args, limit)
+	paramCounter++
+
+	offsetParam := fmt.Sprintf("$%d", paramCounter)
+	args = append(args, offset)
 
 	// Build complete query
-	query := selectClause + whereClause + " ORDER BY s.subid DESC LIMIT " + limitParam
+	query := selectClause + whereClause + " ORDER BY s.subid DESC LIMIT " + limitParam + " OFFSET " + offsetParam
 
 	rows, err := db.Query(query, args...)
 	if err != nil {

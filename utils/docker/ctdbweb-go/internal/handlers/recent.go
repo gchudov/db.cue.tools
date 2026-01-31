@@ -40,6 +40,14 @@ func (h *RecentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Parse start/offset (default 0)
+	offset := 0
+	if startStr := query.Get("start"); startStr != "" {
+		if s, err := strconv.Atoi(startStr); err == nil {
+			offset = s
+		}
+	}
+
 	// Build filters
 	filters := &database.RecentSubmissionFilters{}
 
@@ -72,7 +80,7 @@ func (h *RecentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query database
-	submissions, err := database.GetRecentSubmissions(h.db.CTDB, limit, filters)
+	submissions, err := database.GetRecentSubmissions(h.db.CTDB, limit, offset, filters)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Database error: %v", err), http.StatusInternalServerError)
 		return
