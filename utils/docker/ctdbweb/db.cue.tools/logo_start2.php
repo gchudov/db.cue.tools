@@ -23,7 +23,7 @@ function updateTotals()
   }
   else
   {
-    totals_http.open("GET", '/statsjson.php?type=totals', true);
+    totals_http.open("GET", '/api/stats?type=totals', true);
     totals_http.send(null);
   }
 }

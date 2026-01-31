@@ -4,7 +4,7 @@ require_once( 'phpctdb/ctdb.php' );
 
 $id = @$_GET['id'];
 
-var isadmin = false;
+$isadmin = false;
 if ($isadmin)
 {
   if (!$id) $id = $_POST['id'];
@@ -111,24 +111,24 @@ $json_tracks_table = array('cols' => array(
         table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
 
         var mbdiv = $('#releases_div');
-        mbdiv.html('<center><img src="http://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
+        mbdiv.html('<center><img src="https://s3.cuetools.net/throb.gif" alt="Looking up metadata..."></center>');
         $.ajax({
-          url: "http://db.cuetools.net/lookup2.php?version=3&ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>&jsonp=?",
+          url: "lookup2.php?version=3&ctdb=0&metadata=extensive&fuzzy=1&toc=<?php echo $toc?>&jsonp=?",
           cache: true,
           dataType: "jsonp",
           jsonpCallback: "jQuery17108581121710594743_1333124620119",
           error: function() {
-            mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
+            mbdiv.html('<center><img src="https://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
           },
           success: function(json) {
           if (json == null) {
-            mbdiv.html('<center><img src="http://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
+            mbdiv.html('<center><img src="https://s3.cuetools.net/face-sad.png" alt="No metadata found"></center>');
             return;
           }
           var mbdata = ctdbMetaData(json);
           xmlhttp = null;
           var mbview = new google.visualization.DataView(mbdata);
-          mbview.hideColumns([8,9,11,12,13]);
+          mbview.hideColumns([7,8,10,11,12]); 
           var mbtable = new google.visualization.Table(mbdiv[0]);
           mbtable.draw(mbview, {allowHtml: true, width: 1200, page: 'enable', pageSize: 10, sort: 'disable', showRowNumber: false});
           var imglist1 = new Array();
@@ -143,13 +143,13 @@ $json_tracks_table = array('cols' => array(
           var videosElement = document.getElementById('videos');
           function resetCoverart() {
             if (coverartElement != null && videosElement != null) {
-              var tracklist = mbdata.getValue(mbtable.getSelection().length > 0 ? mbtable.getSelection()[0].row : 0,13);
+              var tracklist = mbdata.getValue(mbtable.getSelection().length > 0 ? mbtable.getSelection()[0].row : 0,12);
               for(var tr=0; tr < data.getNumberOfRows(); tr++)
                 data.setValue(tr,0,tr in tracklist ? tracklist[tr].name : '' /*'[data track]'*/);
               table.draw(data, {allowHtml: true, width: 800, sort: 'disable', showRowNumber: true});
-              var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : imglist1;
+              var imglist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,10) : imglist1;
               coverartElement.innerHTML = ctdbCoverart(imglist, mbtable.getSelection().length == 0, 4);
-              var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,12) : vidlist1;
+              var vidlist = mbtable.getSelection().length > 0 ? mbdata.getValue(mbtable.getSelection()[0].row,11) : vidlist1;
               videosElement.innerHTML = ctdbVideos(vidlist, 3);
             }
           }
@@ -171,18 +171,18 @@ include 'logo_start2.php';
 ?>
 <div style="margin:auto; width:1210px;">
 <table class="ctdbbox" border=0 cellspacing=0 cellpadding=0 width="1200">
-<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="http://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid width=50%><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=<?php echo phpCTDB::toc_toc2s($record); ?>"><?php echo $record['tocid']; ?></a></td><td rowspan=10 style="vertical-align: top;"><div id='tracks_div'></div></td></tr>
-<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="http://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="http://musicbrainz.org/bare/cdlookup.html?toc=<?php echo phpCTDB::toc2mbtoc($record);?>"><?php echo $mbid;?></a></tr>
-<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="http://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid>><?php echo phpCTDB::toc2cddbid($record);?></td></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="CTDB" src="https://s3.cuetools.net/icons/cueripper.png"></td><td class=td_discid width=50%><a href="lookup2.php?version=2&ctdb=1&metadata=extensive&fuzzy=1&toc=<?php echo phpCTDB::toc_toc2s($record); ?>"><?php echo $record['tocid']; ?></a></td><td rowspan=10 style="vertical-align: top;"><div id='tracks_div'></div></td></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="Musicbrainz" src="https://s3.cuetools.net/icons/musicbrainz.png"></td><td class=td_discid><a href="https://musicbrainz.org/bare/cdlookup.html?toc=<?php echo phpCTDB::toc2mbtoc($record);?>"><?php echo $mbid;?></a></tr>
+<tr><td class=td_album><img width=16 height=16 border=0 alt="FreeDB" src="https://s3.cuetools.net/icons/freedb.png"></td><td class=td_discid>><?php echo phpCTDB::toc2cddbid($record);?></td></tr>
 <?php
 //printf('<tr><td>Full TOC</td><td>%s</td></tr>', $record['trackoffsets']);
 if ($isadmin)
 {
   sscanf(phpCTDB::toc2arid($record),"%04x%04x", $arId0h, $arId0);
-  printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="http://s3.cuetools.net/icons/ar.png"></td><td class=td_discid><a href="http://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['audiotracks'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
+  printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="https://s3.cuetools.net/icons/ar.png"></td><td class=td_discid><a href="https://www.accuraterip.com/accuraterip/%x/%x/%x/dBAR-%03d-%s.bin">%s</a></td></tr>' . "\n", $arId0 & 15, ($arId0 >> 4) & 15, ($arId0 >> 8) & 15, $record['audiotracks'], phpCTDB::toc2arid($record), phpCTDB::toc2arid($record));
 } else
 {
-  printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="http://s3.cuetools.net/icons/ar.png"></td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
+  printf('<tr><td class=td_album><img width=16 height=16 border=0 alt="AccurateRip" src="https://s3.cuetools.net/icons/ar.png"></td><td class=td_discid>%s</td></tr>', phpCTDB::toc2arid($record));
 }
 ?>
 <tr><td class=td_album>CRC32</td><td class=td_discid><?php printf('%08X', $record['crc32']);?></td></tr>
