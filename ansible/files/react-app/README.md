@@ -81,10 +81,11 @@ export default defineConfig({
 This React app is modeled on the existing PHP implementation located at:
 
 ### Main Files
-- **`utils/docker/ctdbweb/db.cue.tools/index.php`** - Latest entries endpoint (`?json=1&start=0`)
-- **`utils/docker/ctdbweb/db.cue.tools/top.php`** - Popular entries endpoint (`?json=1&start=0`)
-- **`utils/docker/ctdbweb/db.cue.tools/lookup2.php`** - Metadata lookup endpoint
-- **`utils/docker/ctdbweb/db.cue.tools/list1.php`** - Original HTML table/JS logic for metadata display
+- **`utils/docker/ctdbweb/db.cue.tools/index.php`** - Latest entries endpoint (`?json=1&start=0`) - Legacy PHP
+- **`utils/docker/ctdbweb/db.cue.tools/top.php`** - Popular entries endpoint (`?json=1&start=0`) - Legacy PHP
+- **`utils/docker/ctdbweb-go/internal/handlers/lookup.go`** - Metadata lookup handler (Go backend)
+- **`utils/docker/ctdbweb-go/internal/metadata/`** - Metadata clients (MusicBrainz, Discogs, FreeDB)
+- **`utils/docker/ctdbweb/db.cue.tools/list1.php`** - Original HTML table/JS logic for metadata display (reference only)
 
 ### JavaScript Reference
 - **`utils/docker/ctdbweb/db.cue.tools/s3/ctdb.js`** - Client-side JavaScript with:
@@ -103,6 +104,8 @@ src/
 ├── components/
 │   └── ui/              # shadcn/ui components
 │       └── select.tsx   # Select/dropdown component
+├── types/
+│   └── metadata.ts      # TypeScript types for Go metadata API
 └── lib/
     ├── toc.ts           # TOC/CTDB utilities (tocs2mbid, buildTracks, etc.)
     ├── toc.test.ts      # Unit tests for TOC utilities
@@ -126,9 +129,9 @@ docker exec react-dev npx shadcn@latest add <component-name> --yes
 
 | Endpoint | Purpose |
 |----------|---------|
-| `/index.php?json=1&start=0` | Fetch latest CD entries |
-| `/top.php?json=1&start=0` | Fetch popular CD entries |
-| `/lookup2.php?version=3&ctdb=0&metadata=default&fuzzy=1&toc=...` | Fetch metadata for a TOC |
+| `/index.php?json=1&start=0` | Fetch latest CD entries (PHP, legacy format) |
+| `/top.php?json=1&start=0` | Fetch popular CD entries (PHP, legacy format) |
+| `/api/lookup?metadata=default&fuzzy=1&toc=...` | Fetch metadata for a TOC (Go backend, clean JSON) |
 
 ## Running Locally
 
@@ -152,9 +155,9 @@ npm test
 - **`buildTracks(toc, crcs, tracklist, artist)`**: Builds track data from TOC and metadata
 - **`sectorsToTime(sectors)`**: Converts CD sectors to MM:SS.FF format
 
-### Data Format
+### Data Formats
 
-The PHP endpoints return JSON in this format:
+**Main table endpoints** (index.php, top.php) return Google Visualization API format:
 ```json
 {
   "cols": [
@@ -167,6 +170,21 @@ The PHP endpoints return JSON in this format:
     ...
   ]
 }
+```
+
+**Metadata endpoint** (/api/lookup) returns clean JSON array:
+```json
+[
+  {
+    "source": "musicbrainz",
+    "id": "...",
+    "artistname": "Artist Name",
+    "albumname": "Album Name",
+    "tracklist": [...],
+    "coverart": [...],
+    ...
+  }
+]
 ```
 
 ## Styling

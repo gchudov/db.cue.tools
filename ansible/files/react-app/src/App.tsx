@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { tocs2mbid, tocs2mbtoc, tocs2cddbid, tocs2arid, buildTracks, type Track } from '@/lib/toc'
+import type { Metadata } from '@/types/metadata'
 import { Stats } from '@/components/Stats'
 import {
   Select,
@@ -32,10 +33,14 @@ interface Row {
   c: Cell[]
 }
 
-interface ApiResponse {
+// Google Visualization API format (still used for main table - latest/popular)
+interface GoogleVizResponse {
   cols: Column[]
   rows: Row[]
 }
+
+// Legacy alias for backwards compatibility
+type ApiResponse = GoogleVizResponse
 
 // Convert country code to flag emoji
 function countryToFlag(countryCode: string): string | null {
@@ -204,7 +209,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [selectedRow, setSelectedRow] = useState<number | null>(null)
-  const [metadata, setMetadata] = useState<ApiResponse | null>(null)
+  const [metadata, setMetadata] = useState<Metadata[] | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(false)
   const [selectedMetadataRow, setSelectedMetadataRow] = useState<number | null>(null)
   const [selectedEntryInfo, setSelectedEntryInfo] = useState<{
@@ -379,18 +384,18 @@ function App() {
     setMetadata(null)
     setSelectedMetadataRow(null)
 
-    fetch(`/lookup2.php?version=3&ctdb=0&metadata=default&fuzzy=1&type=json&toc=${encodeURIComponent(toc)}`)
+    fetch(`/api/lookup?metadata=default&fuzzy=1&toc=${encodeURIComponent(toc)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch metadata')
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
-        setMetadata(json)
+      .then((data: Metadata[]) => {
+        setMetadata(data)
         setMetadataLoading(false)
         // Auto-select first row if available
-        if (json.rows.length > 0) {
+        if (data.length > 0) {
           setSelectedMetadataRow(0)
         }
       })
@@ -533,20 +538,14 @@ function App() {
     const tocString = String(data.rows[selectedRow].c[tocIndex].v || '')
     const crcsString = crcsIndex !== -1 ? String(data.rows[selectedRow].c[crcsIndex].v || '') : null
 
-    // Get track info from metadata if available
+    // Get track info and main artist directly from metadata
     let tracklist: Array<{ name?: string; artist?: string }> | null = null
     let mainArtist: string | null = null
 
     if (metadata && selectedMetadataRow !== null) {
-      const tracklistIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'tracks')
-      const artistIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'artist')
-
-      tracklist = tracklistIndex !== -1 
-        ? (metadata.rows[selectedMetadataRow].c[tracklistIndex]?.v as Array<{ name?: string; artist?: string }> | null)
-        : null
-      mainArtist = artistIndex !== -1
-        ? String(metadata.rows[selectedMetadataRow].c[artistIndex]?.v || '')
-        : null
+      const selectedMetadata = metadata[selectedMetadataRow]
+      tracklist = selectedMetadata.tracklist || null
+      mainArtist = selectedMetadata.artistname
     }
 
     return buildTracks(tocString, crcsString, tracklist, mainArtist)
@@ -561,21 +560,15 @@ function App() {
   const coverArt = useMemo<{ primary: CoverArtImage | null; secondary: CoverArtImage[] }>(() => {
     if (!metadata || selectedMetadataRow === null) return { primary: null, secondary: [] }
 
-    const coverartIndex = metadata.cols.findIndex(col => col.label.toLowerCase() === 'coverart')
-    if (coverartIndex === -1) return { primary: null, secondary: [] }
-
-    const coverartList = metadata.rows[selectedMetadataRow]?.c[coverartIndex]?.v as Array<{
-      uri?: string
-      uri150?: string
-      primary?: boolean
-    }> | null
+    const selectedMetadata = metadata[selectedMetadataRow]
+    const coverartList = selectedMetadata.coverart
 
     if (!coverartList || coverartList.length === 0) return { primary: null, secondary: [] }
 
     // Filter out duplicates and invalid entries
     const seen = new Set<string>()
     const validImages: Array<{ uri: string; uri150: string; isPrimary: boolean }> = []
-    
+
     for (const img of coverartList) {
       if (!img.uri150) continue
       // Skip Amazon images (as in ctdbCoverart)
@@ -583,7 +576,7 @@ function App() {
       if (seen.has(img.uri150)) continue
       seen.add(img.uri150)
       validImages.push({
-        uri: img.uri || img.uri150,
+        uri: img.uri,
         uri150: img.uri150,
         isPrimary: img.primary || false,
       })
@@ -668,18 +661,6 @@ function App() {
   
   const discIdColIndex = data.cols.findIndex(col => col.label === 'Disc Id')
   const artistColIndex = data.cols.findIndex(col => col.label === 'Artist')
-
-  // Columns to hide in metadata table
-  const hiddenMetadataColumns = ['id', 'source', 'coverart', 'videos', 'tracklist', 'tracks']
-  const visibleMetadataColIndices = metadata
-    ? metadata.cols
-        .map((col, index) => ({ col, index }))
-        .filter(({ col }) => !hiddenMetadataColumns.includes(col.label.toLowerCase()))
-        .map(({ index }) => index)
-    : []
-
-  // Get source column index for metadata table icons
-  const sourceColIndex = metadata?.cols.findIndex(col => col.label.toLowerCase() === 'source') ?? -1
 
   // Map source names to icon URLs
   const sourceIcons: Record<string, string> = {
@@ -941,23 +922,32 @@ function App() {
           {/* Metadata table */}
           <div className="metadata-section">
             {metadataLoading && <p className="loading">Loading metadata...</p>}
-            {!metadataLoading && metadata && metadata.rows.length > 0 && (
+            {!metadataLoading && metadata && metadata.length > 0 && (
               <div className="table-wrapper metadata-table">
                 <table>
                   <thead>
                     <tr>
                       <th className="meta-col-source-icon"></th>
-                      {visibleMetadataColIndices.map((colIndex) => {
-                        const label = metadata.cols[colIndex].label
-                        const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
-                        return <th key={colIndex} className={colClass}>{label}</th>
-                      })}
+                      <th className="meta-col-date">Date</th>
+                      <th className="meta-col-artist">Artist</th>
+                      <th className="meta-col-album">Album</th>
+                      <th className="meta-col-disc">Disc</th>
+                      <th className="meta-col-release">Release</th>
+                      <th className="meta-col-label">Label</th>
+                      <th className="meta-col-barcode">Barcode</th>
+                      <th className="meta-col-id">ID</th>
+                      <th className="meta-col-rel">Rel</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {metadata.rows.map((row, rowIndex) => {
-                      const source = sourceColIndex >= 0 ? String(row.c[sourceColIndex]?.v || '').toLowerCase() : ''
-                      const iconUrl = sourceIcons[source]
+                    {metadata.map((item, rowIndex) => {
+                      const iconUrl = sourceIcons[item.source.toLowerCase()]
+
+                      // Format disc info
+                      const discInfo = (item.totaldiscs && item.totaldiscs !== 1) || (item.discnumber && item.discnumber !== 1)
+                        ? `${item.discnumber || '?'}/${item.totaldiscs || '?'}${item.discname ? ': ' + item.discname : ''}`
+                        : ''
+
                       return (
                         <tr
                           key={rowIndex}
@@ -966,24 +956,38 @@ function App() {
                         >
                           <td className="meta-col-source-icon">
                             {iconUrl ? (
-                              <img src={iconUrl} alt={source} className="source-icon" title={source} />
+                              <img src={iconUrl} alt={item.source} className="source-icon" title={item.source} />
                             ) : (
-                              <span title={source || 'unknown'}>•</span>
+                              <span title={item.source}>•</span>
                             )}
                           </td>
-                          {visibleMetadataColIndices.map((colIndex) => {
-                            const label = metadata.cols[colIndex].label
-                            const colClass = `meta-col-${label.toLowerCase().replace(/\s+/g, '-')}`
-                            const value = row.c[colIndex]?.v
-                            
-                            // Special handling for Release column - show flags
-                            if (label.toLowerCase() === 'release') {
-                              const { flags, tooltip } = formatReleaseValue(value)
-                              return <td key={colIndex} className={colClass} title={tooltip}>{flags}</td>
-                            }
-                            
-                            return <td key={colIndex} className={colClass}>{formatCellValue(value)}</td>
-                          })}
+                          <td className="meta-col-date">{item.first_release_date_year || ''}</td>
+                          <td className="meta-col-artist">{item.artistname}</td>
+                          <td className="meta-col-album">{item.albumname}</td>
+                          <td className="meta-col-disc">{discInfo}</td>
+                          <td className="meta-col-release">
+                            {item.release && item.release.length > 0 && (
+                              <>
+                                {item.release.map((rel, idx) => {
+                                  const flag = countryToFlag(rel.country || '')
+                                  const text = [rel.country, rel.date].filter(Boolean).join(': ')
+                                  return (
+                                    <span key={idx} className="release-flag" title={text}>
+                                      {flag || rel.country || '🌐'}
+                                    </span>
+                                  )
+                                })}
+                              </>
+                            )}
+                          </td>
+                          <td className="meta-col-label">
+                            {item.label && item.label.length > 0 && (
+                              item.label.map(l => l.catno ? `${l.name} (${l.catno})` : l.name).join(', ')
+                            )}
+                          </td>
+                          <td className="meta-col-barcode">{item.barcode || ''}</td>
+                          <td className="meta-col-id">{item.id}</td>
+                          <td className="meta-col-rel">{item.relevance ?? ''}</td>
                         </tr>
                       )
                     })}
@@ -991,7 +995,7 @@ function App() {
                 </table>
               </div>
             )}
-            {!metadataLoading && (!metadata || metadata.rows.length === 0) && (
+            {!metadataLoading && (!metadata || metadata.length === 0) && (
               <p className="no-metadata">No metadata found</p>
             )}
           </div>
