@@ -26,25 +26,28 @@ func (c *FreeDBClient) LookupByTOC(tocString string, fuzzy bool) ([]models.Metad
 		return nil, fmt.Errorf("failed to parse TOC: %w", err)
 	}
 
-	// Get track offsets and convert to FreeDB format (offset + 150)
-	offsets := t.GetTrackOffsets()
-	if len(offsets) == 0 {
+	// Get ALL offsets including leadout for FreeDB matching
+	offsets := t.Offsets
+	if len(offsets) < 2 {
 		return nil, fmt.Errorf("no tracks in TOC")
 	}
 
-	// Build PostgreSQL array of offsets (including leadout)
+	// Build PostgreSQL array of offsets (track offsets + 150, leadout converted to time)
+	// PHP: for tracks: offset + 150, for leadout: floor(leadout/75 + 2) * 75
 	var offsetsArray string
 	{
 		offsetsArray = "{"
-		for i, offset := range offsets {
+		// Process all offsets except the last one (leadout)
+		for i := 0; i < len(offsets)-1; i++ {
 			if i > 0 {
 				offsetsArray += ","
 			}
 			// Add 150 for CD-DA standard pregap
-			offsetsArray += fmt.Sprintf("%d", offset+150)
+			offsetsArray += fmt.Sprintf("%d", offsets[i]+150)
 		}
 
 		// Add leadout (last offset converted to time format)
+		// PHP: ((floor(abs($ids[count($ids) - 1]) / 75) + 2) * 75)
 		leadout := offsets[len(offsets)-1]
 		leadoutTime := (leadout/75 + 2) * 75
 		offsetsArray += fmt.Sprintf(",%d", leadoutTime)

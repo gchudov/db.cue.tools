@@ -42,93 +42,98 @@ type LookupOptions struct {
 }
 
 // Lookup performs metadata lookup across all configured sources
+// Uses priority-based sequential querying with early exit to match PHP behavior
 func (a *Aggregator) Lookup(tocString string, opts LookupOptions) ([]models.Metadata, error) {
-	var wg sync.WaitGroup
-	results := make(chan []models.Metadata, 3)
-	errors := make(chan error, 3)
+	// Use priority-based configuration
+	priorities := GetPriorityConfig(opts.Mode)
 
-	// Determine which sources to query
-	queryMB := opts.Mode != 0 || len(opts.Sources) == 0
-	queryDiscogs := opts.Mode == LookupDefault || opts.Mode == LookupExtensive
-	queryFreeDB := opts.Mode == LookupExtensive
-
-	// Allow explicit source selection
-	if len(opts.Sources) > 0 {
-		queryMB = contains(opts.Sources, "musicbrainz")
-		queryDiscogs = contains(opts.Sources, "discogs")
-		queryFreeDB = contains(opts.Sources, "freedb")
-	}
-
-	// Query MusicBrainz
-	if queryMB {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			meta, err := a.musicbrainz.LookupByTOC(tocString, opts.IncludeFuzzy)
-			if err != nil {
-				errors <- fmt.Errorf("musicbrainz lookup failed: %w", err)
-				return
-			}
-			results <- meta
-		}()
-	}
-
-	// Query FreeDB if extensive mode
-	if queryFreeDB {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			meta, err := a.freedb.LookupByTOC(tocString, opts.IncludeFuzzy)
-			if err != nil {
-				errors <- fmt.Errorf("freedb lookup failed: %w", err)
-				return
-			}
-			results <- meta
-		}()
-	}
-
-	// Wait for initial queries to complete
-	go func() {
-		wg.Wait()
-		close(results)
-		close(errors)
-	}()
-
-	// Collect results
-	var allMetadata []models.Metadata
-	for meta := range results {
-		allMetadata = append(allMetadata, meta...)
-	}
-
-	// Check for errors (non-fatal, log them)
-	for err := range errors {
-		// Log error but don't fail the entire request
-		fmt.Printf("Metadata lookup error: %v\n", err)
-	}
-
-	// If we have MusicBrainz results with Discogs IDs, query Discogs
-	if queryDiscogs && len(allMetadata) > 0 {
-		discogsIDs := extractDiscogsIDs(allMetadata)
-		if len(discogsIDs) > 0 {
-			discogsMeta, err := a.discogs.LookupByDiscogsIDs(discogsIDs)
-			if err == nil {
-				allMetadata = append(allMetadata, discogsMeta...)
-			}
+	// Group by priority level
+	priorityGroups := make(map[int][]SourcePriority)
+	maxPriority := 0
+	for _, p := range priorities {
+		priorityGroups[p.Priority] = append(priorityGroups[p.Priority], p)
+		if p.Priority > maxPriority {
+			maxPriority = p.Priority
 		}
 	}
 
-	// If extensive mode and we want fuzzy Discogs lookups
-	if opts.Mode == LookupExtensive && opts.IncludeFuzzy {
-		discogsMeta, err := a.discogs.LookupByTOC(tocString, true)
-		if err == nil {
-			allMetadata = append(allMetadata, discogsMeta...)
+	// Query each priority level sequentially
+	for priority := 1; priority <= maxPriority; priority++ {
+		sources := priorityGroups[priority]
+		if len(sources) == 0 {
+			continue
+		}
+
+		// Query all sources at this priority level in parallel
+		var wg sync.WaitGroup
+		results := make(chan []models.Metadata, len(sources))
+		errors := make(chan error, len(sources))
+
+		for _, source := range sources {
+			wg.Add(1)
+			go func(s SourcePriority) {
+				defer wg.Done()
+
+				var meta []models.Metadata
+				var err error
+
+				switch s.Source {
+				case "musicbrainz":
+					meta, err = a.musicbrainz.LookupByTOC(tocString, s.Fuzzy)
+				case "discogs":
+					meta, err = a.discogs.LookupByTOC(tocString, s.Fuzzy)
+				case "freedb":
+					meta, err = a.freedb.LookupByTOC(tocString, s.Fuzzy)
+				}
+
+				if err != nil {
+					errors <- fmt.Errorf("%s lookup failed: %w", s.Source, err)
+					return
+				}
+
+				if len(meta) > 0 {
+					results <- meta
+				}
+			}(source)
+		}
+
+		// Wait for all queries at this priority level
+		go func() {
+			wg.Wait()
+			close(results)
+			close(errors)
+		}()
+
+		// Collect results from this priority level
+		var allMetadata []models.Metadata
+		for meta := range results {
+			allMetadata = append(allMetadata, meta...)
+		}
+
+		// Log errors (non-fatal)
+		for err := range errors {
+			fmt.Printf("Metadata lookup error: %v\n", err)
+		}
+
+		// EARLY EXIT: If we found results at this priority, stop here
+		if len(allMetadata) > 0 {
+			// Extract Discogs IDs from MusicBrainz results for cross-reference lookup
+			// This happens after priority-based queries, matching PHP behavior (line 86-87)
+			discogsIDs := extractDiscogsIDs(allMetadata)
+			if len(discogsIDs) > 0 {
+				discogsMeta, err := a.discogs.LookupByDiscogsIDs(discogsIDs)
+				if err == nil {
+					allMetadata = append(allMetadata, discogsMeta...)
+				}
+			}
+
+			sortMetadataByPriority(allMetadata)
+			return allMetadata, nil
 		}
 	}
 
-	// Sort results by priority
-	sortMetadataByPriority(allMetadata)
-
-	return allMetadata, nil
+	// No results found at any priority level
+	return []models.Metadata{}, nil
 }
 
 // extractDiscogsIDs extracts Discogs IDs from MusicBrainz results

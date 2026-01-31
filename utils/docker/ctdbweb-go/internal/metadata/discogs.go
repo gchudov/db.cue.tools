@@ -80,16 +80,18 @@ func (c *DiscogsClient) fuzzyLookup(tocString string) ([]models.Metadata, error)
 		return nil, fmt.Errorf("failed to parse TOC: %w", err)
 	}
 
-	// Get track offsets
-	offsets := t.GetTrackOffsets()
+	// Get ALL offsets including leadout (needed for last track duration)
+	offsets := t.Offsets
 	if len(offsets) < 2 {
 		return nil, fmt.Errorf("insufficient tracks in TOC")
 	}
 
-	// Calculate durations in seconds
+	// Calculate durations in seconds (with rounding to match PHP behavior)
+	// PHP: round((abs($toff[$tr]) - abs($toff[$tr-1])) / 75)
 	var durations []int
 	for i := 1; i < len(offsets); i++ {
-		duration := (offsets[i] - offsets[i-1]) / 75 // Convert sectors to seconds
+		// Use rounding instead of truncation to match PHP's round() function
+		duration := int(float64(offsets[i]-offsets[i-1])/75.0 + 0.5)
 		durations = append(durations, duration)
 	}
 

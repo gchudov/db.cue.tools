@@ -143,7 +143,8 @@ func (t *TOC) GetDurationsInMilliseconds() []int {
 		if nextIdx < len(t.Offsets) {
 			durationSectors := t.Offsets[nextIdx] - t.Offsets[trackIdx]
 			// Convert sectors to milliseconds: 75 sectors = 1000ms
-			durations[i] = (durationSectors * 1000) / 75
+			// Use rounding instead of truncation to match PHP's round() function
+			durations[i] = int(float64(durationSectors)*1000.0/75.0 + 0.5)
 		}
 	}
 
