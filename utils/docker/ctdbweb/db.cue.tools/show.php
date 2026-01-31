@@ -1,10 +1,10 @@
 <?php 
 include 'logo_start1.php'; 
 require_once( 'phpctdb/ctdb.php' );
-if ((@$_GET['login'] && !$userinfo) || (@$_GET['logout'] && $userinfo)) makeAuth1($realm, 'Login requested');
 
 $id = @$_GET['id'];
 
+var isadmin = false;
 if ($isadmin)
 {
   if (!$id) $id = $_POST['id'];

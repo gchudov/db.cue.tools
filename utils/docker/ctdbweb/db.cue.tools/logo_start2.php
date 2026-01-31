@@ -46,8 +46,6 @@ google.setOnLoadCallback(updateTotals());
 <a class="ctdbmenu03" href="/stats.php">Stats</a>
 <a class="ctdbmenu04" href="http://cue.tools/wiki/CUETools_Database" target="_blank">About</a>
 <a class="ctdbmenu05" href="http://www.hydrogenaudio.org/forums/index.php?showtopic=79882" target="_blank">Forum</a>
-<?php if ($isadmin) { ?><a class="ctdbmenu06" href="/recent.php">Recent</a><?php }?>
-<?php if ($isadmin) { ?><a class="ctdbmenu07" href="/?logout=1">Logout</a><?php }?>
 <a class="ctdbmenu08" href="http://cue.tools/wiki/CTDB_EAC_Plugin" target="_blank">EAC Plugin</a>
 <a id="ctdbmenu09" href="http://cue.tools/wiki/CUETools" target="_blank">CUETools</a>
 </div>
