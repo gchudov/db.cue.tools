@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"net/http"
 
 	"github.com/cuetools/ctdbweb/internal/database"
 	"github.com/cuetools/ctdbweb/internal/metadata"
+	"github.com/cuetools/ctdbweb/internal/models"
 )
 
 // LookupHandler handles metadata lookup requests
@@ -67,14 +69,54 @@ func (h *LookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return JSON response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	// Parse format parameter (default: "json")
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "json"
+	}
 
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(results); err != nil {
-		http.Error(w, `{"error":"Failed to encode response"}`, http.StatusInternalServerError)
+	// Handle XML format
+	if format == "xml" {
+		// Return 404 if no results in XML mode (matches legacy PHP behavior)
+		if len(results.CTDB) == 0 && len(results.Metadata) == 0 {
+			http.Error(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<error>No results found</error>", http.StatusNotFound)
+			return
+		}
+
+		// Convert to XML response
+		xmlResponse := models.ToXMLResponse(results.CTDB, results.Metadata)
+
+		// Set content type and encode with single-space indentation
+		w.Header().Set("Content-Type", "text/xml; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+
+		// Write XML declaration
+		w.Write([]byte(xml.Header))
+
+		// Marshal with single-space indentation
+		encoder := xml.NewEncoder(w)
+		encoder.Indent("", " ")
+		if err := encoder.Encode(xmlResponse); err != nil {
+			http.Error(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<error>Failed to encode response</error>", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
+
+	// Handle JSON format (default)
+	if format == "json" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(results); err != nil {
+			http.Error(w, `{"error":"Failed to encode response"}`, http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
+	// Invalid format
+	http.Error(w, `{"error":"Invalid format parameter. Use 'json' or 'xml'"}`, http.StatusBadRequest)
 }
