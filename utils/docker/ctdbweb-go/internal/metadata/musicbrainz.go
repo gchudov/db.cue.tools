@@ -40,6 +40,60 @@ func (c *MusicBrainzClient) LookupByTOC(tocString string, fuzzy bool) ([]models.
 	return c.fetchMetadata(mediumIDs)
 }
 
+// LookupByTOCs looks up metadata using multiple TOC strings
+// This is used when fuzzy CTDB matching returns multiple TOC variations
+// (matches PHP mbzlookupids - ctdb.php:723-765)
+func (c *MusicBrainzClient) LookupByTOCs(tocStrings []string, fuzzy bool) ([]models.Metadata, error) {
+	if len(tocStrings) == 0 {
+		return []models.Metadata{}, nil
+	}
+
+	// Set search path
+	if _, err := c.db.Exec("SET search_path TO musicbrainz,public"); err != nil {
+		return nil, fmt.Errorf("failed to set search path: %w", err)
+	}
+
+	// For fuzzy matching, only use first TOC (matches PHP line 734)
+	if fuzzy {
+		return c.LookupByTOC(tocStrings[0], true)
+	}
+
+	// Convert all TOCs to MusicBrainz Disc IDs and deduplicate
+	// (matches PHP: ctdb.php:752-754)
+	mbidMap := make(map[string]bool)
+	var uniqueMBIDs []string
+
+	for _, tocStr := range tocStrings {
+		mbid, err := toc.TOCsToMBDiscID(tocStr)
+		if err != nil {
+			continue // Skip invalid TOCs
+		}
+
+		if !mbidMap[mbid] {
+			mbidMap[mbid] = true
+			uniqueMBIDs = append(uniqueMBIDs, mbid)
+		}
+	}
+
+	if len(uniqueMBIDs) == 0 {
+		return []models.Metadata{}, nil
+	}
+
+	// Query MusicBrainz with all disc IDs in a single query
+	// (matches PHP: ctdb.php:755-760)
+	mediumIDs, err := c.exactLookupMultipleMediumIDs(uniqueMBIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup medium IDs: %w", err)
+	}
+
+	if len(mediumIDs) == 0 {
+		return []models.Metadata{}, nil
+	}
+
+	// Fetch full metadata for all mediums (reuses existing method)
+	return c.fetchMetadata(mediumIDs)
+}
+
 // mediumID represents a MusicBrainz medium ID with optional distance for fuzzy matches
 type mediumID struct {
 	ID       int
@@ -70,6 +124,46 @@ func (c *MusicBrainzClient) exactLookupMediumIDs(tocString string) ([]mediumID, 
 	`
 
 	rows, err := c.db.Query(query, discID)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []mediumID
+	for rows.Next() {
+		var id mediumID
+		if err := rows.Scan(&id.ID); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, rows.Err()
+}
+
+// exactLookupMultipleMediumIDs performs exact matching for multiple disc IDs
+// using a single SQL query with IN clause (matches PHP: ctdb.php:755-760)
+func (c *MusicBrainzClient) exactLookupMultipleMediumIDs(discIDs []string) ([]mediumID, error) {
+	if len(discIDs) == 0 {
+		return []mediumID{}, nil
+	}
+
+	placeholders := buildPlaceholders(len(discIDs))
+
+	query := fmt.Sprintf(`
+		SELECT DISTINCT mc.medium AS id
+		FROM cdtoc c
+		INNER JOIN medium_cdtoc mc ON mc.cdtoc = c.id
+		WHERE c.discid IN (%s)
+	`, placeholders)
+
+	// Convert discIDs to interface{} for query args
+	args := make([]interface{}, len(discIDs))
+	for i, id := range discIDs {
+		args[i] = id
+	}
+
+	rows, err := c.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}

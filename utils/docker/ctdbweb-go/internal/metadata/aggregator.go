@@ -55,13 +55,30 @@ type LookupResult struct {
 func (a *Aggregator) Lookup(tocString string, opts LookupOptions) (*LookupResult, error) {
 	result := &LookupResult{}
 
-	// STEP 1: Query CTDB first (matches PHP behavior - lookup2.php:45-56)
+	// STEP 1: Query CTDB first and build TOC array (matches PHP behavior - lookup2.php:45-61)
+	tocs := []string{tocString} // Start with original TOC
+
 	if opts.IncludeCTDB {
 		ctdbEntries, err := a.ctdb.LookupByTOC(tocString, opts.IncludeFuzzy)
 		if err != nil {
 			fmt.Printf("CTDB lookup error: %v\n", err)
 		} else {
 			result.CTDB = ctdbEntries
+
+			// If fuzzy matching is enabled and we found CTDB results,
+			// extract TOC strings to expand our search (matches PHP - lookup2.php:58-61)
+			if opts.IncludeFuzzy && len(ctdbEntries) > 0 {
+				const maxFuzzyTOCs = 10 // Limit for performance
+				limit := len(ctdbEntries)
+				if limit > maxFuzzyTOCs {
+					limit = maxFuzzyTOCs
+				}
+
+				for i := 0; i < limit; i++ {
+					// entry.TOC is already in the correct format (colon-separated with - for data tracks)
+					tocs = append(tocs, ctdbEntries[i].TOC)
+				}
+			}
 		}
 	}
 
@@ -101,10 +118,18 @@ func (a *Aggregator) Lookup(tocString string, opts LookupOptions) (*LookupResult
 
 				switch s.Source {
 				case "musicbrainz":
-					meta, err = a.musicbrainz.LookupByTOC(tocString, s.Fuzzy)
+					// Use multi-TOC method if we have fuzzy CTDB matches
+					// (matches PHP behavior - lookup2.php:69-71)
+					if len(tocs) > 1 {
+						meta, err = a.musicbrainz.LookupByTOCs(tocs, s.Fuzzy)
+					} else {
+						meta, err = a.musicbrainz.LookupByTOC(tocString, s.Fuzzy)
+					}
 				case "discogs":
+					// Discogs always uses single TOC (not affected by fuzzy CTDB expansion)
 					meta, err = a.discogs.LookupByTOC(tocString, s.Fuzzy)
 				case "freedb":
+					// FreeDB always uses single TOC (not affected by fuzzy CTDB expansion)
 					meta, err = a.freedb.LookupByTOC(tocString, s.Fuzzy)
 				}
 
