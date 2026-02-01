@@ -37,6 +37,10 @@ func (h *LookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fuzzyParam := r.URL.Query().Get("fuzzy")
 	includeFuzzy := fuzzyParam == "1" || fuzzyParam == "true"
 
+	// Parse ctdb parameter (default: enabled)
+	ctdbParam := r.URL.Query().Get("ctdb")
+	includeCTDB := ctdbParam != "0" && ctdbParam != "false"
+
 	// Determine lookup mode
 	var mode metadata.LookupMode
 	switch metadataMode {
@@ -54,6 +58,7 @@ func (h *LookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	opts := metadata.LookupOptions{
 		Mode:         mode,
 		IncludeFuzzy: includeFuzzy,
+		IncludeCTDB:  includeCTDB,
 	}
 
 	results, err := h.aggregator.Lookup(toc, opts)

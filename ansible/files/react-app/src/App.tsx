@@ -384,18 +384,19 @@ function App() {
     setMetadata(null)
     setSelectedMetadataRow(null)
 
-    fetch(`/api/lookup?metadata=default&fuzzy=1&toc=${encodeURIComponent(toc)}`)
+    fetch(`/api/lookup?metadata=default&fuzzy=1&ctdb=0&toc=${encodeURIComponent(toc)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch metadata')
         }
         return response.json()
       })
-      .then((data: Metadata[]) => {
-        setMetadata(data)
+      .then((data: { metadata?: Metadata[] }) => {
+        const metadataArray = data.metadata || []
+        setMetadata(metadataArray)
         setMetadataLoading(false)
         // Auto-select first row if available
-        if (data.length > 0) {
+        if (metadataArray.length > 0) {
           setSelectedMetadataRow(0)
         }
       })

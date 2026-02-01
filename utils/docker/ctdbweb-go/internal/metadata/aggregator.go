@@ -11,6 +11,7 @@ import (
 
 // Aggregator coordinates metadata lookups across multiple sources
 type Aggregator struct {
+	ctdb        *CTDBClient
 	musicbrainz *MusicBrainzClient
 	discogs     *DiscogsClient
 	freedb      *FreeDBClient
@@ -19,6 +20,7 @@ type Aggregator struct {
 // NewAggregator creates a new metadata aggregator
 func NewAggregator(db *database.DB) *Aggregator {
 	return &Aggregator{
+		ctdb:        NewCTDBClient(db.CTDB),
 		musicbrainz: NewMusicBrainzClient(db.MusicBrainz),
 		discogs:     NewDiscogsClient(db.Discogs),
 		freedb:      NewFreeDBClient(db.FreeDB),
@@ -38,12 +40,32 @@ const (
 type LookupOptions struct {
 	Mode         LookupMode
 	IncludeFuzzy bool
+	IncludeCTDB  bool     // controls CTDB database queries
 	Sources      []string // e.g., ["musicbrainz", "discogs", "freedb"]
+}
+
+// LookupResult contains both CTDB entries and external metadata
+type LookupResult struct {
+	CTDB     []models.CTDBEntry `json:"ctdb,omitempty"`
+	Metadata []models.Metadata  `json:"metadata,omitempty"`
 }
 
 // Lookup performs metadata lookup across all configured sources
 // Uses priority-based sequential querying with early exit to match PHP behavior
-func (a *Aggregator) Lookup(tocString string, opts LookupOptions) ([]models.Metadata, error) {
+func (a *Aggregator) Lookup(tocString string, opts LookupOptions) (*LookupResult, error) {
+	result := &LookupResult{}
+
+	// STEP 1: Query CTDB first (matches PHP behavior - lookup2.php:45-56)
+	if opts.IncludeCTDB {
+		ctdbEntries, err := a.ctdb.LookupByTOC(tocString, opts.IncludeFuzzy)
+		if err != nil {
+			fmt.Printf("CTDB lookup error: %v\n", err)
+		} else {
+			result.CTDB = ctdbEntries
+		}
+	}
+
+	// STEP 2: Query metadata sources (existing priority-based logic)
 	// Use priority-based configuration
 	priorities := GetPriorityConfig(opts.Mode)
 
@@ -128,12 +150,14 @@ func (a *Aggregator) Lookup(tocString string, opts LookupOptions) ([]models.Meta
 			}
 
 			sortMetadataByPriority(allMetadata)
-			return allMetadata, nil
+			result.Metadata = allMetadata
+			return result, nil
 		}
 	}
 
 	// No results found at any priority level
-	return []models.Metadata{}, nil
+	result.Metadata = []models.Metadata{}
+	return result, nil
 }
 
 // extractDiscogsIDs extracts Discogs IDs from MusicBrainz results
