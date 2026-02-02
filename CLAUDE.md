@@ -149,10 +149,8 @@ Minimal legacy PHP backend provides XML API endpoints for backward compatibility
 
 - `submit2.php` - CD submission endpoint (production)
 - `lookup2.php` - Metadata lookup by TOC (XML format for legacy clients)
-- `index.php` - Latest CD entries (HTML/JSON via `?json=1&start=0`)
-- `top.php` - Popular CD entries (HTML/JSON via `?json=1&start=0`)
 
-**Note:** Most PHP functionality has been migrated to Go backend. PHP only serves critical XML API endpoints (`submit2.php`, `lookup2.php`) and basic HTML listing pages. The React UI has replaced legacy HTML views.
+**Note:** Most PHP functionality has been migrated to Go backend. PHP only serves critical XML API endpoints (`submit2.php`, `lookup2.php`). The React UI has replaced legacy HTML views.
 
 Key characteristics:
 - Uses PostgreSQL via Unix socket `/var/run/postgresql` (port 6432)
@@ -294,11 +292,9 @@ docker exec ctdbweb-dev php -v
 docker exec ctdbweb-dev php -m
 
 # Test PHP endpoints in development
-docker exec ctdbweb-dev curl -s "http://localhost/submit2.php" | head -5
 docker exec ctdbweb-dev curl -s "http://localhost/lookup2.php?toc=1+11+242457+150+26572+49252+68002+88955+107697+131380+149575+165992+192925" | head -10
 
 # Or test via dev proxy
-curl "https://dev.db.cue.tools/submit2.php" -k
 curl "https://dev.db.cue.tools/lookup2.php?toc=1+11+242457+150+26572+49252+68002+88955+107697+131380+149575+165992+192925" -k
 ```
 
@@ -638,7 +634,6 @@ The project is actively migrating from PHP to Go for improved performance and ty
 **Legacy PHP endpoints (maintained for compatibility):**
 - `submit2.php` - CD submission endpoint (production)
 - `lookup2.php` - XML metadata lookup (used by legacy clients)
-- `index.php`, `top.php` - Basic HTML listing pages
 
 **PHP codebase cleanup (completed):**
 - ✅ Removed 15 legacy PHP files (disabled pages, unused HTML UI, orphaned templates)

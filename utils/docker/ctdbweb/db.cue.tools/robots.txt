@@ -1,16 +1,6 @@
 User-agent: *
 Disallow: /
-Disallow: /clones.php
-Disallow: /clones2.php
-Disallow: /clones3.php
-Disallow: /clones4.php
-Disallow: /lookup.php
 Disallow: /lookup2.php
-Disallow: /playstation.php
-Disallow: /repair.php
-Disallow: /confirm.php
-Disallow: /show.php
 Disallow: /submit2.php
-Disallow: /top.php
 Disallow: /parity/
 Disallow: /cd/
