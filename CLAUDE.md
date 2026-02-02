@@ -29,7 +29,7 @@ The application runs on AWS EC2 (Amazon Linux 2023) using a Docker-based microse
 - **pgbouncer**: Connection pooler for PostgreSQL
 - **ctdbweb-go**: Go 1.23 JSON API backend (production)
 - **ctdbweb-go-dev**: Go development server with Air hot-reload
-- **ctdbweb**: PHP 8.4 + Apache backend (legacy XML endpoints and HTML UI)
+- **ctdbweb**: PHP 8.4 + Apache backend (legacy XML API endpoints only)
 - **react-prod**: Production React frontend (nginx)
 - **react-dev**: Node.js 24 development server (React/Vite frontend with HMR)
 - **proxy**: Apache 2.4 reverse proxy (TLS termination, routing)
@@ -144,16 +144,14 @@ utils/docker/ctdbweb-go/
 
 #### PHP Backend (`utils/docker/ctdbweb/db.cue.tools/`)
 
-Legacy PHP backend provides XML API endpoints and HTML UI:
+Minimal legacy PHP backend provides XML API endpoints for backward compatibility:
 
+- `submit2.php` - CD submission endpoint (production)
+- `lookup2.php` - Metadata lookup by TOC (XML format for legacy clients)
 - `index.php` - Latest CD entries (HTML/JSON via `?json=1&start=0`)
 - `top.php` - Popular CD entries (HTML/JSON via `?json=1&start=0`)
-- `lookup2.php` - Metadata lookup by TOC (XML format)
-- `submit2.php` - CD submission endpoint
-- `list1.php` - Original HTML/JS metadata display
-- `show.php` - Display individual CD entry
 
-**Note:** JSON endpoints have been migrated to Go backend. PHP serves legacy XML endpoints and HTML UI.
+**Note:** Most PHP functionality has been migrated to Go backend. PHP only serves critical XML API endpoints (`submit2.php`, `lookup2.php`) and basic HTML listing pages. The React UI has replaced legacy HTML views.
 
 Key characteristics:
 - Uses PostgreSQL via Unix socket `/var/run/postgresql` (port 6432)
@@ -625,10 +623,14 @@ The project is actively migrating from PHP to Go for improved performance and ty
 - 🚧 Submission API (`/api/submit`) - Handler structure in place
 
 **Legacy PHP endpoints (maintained for compatibility):**
+- `submit2.php` - CD submission endpoint (production)
 - `lookup2.php` - XML metadata lookup (used by legacy clients)
-- `submit2.php` - CD submission endpoint
-- `index.php`, `top.php` - HTML UI and XML endpoints
-- `show.php`, `list1.php` - Individual CD display
+- `index.php`, `top.php` - Basic HTML listing pages
+
+**PHP codebase cleanup (completed):**
+- ✅ Removed 15 legacy PHP files (disabled pages, unused HTML UI, orphaned templates)
+- ✅ Reduced PHP codebase by ~79% (14 files → 4 core files)
+- ✅ Kept only critical API endpoints and dependencies
 
 **Migration Benefits:**
 - 3-4x lower memory usage (30-50 MB vs 150-200 MB)
