@@ -29,7 +29,8 @@ The application runs on AWS EC2 (Amazon Linux 2023) using a Docker-based microse
 - **pgbouncer**: Connection pooler for PostgreSQL
 - **ctdbweb-go**: Go 1.23 JSON API backend (production)
 - **ctdbweb-go-dev**: Go development server with Air hot-reload
-- **ctdbweb**: PHP 8.4 + Apache backend (legacy XML API endpoints only)
+- **ctdbweb**: PHP 8.4 + Apache backend (production legacy XML API endpoints)
+- **ctdbweb-dev**: PHP development server
 - **react-prod**: Production React frontend (nginx)
 - **react-dev**: Node.js 24 development server (React/Vite frontend with HMR)
 - **proxy**: Apache 2.4 reverse proxy (TLS termination, routing)
@@ -285,19 +286,23 @@ Note: The React app has no test script configured. Test file exists at `src/lib/
 PHP code is mounted from the host, so changes to `.php` files are reflected immediately without restart.
 
 ```bash
-# View PHP error logs
-docker logs ctdbweb
+# View PHP error logs (development)
+docker logs ctdbweb-dev
 
 # Check PHP version and modules (debugging)
-docker exec ctdbweb php -v
-docker exec ctdbweb php -m
+docker exec ctdbweb-dev php -v
+docker exec ctdbweb-dev php -m
 
-# Test PHP endpoints locally
-curl "http://localhost/submit2.php"
-curl "http://localhost/lookup2.php?toc=1+11+242457+150+26572+49252+68002+88955+107697+131380+149575+165992+192925"
+# Test PHP endpoints in development
+docker exec ctdbweb-dev curl -s "http://localhost/submit2.php" | head -5
+docker exec ctdbweb-dev curl -s "http://localhost/lookup2.php?toc=1+11+242457+150+26572+49252+68002+88955+107697+131380+149575+165992+192925" | head -10
+
+# Or test via dev proxy
+curl "https://dev.db.cue.tools/submit2.php" -k
+curl "https://dev.db.cue.tools/lookup2.php?toc=1+11+242457+150+26572+49252+68002+88955+107697+131380+149575+165992+192925" -k
 ```
 
-**Note:** The `ctdbweb` container serves both development and production. Never restart or modify the running container - code changes are picked up automatically.
+**Note:** Use `ctdbweb-dev` for development and testing. The `ctdbweb` container is production - never restart or modify it directly.
 
 ### Go Backend
 
@@ -588,7 +593,8 @@ All services communicate via Docker network `ct`. Internal hostnames:
 - `pgbouncer` - Connection pooler (port 6432)
 - `ctdbweb-go` - Go production backend (port 8080)
 - `ctdbweb-go-dev` - Go dev backend with hot-reload (port 8080)
-- `ctdbweb` - PHP backend (port 80)
+- `ctdbweb` - PHP production backend (port 80)
+- `ctdbweb-dev` - PHP dev backend (port 80)
 - `react-prod` - React production UI (nginx, port 80)
 - `react-dev` - React dev server (Vite, port 80)
 - `proxy` - Reverse proxy (externally accessible, ports 80/443)
@@ -599,7 +605,8 @@ All services communicate via Docker network `ct`. Internal hostnames:
 - `dev.db.cue.tools/api/*` → ctdbweb-go-dev:8080 (Go dev JSON API)
 - `db.cue.tools/ui/*` → react-prod:80 (React production UI)
 - `dev.db.cue.tools/ui/*` → react-dev:80 (React dev UI with HMR)
-- `db.cue.tools/*` → ctdbweb:80 (PHP legacy endpoints and HTML)
+- `db.cue.tools/*` → ctdbweb:80 (PHP production legacy endpoints)
+- `dev.db.cue.tools/*` → ctdbweb-dev:80 (PHP dev legacy endpoints)
 
 All backend containers use internal ports only (no external exposure).
 
