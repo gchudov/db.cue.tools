@@ -18,24 +18,48 @@ interface UseStatsWebSocketReturn {
   error: string | null
 }
 
-export function useStatsWebSocket(): UseStatsWebSocketReturn {
-  const [stats, setStats] = useState<StatsData | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const reconnectAttemptsRef = useRef(0)
+// Singleton WebSocket manager (shared across all hook instances)
+class StatsWebSocketManager {
+  private ws: WebSocket | null = null
+  private reconnectTimeout: NodeJS.Timeout | null = null
+  private reconnectAttempts = 0
+  private subscribers = new Set<(stats: StatsData | null, connected: boolean, error: string | null) => void>()
+  private latestStats: StatsData | null = null
+  private isConnected = false
+  private currentError: string | null = null
+  private isDisconnecting = false
 
-  const connect = () => {
-    // Don't reconnect if already connected
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+  subscribe(callback: (stats: StatsData | null, connected: boolean, error: string | null) => void) {
+    this.subscribers.add(callback)
+
+    // Immediately send current state to new subscriber
+    callback(this.latestStats, this.isConnected, this.currentError)
+
+    // Connect if this is the first subscriber
+    if (this.subscribers.size === 1) {
+      this.connect()
+    }
+
+    return () => {
+      this.subscribers.delete(callback)
+
+      // Disconnect if no more subscribers
+      if (this.subscribers.size === 0) {
+        this.disconnect()
+      }
+    }
+  }
+
+  private connect() {
+    // Don't reconnect if already connected or connecting
+    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
       return
     }
 
     // Clear any pending reconnection
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
     }
 
     // Determine WebSocket URL based on current location
@@ -43,26 +67,37 @@ export function useStatsWebSocket(): UseStatsWebSocketReturn {
     const host = window.location.host
     const wsUrl = `${protocol}//${host}/api/ws/stats`
 
-    console.log('Connecting to WebSocket:', wsUrl)
-
     try {
       const ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
-        console.log('WebSocket connected')
-        setIsConnected(true)
-        setError(null)
-        reconnectAttemptsRef.current = 0
+        // Check if this WebSocket is still the current one
+        if (this.ws !== ws) {
+          ws.close()
+          return
+        }
+
+        // Check if we have any subscribers
+        if (this.subscribers.size === 0) {
+          ws.close()
+          return
+        }
+
+        this.isConnected = true
+        this.currentError = null
+        this.reconnectAttempts = 0
+        this.notifySubscribers()
       }
 
       ws.onmessage = (event) => {
         try {
           const message: StatsMessage = JSON.parse(event.data)
           if (message.type === 'stats_update') {
-            setStats({
+            this.latestStats = {
               unique_tocs: message.unique_tocs,
               submissions: message.submissions,
-            })
+            }
+            this.notifySubscribers()
           }
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err)
@@ -71,43 +106,91 @@ export function useStatsWebSocket(): UseStatsWebSocketReturn {
 
       ws.onerror = (event) => {
         console.error('WebSocket error:', event)
-        setError('WebSocket connection error')
+        this.currentError = 'WebSocket connection error'
+        this.notifySubscribers()
       }
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected')
-        setIsConnected(false)
-        wsRef.current = null
+        this.isConnected = false
+        this.ws = null
+        this.notifySubscribers()
 
-        // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000)
-        reconnectAttemptsRef.current++
+        // Don't reconnect if we're intentionally disconnecting
+        if (this.isDisconnecting) {
+          this.isDisconnecting = false
+          return
+        }
 
-        console.log(`Reconnecting in ${delay}ms...`)
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect()
-        }, delay)
+        // Only reconnect if we still have subscribers
+        if (this.subscribers.size > 0) {
+          // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
+          const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
+          this.reconnectAttempts++
+
+          this.reconnectTimeout = setTimeout(() => {
+            this.connect()
+          }, delay)
+        }
       }
 
-      wsRef.current = ws
+      this.ws = ws
     } catch (err) {
       console.error('Failed to create WebSocket:', err)
-      setError('Failed to create WebSocket connection')
+      this.currentError = 'Failed to create WebSocket connection'
+      this.notifySubscribers()
     }
   }
 
-  useEffect(() => {
-    connect()
-
-    return () => {
-      // Cleanup on unmount
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-      }
-      if (wsRef.current) {
-        wsRef.current.close()
-      }
+  private disconnect() {
+    // Clear any pending reconnection
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
     }
+
+    // Close the WebSocket if it exists and is not already closed
+    if (this.ws) {
+      const state = this.ws.readyState
+
+      if (state === WebSocket.OPEN) {
+        // Only close OPEN WebSockets - closing works reliably for these
+        this.isDisconnecting = true
+        this.ws.close()
+        // onclose will be called, which will check isDisconnecting flag
+      } else if (state === WebSocket.CONNECTING) {
+        // Don't try to close CONNECTING WebSockets - browsers ignore it
+        // Instead, set ws to null so onopen will detect it's orphaned and close it
+      }
+
+      this.ws = null
+    }
+
+    this.isConnected = false
+  }
+
+  private notifySubscribers() {
+    this.subscribers.forEach(callback => {
+      callback(this.latestStats, this.isConnected, this.currentError)
+    })
+  }
+}
+
+// Single shared instance
+const manager = new StatsWebSocketManager()
+
+export function useStatsWebSocket(): UseStatsWebSocketReturn {
+  const [stats, setStats] = useState<StatsData | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const unsubscribe = manager.subscribe((newStats, connected, err) => {
+      setStats(newStats)
+      setIsConnected(connected)
+      setError(err)
+    })
+
+    return unsubscribe
   }, [])
 
   return { stats, isConnected, error }
