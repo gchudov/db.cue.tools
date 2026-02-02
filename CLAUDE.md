@@ -282,16 +282,22 @@ Note: The React app has no test script configured. Test file exists at `src/lib/
 
 ### PHP Backend
 
-```bash
-# Access PHP container
-docker exec -it ctdbweb bash
+PHP code is mounted from the host, so changes to `.php` files are reflected immediately without restart.
 
-# View PHP logs
+```bash
+# View PHP error logs
 docker logs ctdbweb
 
-# Restart after code changes (code is mounted, restart may not be needed)
-docker restart ctdbweb
+# Check PHP version and modules (debugging)
+docker exec ctdbweb php -v
+docker exec ctdbweb php -m
+
+# Test PHP endpoints locally
+curl "http://localhost/submit2.php"
+curl "http://localhost/lookup2.php?toc=1+11+242457+150+26572+49252+68002+88955+107697+131380+149575+165992+192925"
 ```
+
+**Note:** The `ctdbweb` container serves both development and production. Never restart or modify the running container - code changes are picked up automatically.
 
 ### Go Backend
 
