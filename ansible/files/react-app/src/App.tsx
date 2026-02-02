@@ -14,11 +14,11 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw } from 'lucide-react'
+import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw, ScrollText } from 'lucide-react'
 import { LoginButton } from '@/components/LoginButton'
 import { UserMenu } from '@/components/UserMenu'
 
-type Page = 'home' | 'stats'
+type Page = 'home' | 'stats' | 'logs'
 
 interface Column {
   label: string
@@ -172,9 +172,9 @@ function getInitialStateFromUrl() {
   const view = params.get('view') as ViewMode | null
   const tocid = params.get('tocid') || ''
   const artist = params.get('artist') || ''
-  
+
   return {
-    page: page === 'stats' ? 'stats' : 'home' as Page,
+    page: page === 'stats' ? 'stats' : page === 'logs' ? 'logs' : 'home' as Page,
     viewMode: view === 'popular' ? 'popular' : 'latest' as ViewMode,
     filters: { tocid, artist },
   }
@@ -238,6 +238,13 @@ function App() {
   const [submissionsLoadingMore, setSubmissionsLoadingMore] = useState(false)
   const [submissionsHasMore, setSubmissionsHasMore] = useState(true)
   const submissionsLoadMoreRef = useRef<HTMLDivElement>(null)
+
+  // Logs page state (admin only)
+  const [logsData, setLogsData] = useState<ApiResponse | null>(null)
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [logsLoadingMore, setLogsLoadingMore] = useState(false)
+  const [logsHasMore, setLogsHasMore] = useState(true)
+  const logsLoadMoreRef = useRef<HTMLDivElement>(null)
 
   // Check authentication on mount
   useEffect(() => {
@@ -525,6 +532,92 @@ function App() {
     }
   }, [submissionsOpen, loadMoreSubmissions, submissionsHasMore, submissionsLoadingMore])
 
+  // Fetch logs when logs page is accessed (admin only)
+  useEffect(() => {
+    if (currentPage !== 'logs' || user?.role !== 'admin') {
+      setLogsData(null)
+      setLogsHasMore(true)
+      return
+    }
+
+    setLogsLoading(true)
+    setLogsData(null)
+    setLogsHasMore(true)
+
+    fetch(`/api/recent?limit=50&start=0`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch logs')
+        }
+        return response.json()
+      })
+      .then((json: ApiResponse) => {
+        setLogsData(json)
+        setLogsLoading(false)
+        if (json.rows.length < 50) {
+          setLogsHasMore(false)
+        }
+      })
+      .catch(() => {
+        setLogsData(null)
+        setLogsLoading(false)
+      })
+  }, [currentPage, user?.role])
+
+  // Load more logs
+  const loadMoreLogs = useCallback(() => {
+    if (logsLoadingMore || !logsHasMore || !logsData) return
+
+    setLogsLoadingMore(true)
+    const nextStart = logsData.rows.length
+
+    fetch(`/api/recent?limit=50&start=${nextStart}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch logs')
+        }
+        return response.json()
+      })
+      .then((json: ApiResponse) => {
+        setLogsData(prev => prev ? {
+          ...prev,
+          rows: [...prev.rows, ...json.rows]
+        } : json)
+        setLogsLoadingMore(false)
+        if (json.rows.length < 50) {
+          setLogsHasMore(false)
+        }
+      })
+      .catch(() => {
+        setLogsLoadingMore(false)
+      })
+  }, [logsLoadingMore, logsHasMore, logsData])
+
+  // Intersection observer for logs infinite scroll
+  useEffect(() => {
+    if (currentPage !== 'logs') return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && logsHasMore && !logsLoadingMore) {
+          loadMoreLogs()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentRef = logsLoadMoreRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [loadMoreLogs, logsHasMore, logsLoadingMore, currentPage])
+
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
     if (selectedRow === null || !data) {
@@ -690,13 +783,22 @@ function App() {
             <Home className="size-5" />
             <span>Home</span>
           </button>
-          <button 
+          <button
             className={`menu-item ${currentPage === 'stats' ? 'active' : ''}`}
             onClick={() => { setCurrentPage('stats'); setMenuOpen(false); }}
           >
             <BarChart3 className="size-5" />
             <span>Stats</span>
           </button>
+          {user?.role === 'admin' && (
+            <button
+              className={`menu-item ${currentPage === 'logs' ? 'active' : ''}`}
+              onClick={() => { setCurrentPage('logs'); setMenuOpen(false); }}
+            >
+              <ScrollText className="size-5" />
+              <span>Logs</span>
+            </button>
+          )}
           <a className="menu-item" href="http://cue.tools/wiki/CUETools_Database" target="_blank" rel="noopener noreferrer">
             <Info className="size-5" />
             <span>About</span>
@@ -817,6 +919,94 @@ function App() {
 
       {currentPage === 'stats' ? (
         <Stats />
+      ) : currentPage === 'logs' ? (
+        <div className="logs-page">
+          {user?.role !== 'admin' ? (
+            <div className="access-denied">
+              <p>Access denied. Admin privileges required.</p>
+            </div>
+          ) : (
+            <>
+              {logsLoading && (
+                <p className="loading">Loading logs...</p>
+              )}
+
+              {!logsLoading && (!logsData || logsData.rows.length === 0) && (
+                <p className="no-data">No logs found</p>
+              )}
+
+              {!logsLoading && logsData && logsData.rows.length > 0 && (
+                <div className="table-wrapper logs-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Agent</th>
+                        <th>Drive</th>
+                        <th>User</th>
+                        <th>IP</th>
+                        <th>Artist</th>
+                        <th>Album</th>
+                        <th>TOC ID</th>
+                        <th>Tracks</th>
+                        <th>CTDB ID</th>
+                        <th>Submissions</th>
+                        <th>CRC32</th>
+                        <th>Quality</th>
+                        <th>Barcode</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logsData.rows.map((row, idx) => {
+                        const timestamp = Number(row.c[0]?.v || 0) * 1000
+                        const date = new Date(timestamp)
+                        const agent = String(row.c[1]?.v || '')
+                        const drive = String(row.c[2]?.v || '')
+                        const user = String(row.c[3]?.v || '')
+                        const ip = String(row.c[4]?.v || '')
+                        const artist = String(row.c[5]?.v || '')
+                        const album = String(row.c[6]?.v || '')
+                        const tocId = String(row.c[7]?.v || '')
+                        const trackCount = Number(row.c[8]?.v || 0)
+                        const ctdbId = Number(row.c[9]?.v || 0)
+                        const submissionCount = Number(row.c[10]?.v || 0)
+                        const crc32 = Number(row.c[11]?.v || 0)
+                        const quality = row.c[13]?.v !== null ? Number(row.c[13]?.v) : null
+                        const barcode = String(row.c[14]?.v || '')
+
+                        return (
+                          <tr key={idx}>
+                            <td className="mono" title={date.toLocaleString()}>
+                              {formatRelativeTime(date)}
+                            </td>
+                            <td>{agent}</td>
+                            <td>{drive}</td>
+                            <td>{user}</td>
+                            <td className="mono">{ip}</td>
+                            <td>{artist}</td>
+                            <td>{album}</td>
+                            <td className="mono">{tocId.substring(0, 8)}...</td>
+                            <td>{trackCount}</td>
+                            <td>{ctdbId}</td>
+                            <td>{submissionCount}</td>
+                            <td className="mono">{crc32}</td>
+                            <td className="mono">{quality !== null ? quality : '-'}</td>
+                            <td>{barcode || '-'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {/* Infinite scroll trigger */}
+                  <div ref={logsLoadMoreRef} className="load-more-trigger">
+                    {logsLoadingMore && <span className="loading-more">Loading more...</span>}
+                    {!logsHasMore && logsData.rows.length > 0 && <span className="no-more">No more logs</span>}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       ) : (
       <>
       <div className="table-wrapper main-table">
