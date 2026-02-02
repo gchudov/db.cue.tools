@@ -42,6 +42,29 @@ interface GoogleVizResponse {
 // Legacy alias for backwards compatibility
 type ApiResponse = GoogleVizResponse
 
+// Clean JSON interface for recent submissions
+interface RecentSubmission {
+  id: number
+  artist: string
+  title: string
+  tocid: string
+  first_audio: number
+  audio_tracks: number
+  track_count: number
+  track_offsets: string
+  sub_count: number
+  crc32: number
+  time: string  // ISO 8601 timestamp
+  agent?: string
+  drivename?: string
+  userid?: string
+  ip?: string
+  quality?: number | null
+  barcode?: string
+  toc_formatted: string
+  track_count_string: string
+}
+
 // Convert country code to flag emoji
 function countryToFlag(countryCode: string): string | null {
   if (!countryCode) return null
@@ -153,6 +176,12 @@ function formatRelativeTime(date: Date): string {
   })
 }
 
+// Format CRC32 as hexadecimal (e.g., 0xDEADBEEF)
+function formatCRC32(crc32: number): string {
+  // Convert signed int32 to unsigned and format as 8-digit hex
+  return '0x' + (crc32 >>> 0).toString(16).toUpperCase().padStart(8, '0')
+}
+
 type ViewMode = 'latest' | 'popular'
 
 const VIEW_ENDPOINTS: Record<ViewMode, string> = {
@@ -232,7 +261,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true)
 
   // Submissions log state (admin only)
-  const [submissions, setSubmissions] = useState<ApiResponse | null>(null)
+  const [submissions, setSubmissions] = useState<RecentSubmission[] | null>(null)
   const [submissionsLoading, setSubmissionsLoading] = useState(false)
   const [submissionsOpen, setSubmissionsOpen] = useState(true)
   const [submissionsLoadingMore, setSubmissionsLoadingMore] = useState(false)
@@ -240,7 +269,7 @@ function App() {
   const submissionsLoadMoreRef = useRef<HTMLDivElement>(null)
 
   // Logs page state (admin only)
-  const [logsData, setLogsData] = useState<ApiResponse | null>(null)
+  const [logsData, setLogsData] = useState<RecentSubmission[] | null>(null)
   const [logsLoading, setLogsLoading] = useState(false)
   const [logsLoadingMore, setLogsLoadingMore] = useState(false)
   const [logsHasMore, setLogsHasMore] = useState(true)
@@ -465,10 +494,10 @@ function App() {
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
+      .then((json: RecentSubmission[]) => {
         setSubmissions(json)
         setSubmissionsLoading(false)
-        if (json.rows.length < 20) {
+        if (json.length < 20) {
           setSubmissionsHasMore(false)
         }
       })
@@ -483,7 +512,7 @@ function App() {
     if (submissionsLoadingMore || !submissionsHasMore || !submissions || !selectedRowData?.discId) return
 
     setSubmissionsLoadingMore(true)
-    const nextStart = submissions.rows.length
+    const nextStart = submissions.length
 
     fetch(`/api/recent?tocid=${encodeURIComponent(selectedRowData.discId)}&limit=20&start=${nextStart}`)
       .then(response => {
@@ -492,13 +521,10 @@ function App() {
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
-        setSubmissions(prev => prev ? {
-          ...prev,
-          rows: [...prev.rows, ...json.rows]
-        } : json)
+      .then((json: RecentSubmission[]) => {
+        setSubmissions(prev => prev ? [...prev, ...json] : json)
         setSubmissionsLoadingMore(false)
-        if (json.rows.length < 20) {
+        if (json.length < 20) {
           setSubmissionsHasMore(false)
         }
       })
@@ -551,10 +577,10 @@ function App() {
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
+      .then((json: RecentSubmission[]) => {
         setLogsData(json)
         setLogsLoading(false)
-        if (json.rows.length < 50) {
+        if (json.length < 50) {
           setLogsHasMore(false)
         }
       })
@@ -569,7 +595,7 @@ function App() {
     if (logsLoadingMore || !logsHasMore || !logsData) return
 
     setLogsLoadingMore(true)
-    const nextStart = logsData.rows.length
+    const nextStart = logsData.length
 
     fetch(`/api/recent?limit=50&start=${nextStart}`)
       .then(response => {
@@ -578,13 +604,10 @@ function App() {
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
-        setLogsData(prev => prev ? {
-          ...prev,
-          rows: [...prev.rows, ...json.rows]
-        } : json)
+      .then((json: RecentSubmission[]) => {
+        setLogsData(prev => prev ? [...prev, ...json] : json)
         setLogsLoadingMore(false)
-        if (json.rows.length < 50) {
+        if (json.length < 50) {
           setLogsHasMore(false)
         }
       })
@@ -755,6 +778,7 @@ function App() {
   
   const discIdColIndex = data.cols.findIndex(col => col.label === 'Disc Id')
   const artistColIndex = data.cols.findIndex(col => col.label === 'Artist')
+  const crc32ColIndex = data.cols.findIndex(col => col.label === 'CRC32')
 
   // Map source names to icon URLs
   const sourceIcons: Record<string, string> = {
@@ -931,11 +955,11 @@ function App() {
                 <p className="loading">Loading logs...</p>
               )}
 
-              {!logsLoading && (!logsData || logsData.rows.length === 0) && (
+              {!logsLoading && (!logsData || logsData.length === 0) && (
                 <p className="no-data">No logs found</p>
               )}
 
-              {!logsLoading && logsData && logsData.rows.length > 0 && (
+              {!logsLoading && logsData && logsData.length > 0 && (
                 <div className="table-wrapper logs-table">
                   <table>
                     <thead>
@@ -957,41 +981,27 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {logsData.rows.map((row, idx) => {
-                        const timestamp = Number(row.c[0]?.v || 0) * 1000
-                        const date = new Date(timestamp)
-                        const agent = String(row.c[1]?.v || '')
-                        const drive = String(row.c[2]?.v || '')
-                        const user = String(row.c[3]?.v || '')
-                        const ip = String(row.c[4]?.v || '')
-                        const artist = String(row.c[5]?.v || '')
-                        const album = String(row.c[6]?.v || '')
-                        const tocId = String(row.c[7]?.v || '')
-                        const trackCount = Number(row.c[8]?.v || 0)
-                        const ctdbId = Number(row.c[9]?.v || 0)
-                        const submissionCount = Number(row.c[10]?.v || 0)
-                        const crc32 = Number(row.c[11]?.v || 0)
-                        const quality = row.c[13]?.v !== null ? Number(row.c[13]?.v) : null
-                        const barcode = String(row.c[14]?.v || '')
+                      {logsData.map((submission, idx) => {
+                        const date = new Date(submission.time)
 
                         return (
                           <tr key={idx}>
                             <td className="mono" title={date.toLocaleString()}>
                               {formatRelativeTime(date)}
                             </td>
-                            <td>{agent}</td>
-                            <td>{drive}</td>
-                            <td>{user}</td>
-                            <td className="mono">{ip}</td>
-                            <td>{artist}</td>
-                            <td>{album}</td>
-                            <td className="mono">{tocId.substring(0, 8)}...</td>
-                            <td>{trackCount}</td>
-                            <td>{ctdbId}</td>
-                            <td>{submissionCount}</td>
-                            <td className="mono">{crc32}</td>
-                            <td className="mono">{quality !== null ? quality : '-'}</td>
-                            <td>{barcode || '-'}</td>
+                            <td>{submission.agent || ''}</td>
+                            <td>{submission.drivename || ''}</td>
+                            <td>{submission.userid || ''}</td>
+                            <td className="mono">{submission.ip || ''}</td>
+                            <td>{submission.artist}</td>
+                            <td>{submission.title}</td>
+                            <td className="mono">{submission.tocid.substring(0, 8)}...</td>
+                            <td>{submission.track_count_string}</td>
+                            <td>{submission.id}</td>
+                            <td>{submission.sub_count}</td>
+                            <td className="mono">{formatCRC32(submission.crc32)}</td>
+                            <td className="mono">{submission.quality !== null && submission.quality !== undefined ? submission.quality : '-'}</td>
+                            <td>{submission.barcode || '-'}</td>
                           </tr>
                         )
                       })}
@@ -1000,7 +1010,7 @@ function App() {
                   {/* Infinite scroll trigger */}
                   <div ref={logsLoadMoreRef} className="load-more-trigger">
                     {logsLoadingMore && <span className="loading-more">Loading more...</span>}
-                    {!logsHasMore && logsData.rows.length > 0 && <span className="no-more">No more logs</span>}
+                    {!logsHasMore && logsData.length > 0 && <span className="no-more">No more logs</span>}
                   </div>
                 </div>
               )}
@@ -1057,6 +1067,8 @@ function App() {
                         </button>
                         {formatCellValue(row.c[colIndex].v)}
                       </span>
+                    ) : colIndex === crc32ColIndex ? (
+                      formatCRC32(Number(row.c[colIndex].v || 0))
                     ) : (
                       formatCellValue(row.c[colIndex].v)
                     )}
@@ -1265,7 +1277,7 @@ function App() {
           >
             <span className="submissions-title">
               {submissionsOpen ? '▼' : '▶'} Recent Submissions
-              {submissions && ` (${submissions.rows.length})`}
+              {submissions && ` (${submissions.length})`}
             </span>
           </button>
 
@@ -1275,11 +1287,11 @@ function App() {
                 <p className="loading">Loading submissions...</p>
               )}
 
-              {!submissionsLoading && (!submissions || submissions.rows.length === 0) && (
+              {!submissionsLoading && (!submissions || submissions.length === 0) && (
                 <p className="no-submissions">No submissions found</p>
               )}
 
-              {!submissionsLoading && submissions && submissions.rows.length > 0 && (
+              {!submissionsLoading && submissions && submissions.length > 0 && (
                 <div className="table-wrapper submissions-table">
                   <table>
                     <thead>
@@ -1294,27 +1306,20 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {submissions.rows.map((row, idx) => {
-                        const timestamp = Number(row.c[0]?.v || 0) * 1000
-                        const date = new Date(timestamp)
-                        const agent = String(row.c[1]?.v || '')
-                        const drive = String(row.c[2]?.v || '')
-                        const user = String(row.c[3]?.v || '')
-                        const artist = String(row.c[5]?.v || '')
-                        const album = String(row.c[6]?.v || '')
-                        const quality = row.c[13]?.v !== null ? Number(row.c[13]?.v) : null
+                      {submissions.map((submission, idx) => {
+                        const date = new Date(submission.time)
 
                         return (
                           <tr key={idx}>
                             <td className="mono" title={date.toLocaleString()}>
                               {formatRelativeTime(date)}
                             </td>
-                            <td>{agent}</td>
-                            <td>{drive}</td>
-                            <td>{user}</td>
-                            <td>{artist}</td>
-                            <td>{album}</td>
-                            <td className="mono">{quality !== null ? quality : '-'}</td>
+                            <td>{submission.agent || ''}</td>
+                            <td>{submission.drivename || ''}</td>
+                            <td>{submission.userid || ''}</td>
+                            <td>{submission.artist}</td>
+                            <td>{submission.title}</td>
+                            <td className="mono">{submission.quality !== null && submission.quality !== undefined ? submission.quality : '-'}</td>
                           </tr>
                         )
                       })}
@@ -1323,7 +1328,7 @@ function App() {
                   {/* Infinite scroll trigger */}
                   <div ref={submissionsLoadMoreRef} className="load-more-trigger">
                     {submissionsLoadingMore && <span className="loading-more">Loading more...</span>}
-                    {!submissionsHasMore && submissions.rows.length > 0 && <span className="no-more">No more submissions</span>}
+                    {!submissionsHasMore && submissions.length > 0 && <span className="no-more">No more submissions</span>}
                   </div>
                 </div>
               )}

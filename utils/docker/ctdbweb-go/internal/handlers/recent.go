@@ -86,12 +86,29 @@ func (h *RecentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Format response as Google Visualization API format
-	response := formatRecentSubmissionsAsGoogleViz(submissions)
+	// Populate computed fields for all submissions
+	for i := range submissions {
+		submissions[i].PopulateComputedFields()
+	}
 
-	// Return JSON
+	// Check if Google Visualization format is requested
+	jsonParam := r.URL.Query().Get("json")
+	if jsonParam == "1" {
+		// Return in Google Visualization API format (legacy)
+		response := formatRecentSubmissionsAsGoogleViz(submissions)
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, fmt.Sprintf("JSON encoding error: %v", err), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
+	// Return plain JSON array (default)
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(submissions); err != nil {
 		http.Error(w, fmt.Sprintf("JSON encoding error: %v", err), http.StatusInternalServerError)
 		return
 	}
