@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 When code changes are made:
 1. **Make the code changes** to files as requested
 2. **Test in development containers** if available (ctdbweb-go-dev, react-dev)
-3. **Always prompt the user** to manually deploy changes via Ansible or restart services
+3. **Always prompt the user** to manually deploy changes via utils/rebuild_production.sh, ansible or restart services
 4. **Never run** `docker restart`, `docker stop`, `systemctl restart`, or any command that affects running services
 5. **Never push** changes to remote repositories without explicit user instruction
 
@@ -316,17 +316,6 @@ curl "https://dev.db.cue.tools/api/stats?type=totals" -k
 
 # Or test locally in container
 docker exec ctdbweb-go-dev wget -qO- "http://localhost:8080/api/stats?type=totals"
-```
-
-**Production deployment:**
-
-```bash
-# ALWAYS deploy via Ansible (never docker-compose for production)
-cd /opt/db.cue.tools
-ansible-playbook ansible/playbook.yml --start-at-task="Build a container image for CTDB Web Go Backend"
-
-# Test production endpoint
-curl "https://db.cue.tools/api/stats?type=totals" -k
 ```
 
 **Local development (outside Docker):**
