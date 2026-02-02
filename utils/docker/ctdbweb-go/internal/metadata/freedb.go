@@ -169,7 +169,7 @@ func (c *FreeDBClient) LookupByTOC(tocString string, fuzzy bool) ([]models.Metad
 		}
 
 		// Fetch tracklist
-		tracklist, err := c.fetchTracklist(entryID, len(offsets))
+		tracklist, err := c.fetchTracklist(entryID, len(offsets) - 1)
 		if err == nil && len(tracklist) > 0 {
 			m.Tracklist = tracklist
 		}
