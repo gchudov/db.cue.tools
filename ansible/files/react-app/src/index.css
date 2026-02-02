@@ -1052,6 +1052,7 @@ h2 {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.1rem;
+  position: relative;
 }
 
 .totals-value {
@@ -1066,6 +1067,35 @@ h2 {
   color: #737373;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+  color: #22c55e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .chart-section {

@@ -15,6 +15,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts'
+import { useStatsWebSocket } from '@/hooks/useStatsWebSocket'
 
 interface ApiResponse {
   cols: { label: string; type: string }[]
@@ -140,7 +141,11 @@ function PieChartCard({ title, data, loading }: PieChartCardProps) {
 }
 
 export function Stats() {
-  const [totals, setTotals] = useState<TotalsData | null>(null)
+  // WebSocket connection for real-time totals
+  const { stats: wsStats, isConnected } = useStatsWebSocket()
+
+  // HTTP fallback and other stats
+  const [fallbackTotals, setFallbackTotals] = useState<TotalsData | null>(null)
   const [dailyData, setDailyData] = useState<SubmissionData[]>([])
   const [hourlyData, setHourlyData] = useState<SubmissionData[]>([])
   const [drivesData, setDrivesData] = useState<PieData[]>([])
@@ -154,20 +159,29 @@ export function Stats() {
     pregaps: true,
   })
 
-  // Fetch totals every 5 seconds
+  // Initial fetch via HTTP
   useEffect(() => {
-    const fetchTotals = () => {
-      fetch('/api/stats?type=totals')
-        .then(res => res.json())
-        .then((data: TotalsData) => setTotals(data))
-        .catch(() => {})
-    }
-
-    fetchTotals() // Initial fetch
-    const interval = setInterval(fetchTotals, 5000)
-
-    return () => clearInterval(interval)
+    fetch('/api/stats?type=totals')
+      .then(res => res.json())
+      .then((data: TotalsData) => setFallbackTotals(data))
+      .catch(() => {})
   }, [])
+
+  // Fallback to polling if WebSocket disconnected
+  useEffect(() => {
+    if (!isConnected) {
+      const interval = setInterval(() => {
+        fetch('/api/stats?type=totals')
+          .then(res => res.json())
+          .then((data: TotalsData) => setFallbackTotals(data))
+          .catch(() => {})
+      }, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [isConnected])
+
+  // Use WebSocket stats if connected, otherwise fallback
+  const totals = isConnected ? (wsStats || fallbackTotals) : fallbackTotals
 
   useEffect(() => {
     // Fetch daily submissions
@@ -224,6 +238,12 @@ export function Stats() {
           <div className="totals-item">
             <span className="totals-value">{totals.unique_tocs.toLocaleString()}</span>
             <span className="totals-label">discs</span>
+            {isConnected && (
+              <span className="live-indicator" title="Live updates via WebSocket">
+                <span className="live-dot"></span>
+                Live
+              </span>
+            )}
           </div>
           <div className="totals-item">
             <span className="totals-value">{totals.submissions.toLocaleString()}</span>

@@ -11,6 +11,7 @@ import (
 	"github.com/cuetools/ctdbweb/internal/auth"
 	"github.com/cuetools/ctdbweb/internal/database"
 	"github.com/cuetools/ctdbweb/internal/handlers"
+	"github.com/cuetools/ctdbweb/internal/websocket"
 )
 
 func main() {
@@ -24,6 +25,22 @@ func main() {
 	defer db.Close()
 	log.Println("Database connections established")
 
+	// Initialize WebSocket hub
+	log.Println("Initializing WebSocket hub...")
+	hub := websocket.NewHub()
+	go hub.Run()
+
+	// Initialize PostgreSQL listener
+	log.Println("Initializing PostgreSQL listener...")
+	listener, err := database.NewListener(cfg, hub, db)
+	if err != nil {
+		log.Fatalf("Failed to create listener: %v", err)
+	}
+	if err := listener.Start(); err != nil {
+		log.Fatalf("Failed to start listener: %v", err)
+	}
+	defer listener.Close()
+
 	// Initialize auth configuration
 	authConfig := auth.LoadConfig()
 
@@ -35,6 +52,7 @@ func main() {
 	statsHandler := handlers.NewStatsHandler(db)
 	authHandler := handlers.NewAuthHandler(db, authConfig)
 	recentHandler := handlers.NewRecentHandler(db)
+	wsHandler := handlers.NewWebSocketHandler(hub)
 
 	// Create router
 	r := mux.NewRouter()
@@ -69,6 +87,9 @@ func main() {
 	api.Handle("/latest", latestHandler).Methods("GET")
 	api.Handle("/top", topHandler).Methods("GET")
 	api.Handle("/stats", statsHandler).Methods("GET")
+
+	// WebSocket endpoints
+	api.HandleFunc("/ws/stats", wsHandler.ServeHTTP).Methods("GET")
 
 	// Server configuration
 	port := os.Getenv("PORT")
