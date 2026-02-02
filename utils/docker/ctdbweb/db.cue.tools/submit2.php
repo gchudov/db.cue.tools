@@ -212,6 +212,30 @@ if ($confirmid) {
   // if ($oldrecord['hasparity'] == 't' && $parfile) schedule deletion of old parfile from s3
 } else
 {
+  // Cleanup excessive unconfirmed entries for this tocid+trackoffsets combination
+  // to prevent database bloat from junk submissions
+  $result = pg_query_params($dbconn,
+    "SELECT COUNT(*) FROM submissions2 WHERE tocid=$1 AND trackoffsets=$2 AND subcount=1 AND NOT hasparity",
+    array($tocid, $toc['trackoffsets']))
+    or fatal_error('Query failed: ' . pg_last_error($dbconn));
+  $junk_count = pg_fetch_result($result, 0, 0);
+  pg_free_result($result);
+
+  if ($junk_count >= 100) {
+    // Delete oldest entries, keeping only 99 (so after insert we'll have 100)
+    $delete_count = $junk_count - 99;
+    $result = pg_query_params($dbconn,
+      "DELETE FROM submissions2 WHERE id IN (
+        SELECT id FROM submissions2
+        WHERE tocid=$1 AND trackoffsets=$2 AND subcount=1 AND NOT hasparity
+        ORDER BY id ASC
+        LIMIT $3
+      )",
+      array($tocid, $toc['trackoffsets'], $delete_count))
+      or fatal_error('Query failed: ' . pg_last_error($dbconn));
+    pg_free_result($result);
+  }
+
   $result = pg_query("SELECT nextval('submissions2_id_seq')")
     or fatal_error('Query failed: ' . pg_last_error($dbconn));
   $record_id =  pg_fetch_result($result,0,0);

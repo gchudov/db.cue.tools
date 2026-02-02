@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Production Safety Rules
+
+**NEVER directly modify, restart, or deploy to production containers or services.** This is a live production system serving real users.
+
+When code changes are made:
+1. **Make the code changes** to files as requested
+2. **Test in development containers** if available (ctdbweb-go-dev, react-dev)
+3. **Always prompt the user** to manually deploy changes via Ansible or restart services
+4. **Never run** `docker restart`, `docker stop`, `systemctl restart`, or any command that affects running services
+5. **Never push** changes to remote repositories without explicit user instruction
+
+**Exception:** Reading logs, checking status, and querying databases for information are safe operations.
+
 ## Project Overview
 
 CUETools DB (db.cue.tools) is a CD database and metadata lookup service for audio CDs. It provides a web interface for browsing CD entries, performing TOC (Table of Contents) lookups, and retrieving metadata from multiple sources including MusicBrainz, Discogs, and FreeDB.
