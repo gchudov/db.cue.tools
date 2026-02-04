@@ -106,7 +106,7 @@ func (h *RecentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		submissions[i].PopulateComputedFields()
 	}
 
-	// Check if Google Visualization format is requested
+	// Check if Google Visualization format is requested (legacy)
 	jsonParam := r.URL.Query().Get("json")
 	if jsonParam == "1" {
 		// Return in Google Visualization API format (legacy)
@@ -119,47 +119,30 @@ func (h *RecentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if cursor format is requested
-	// Use cursor format if cursor/before params are present OR if format=cursor is specified
-	formatParam := query.Get("format")
-	useCursorFormat := cursor > 0 || before > 0 || formatParam == "cursor"
+	// Return cursor-based response with metadata (default format)
+	var newestID, oldestID int64
+	hasMore := len(submissions) >= limit
 
-	if useCursorFormat {
-		// Return cursor-based response with metadata
-		var newestID, oldestID int64
-		hasMore := len(submissions) >= limit
-
-		if len(submissions) > 0 {
-			// First entry has the newest subid (DESC order)
-			newestID = submissions[0].SubID
-			// Last entry has the oldest subid
-			oldestID = submissions[len(submissions)-1].SubID
-		}
-
-		response := map[string]interface{}{
-			"data": submissions,
-			"cursors": map[string]interface{}{
-				"newest": newestID,
-				"oldest": oldestID,
-			},
-			"has_more": hasMore,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(response); err != nil {
-			http.Error(w, fmt.Sprintf("JSON encoding error: %v", err), http.StatusInternalServerError)
-			return
-		}
-		return
+	if len(submissions) > 0 {
+		// First entry has the newest subid (DESC order)
+		newestID = submissions[0].SubID
+		// Last entry has the oldest subid
+		oldestID = submissions[len(submissions)-1].SubID
 	}
 
-	// Return plain JSON array (legacy compatibility)
+	response := map[string]interface{}{
+		"data": submissions,
+		"cursors": map[string]interface{}{
+			"newest": newestID,
+			"oldest": oldestID,
+		},
+		"has_more": hasMore,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(submissions); err != nil {
+	if err := encoder.Encode(response); err != nil {
 		http.Error(w, fmt.Sprintf("JSON encoding error: %v", err), http.StatusInternalServerError)
 		return
 	}

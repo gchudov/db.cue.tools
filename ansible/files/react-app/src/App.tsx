@@ -266,6 +266,7 @@ function App() {
   const [submissionsOpen, setSubmissionsOpen] = useState(true)
   const [submissionsLoadingMore, setSubmissionsLoadingMore] = useState(false)
   const [submissionsHasMore, setSubmissionsHasMore] = useState(true)
+  const [submissionsOldestCursor, setSubmissionsOldestCursor] = useState<number>(0)
   const submissionsLoadMoreRef = useRef<HTMLDivElement>(null)
 
   // Logs page state (admin only)
@@ -488,20 +489,20 @@ function App() {
     setSubmissionsLoading(true)
     setSubmissions(null)
     setSubmissionsHasMore(true)
+    setSubmissionsOldestCursor(0)
 
-    fetch(`/api/recent?tocid=${encodeURIComponent(discId)}&limit=20&start=0`)
+    fetch(`/api/recent?tocid=${encodeURIComponent(discId)}&limit=20`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch submissions')
         }
         return response.json()
       })
-      .then((json: RecentSubmission[]) => {
-        setSubmissions(json)
+      .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+        setSubmissions(json.data)
+        setSubmissionsOldestCursor(json.cursors.oldest)
+        setSubmissionsHasMore(json.has_more)
         setSubmissionsLoading(false)
-        if (json.length < 20) {
-          setSubmissionsHasMore(false)
-        }
       })
       .catch(() => {
         setSubmissions(null)
@@ -509,31 +510,29 @@ function App() {
       })
   }, [user?.role, selectedRowData?.discId])
 
-  // Load more submissions
+  // Load more submissions (fetch older entries using before cursor)
   const loadMoreSubmissions = useCallback(() => {
-    if (submissionsLoadingMore || !submissionsHasMore || !submissions || !selectedRowData?.discId) return
+    if (submissionsLoadingMore || !submissionsHasMore || !submissions || !selectedRowData?.discId || submissionsOldestCursor === 0) return
 
     setSubmissionsLoadingMore(true)
-    const nextStart = submissions.length
 
-    fetch(`/api/recent?tocid=${encodeURIComponent(selectedRowData.discId)}&limit=20&start=${nextStart}`)
+    fetch(`/api/recent?tocid=${encodeURIComponent(selectedRowData.discId)}&limit=20&before=${submissionsOldestCursor}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch submissions')
         }
         return response.json()
       })
-      .then((json: RecentSubmission[]) => {
-        setSubmissions(prev => prev ? [...prev, ...json] : json)
+      .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+        setSubmissions(prev => prev ? [...prev, ...json.data] : json.data)
+        setSubmissionsOldestCursor(json.cursors.oldest)
+        setSubmissionsHasMore(json.has_more)
         setSubmissionsLoadingMore(false)
-        if (json.length < 20) {
-          setSubmissionsHasMore(false)
-        }
       })
       .catch(() => {
         setSubmissionsLoadingMore(false)
       })
-  }, [submissionsLoadingMore, submissionsHasMore, submissions, selectedRowData?.discId])
+  }, [submissionsLoadingMore, submissionsHasMore, submissions, selectedRowData?.discId, submissionsOldestCursor])
 
   // Intersection observer for submissions infinite scroll
   useEffect(() => {
@@ -574,8 +573,8 @@ function App() {
     setLogsData(null)
     setLogsHasMore(true)
 
-    // Use cursor format to get initial data with cursor information
-    fetch(`/api/recent?limit=50&format=cursor`)
+    // Fetch initial data with cursor information
+    fetch(`/api/recent?limit=50`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch logs')
