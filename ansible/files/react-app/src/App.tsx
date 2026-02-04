@@ -292,6 +292,8 @@ function App() {
   const [logsOldestCursor, setLogsOldestCursor] = useState<number>(0)
   const logsLoadMoreRef = useRef<HTMLDivElement>(null)
   const logsNewestCursorRef = useRef<number>(0)
+  const logsFetchingNewRef = useRef<boolean>(false)
+  const logsUpdateCountRef = useRef<number>(0)
 
   // WebSocket for logs page real-time updates
   const { updateCount: logsUpdateCount, isConnected: logsWsConnected } = useSubmissionsWebSocket()
@@ -662,33 +664,55 @@ function App() {
     }
   }, [loadMoreLogs, logsHasMore, logsLoadingMore, currentPage])
 
+  // Keep ref in sync with logsUpdateCount for access in async callbacks
+  logsUpdateCountRef.current = logsUpdateCount
+
   // WebSocket-triggered fetch for new log entries (real-time updates)
   useEffect(() => {
-    const currentCursor = logsNewestCursorRef.current
-
-    if (currentPage !== 'logs' || user?.role !== 'admin' || currentCursor === 0 || logsUpdateCount === 0) {
+    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || logsUpdateCount === 0) {
       return
     }
 
-    // Fetch entries newer than the current newest cursor
-    fetch(`/api/recent?limit=50&cursor=${currentCursor}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch new logs')
-        }
-        return response.json()
-      })
-      .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
-        if (json.data.length > 0) {
-          // Prepend new entries to the beginning of the list
-          setLogsData(prev => prev ? [...json.data, ...prev] : json.data)
-          setLogsNewestCursor(json.cursors.newest)
-          logsNewestCursorRef.current = json.cursors.newest
-        }
-      })
-      .catch(() => {
-        // Silently fail - don't disrupt the UI
-      })
+    // Don't start a new fetch if one is already in progress
+    if (logsFetchingNewRef.current) {
+      return
+    }
+
+    const doFetch = (processingCount: number, iteration: number) => {
+      const maxIterations = 5 // Prevent runaway loops; next WS notification will continue
+      if (iteration >= maxIterations) return
+
+      const currentCursor = logsNewestCursorRef.current
+      if (currentCursor === 0) return
+
+      logsFetchingNewRef.current = true
+
+      fetch(`/api/recent?limit=50&cursor=${currentCursor}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch new logs')
+          return response.json()
+        })
+        .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+          if (json.data.length > 0) {
+            setLogsData(prev => prev ? [...json.data, ...prev] : json.data)
+            setLogsNewestCursor(json.cursors.newest)
+            logsNewestCursorRef.current = json.cursors.newest
+          }
+        })
+        .catch(() => {
+          // Silently fail - don't disrupt the UI
+        })
+        .finally(() => {
+          logsFetchingNewRef.current = false
+          // Check if more updates came in while we were fetching
+          const latestCount = logsUpdateCountRef.current
+          if (latestCount > processingCount) {
+            doFetch(latestCount, iteration + 1)
+          }
+        })
+    }
+
+    doFetch(logsUpdateCount, 0)
   }, [currentPage, user?.role, logsUpdateCount])
 
   // Fallback polling when WebSocket disconnected
@@ -696,7 +720,12 @@ function App() {
     if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || logsWsConnected) return
 
     const pollInterval = setInterval(() => {
+      // Don't start a new fetch if one is already in progress
+      if (logsFetchingNewRef.current) return
+
       const currentCursor = logsNewestCursorRef.current
+      logsFetchingNewRef.current = true
+
       // Fetch entries newer than the current newest cursor
       fetch(`/api/recent?limit=50&cursor=${currentCursor}`)
         .then(response => {
@@ -715,6 +744,9 @@ function App() {
         })
         .catch(() => {
           // Silently fail - don't disrupt the UI
+        })
+        .finally(() => {
+          logsFetchingNewRef.current = false
         })
     }, 5000) // Poll every 5 seconds when WebSocket unavailable
 
