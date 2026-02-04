@@ -23,6 +23,7 @@ type RecentSubmission struct {
 	CRC32        int32   `json:"crc32"`
 
 	// Additional fields from submissions table
+	SubID     int64     `json:"subid"`         // submission ID for cursor pagination
 	Time      time.Time `json:"time"`
 	Agent     string    `json:"agent,omitempty"`
 	DriveName string    `json:"drivename,omitempty"`

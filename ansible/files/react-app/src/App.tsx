@@ -273,6 +273,8 @@ function App() {
   const [logsLoading, setLogsLoading] = useState(false)
   const [logsLoadingMore, setLogsLoadingMore] = useState(false)
   const [logsHasMore, setLogsHasMore] = useState(true)
+  const [logsNewestCursor, setLogsNewestCursor] = useState<number>(0)
+  const [logsOldestCursor, setLogsOldestCursor] = useState<number>(0)
   const logsLoadMoreRef = useRef<HTMLDivElement>(null)
 
   // Check authentication on mount
@@ -563,6 +565,8 @@ function App() {
     if (currentPage !== 'logs' || user?.role !== 'admin') {
       setLogsData(null)
       setLogsHasMore(true)
+      setLogsNewestCursor(0)
+      setLogsOldestCursor(0)
       return
     }
 
@@ -570,19 +574,20 @@ function App() {
     setLogsData(null)
     setLogsHasMore(true)
 
-    fetch(`/api/recent?limit=50&start=0`)
+    // Use cursor format to get initial data with cursor information
+    fetch(`/api/recent?limit=50&format=cursor`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch logs')
         }
         return response.json()
       })
-      .then((json: RecentSubmission[]) => {
-        setLogsData(json)
+      .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+        setLogsData(json.data)
+        setLogsNewestCursor(json.cursors.newest)
+        setLogsOldestCursor(json.cursors.oldest)
+        setLogsHasMore(json.has_more)
         setLogsLoading(false)
-        if (json.length < 50) {
-          setLogsHasMore(false)
-        }
       })
       .catch(() => {
         setLogsData(null)
@@ -590,31 +595,29 @@ function App() {
       })
   }, [currentPage, user?.role])
 
-  // Load more logs
+  // Load more logs (fetch older entries using before cursor)
   const loadMoreLogs = useCallback(() => {
-    if (logsLoadingMore || !logsHasMore || !logsData) return
+    if (logsLoadingMore || !logsHasMore || !logsData || logsOldestCursor === 0) return
 
     setLogsLoadingMore(true)
-    const nextStart = logsData.length
 
-    fetch(`/api/recent?limit=50&start=${nextStart}`)
+    fetch(`/api/recent?limit=50&before=${logsOldestCursor}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch logs')
         }
         return response.json()
       })
-      .then((json: RecentSubmission[]) => {
-        setLogsData(prev => prev ? [...prev, ...json] : json)
+      .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+        setLogsData(prev => prev ? [...prev, ...json.data] : json.data)
+        setLogsOldestCursor(json.cursors.oldest)
+        setLogsHasMore(json.has_more)
         setLogsLoadingMore(false)
-        if (json.length < 50) {
-          setLogsHasMore(false)
-        }
       })
       .catch(() => {
         setLogsLoadingMore(false)
       })
-  }, [logsLoadingMore, logsHasMore, logsData])
+  }, [logsLoadingMore, logsHasMore, logsData, logsOldestCursor])
 
   // Intersection observer for logs infinite scroll
   useEffect(() => {
@@ -640,6 +643,34 @@ function App() {
       }
     }
   }, [loadMoreLogs, logsHasMore, logsLoadingMore, currentPage])
+
+  // Poll for new log entries (real-time updates)
+  useEffect(() => {
+    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursor === 0) return
+
+    const pollInterval = setInterval(() => {
+      // Fetch entries newer than the current newest cursor
+      fetch(`/api/recent?limit=50&cursor=${logsNewestCursor}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch new logs')
+          }
+          return response.json()
+        })
+        .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+          if (json.data.length > 0) {
+            // Prepend new entries to the beginning of the list
+            setLogsData(prev => prev ? [...json.data, ...prev] : json.data)
+            setLogsNewestCursor(json.cursors.newest)
+          }
+        })
+        .catch(() => {
+          // Silently fail - don't disrupt the UI
+        })
+    }, 5000) // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [currentPage, user?.role, logsNewestCursor])
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {

@@ -181,9 +181,12 @@ func GetTopSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error
 }
 
 // GetRecentSubmissions retrieves recent CD submissions with optional filters
-// Returns up to 'limit' most recent submissions ordered by subid DESC
+// Supports both cursor-based and offset-based pagination:
+// - cursor mode: provide cursor (for newer entries) or before (for older entries)
+// - offset mode: provide offset (legacy compatibility)
+// Returns up to 'limit' submissions
 // Joins submissions with submissions2 to get both submission metadata and CD info
-func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubmissionFilters) ([]models.RecentSubmission, error) {
+func GetRecentSubmissions(db *sql.DB, limit int, offset int, cursor int64, before int64, filters *RecentSubmissionFilters) ([]models.RecentSubmission, error) {
 	// Default and cap limit
 	if limit <= 0 {
 		limit = 100
@@ -197,10 +200,10 @@ func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubm
 		offset = 0
 	}
 
-	// Build base SELECT clause
+	// Build base SELECT clause - include subid for cursor tracking
 	selectClause := `
 		SELECT
-			s.time, s.agent, s.drivename, s.userid, s.ip,
+			s.subid, s.time, s.agent, s.drivename, s.userid, s.ip,
 			s.quality, s.barcode, s.entryid,
 			e.subcount, e.crc32, e.tocid, e.artist, e.title,
 			e.firstaudio, e.audiotracks, e.trackcount, e.trackoffsets
@@ -211,6 +214,29 @@ func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubm
 	var whereClauses []string
 	var args []interface{}
 	paramCounter := 1
+
+	// Cursor-based pagination (takes precedence over offset)
+	var orderClause string
+	useCursor := cursor > 0 || before > 0
+
+	if useCursor {
+		if cursor > 0 {
+			// Fetch newer entries (subid > cursor), ascending order
+			whereClauses = append(whereClauses, fmt.Sprintf("s.subid > $%d", paramCounter))
+			args = append(args, cursor)
+			paramCounter++
+			orderClause = " ORDER BY s.subid ASC"
+		} else if before > 0 {
+			// Fetch older entries (subid < before), descending order
+			whereClauses = append(whereClauses, fmt.Sprintf("s.subid < $%d", paramCounter))
+			args = append(args, before)
+			paramCounter++
+			orderClause = " ORDER BY s.subid DESC"
+		}
+	} else {
+		// Legacy offset-based pagination
+		orderClause = " ORDER BY s.subid DESC"
+	}
 
 	if filters != nil {
 		// TOC filter (convert to TOCID first)
@@ -269,16 +295,22 @@ func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubm
 		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	// Add ORDER BY, LIMIT, and OFFSET
+	// Add LIMIT
 	limitParam := fmt.Sprintf("$%d", paramCounter)
 	args = append(args, limit)
 	paramCounter++
 
-	offsetParam := fmt.Sprintf("$%d", paramCounter)
-	args = append(args, offset)
-
 	// Build complete query
-	query := selectClause + whereClause + " ORDER BY s.subid DESC LIMIT " + limitParam + " OFFSET " + offsetParam
+	var query string
+	if useCursor {
+		// Cursor-based: no offset needed
+		query = selectClause + whereClause + orderClause + " LIMIT " + limitParam
+	} else {
+		// Offset-based: add OFFSET for legacy compatibility
+		offsetParam := fmt.Sprintf("$%d", paramCounter)
+		args = append(args, offset)
+		query = selectClause + whereClause + orderClause + " LIMIT " + limitParam + " OFFSET " + offsetParam
+	}
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -293,6 +325,7 @@ func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubm
 		var quality sql.NullInt64
 
 		err := rows.Scan(
+			&rs.SubID,
 			&rs.Time,
 			&agent,
 			&drivename,
@@ -355,6 +388,13 @@ func GetRecentSubmissions(db *sql.DB, limit int, offset int, filters *RecentSubm
 
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows iteration failed: %w", err)
+	}
+
+	// If cursor mode with ascending order (fetching newer), reverse to get newest first
+	if cursor > 0 && len(submissions) > 0 {
+		for i, j := 0, len(submissions)-1; i < j; i, j = i+1, j-1 {
+			submissions[i], submissions[j] = submissions[j], submissions[i]
+		}
 	}
 
 	return submissions, nil
