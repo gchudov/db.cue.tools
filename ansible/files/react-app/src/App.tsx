@@ -176,6 +176,19 @@ function formatRelativeTime(date: Date): string {
   })
 }
 
+// Format timestamp as absolute date/time (e.g., "2026-02-04 14:23:45")
+function formatAbsoluteTime(date: Date): string {
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+}
+
 // Format CRC32 as hexadecimal (e.g., 0xDEADBEEF)
 function formatCRC32(crc32: number): string {
   // Convert signed int32 to unsigned and format as 8-digit hex
@@ -1016,8 +1029,8 @@ function App() {
 
                         return (
                           <tr key={idx}>
-                            <td className="mono" title={date.toLocaleString()}>
-                              {formatRelativeTime(date)}
+                            <td className="mono">
+                              {formatAbsoluteTime(date)}
                             </td>
                             <td>{submission.agent || ''}</td>
                             <td>{submission.drivename || ''}</td>
