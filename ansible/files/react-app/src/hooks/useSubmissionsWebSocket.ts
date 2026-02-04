@@ -1,39 +1,32 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
-interface StatsData {
-  unique_tocs: number
-  submissions: number
-}
-
-interface StatsMessage {
-  type: 'stats_update'
-  unique_tocs: number
-  submissions: number
+interface SubmissionsMessage {
+  type: 'submissions_update'
   timestamp: number
 }
 
-interface UseStatsWebSocketReturn {
-  stats: StatsData | null
+interface UseSubmissionsWebSocketReturn {
+  updateCount: number  // Increments on each new submission notification
   isConnected: boolean
   error: string | null
 }
 
 // Singleton WebSocket manager (shared across all hook instances)
-class StatsWebSocketManager {
+class SubmissionsWebSocketManager {
   private ws: WebSocket | null = null
   private reconnectTimeout: NodeJS.Timeout | null = null
   private reconnectAttempts = 0
-  private subscribers = new Set<(stats: StatsData | null, connected: boolean, error: string | null) => void>()
-  private latestStats: StatsData | null = null
+  private subscribers = new Set<(updateCount: number, connected: boolean, error: string | null) => void>()
+  private updateCount = 0
   private isConnected = false
   private currentError: string | null = null
   private isDisconnecting = false
 
-  subscribe(callback: (stats: StatsData | null, connected: boolean, error: string | null) => void) {
+  subscribe(callback: (updateCount: number, connected: boolean, error: string | null) => void) {
     this.subscribers.add(callback)
 
     // Immediately send current state to new subscriber
-    callback(this.latestStats, this.isConnected, this.currentError)
+    callback(this.updateCount, this.isConnected, this.currentError)
 
     // Connect if this is the first subscriber
     if (this.subscribers.size === 1) {
@@ -97,12 +90,9 @@ class StatsWebSocketManager {
             if (!line.trim()) continue
 
             try {
-              const message: StatsMessage = JSON.parse(line)
-              if (message.type === 'stats_update') {
-                this.latestStats = {
-                  unique_tocs: message.unique_tocs,
-                  submissions: message.submissions,
-                }
+              const message: SubmissionsMessage = JSON.parse(line)
+              if (message.type === 'submissions_update') {
+                this.updateCount++
                 this.notifySubscribers()
               }
             } catch (parseErr) {
@@ -180,22 +170,22 @@ class StatsWebSocketManager {
 
   private notifySubscribers() {
     this.subscribers.forEach(callback => {
-      callback(this.latestStats, this.isConnected, this.currentError)
+      callback(this.updateCount, this.isConnected, this.currentError)
     })
   }
 }
 
 // Single shared instance
-const manager = new StatsWebSocketManager()
+const manager = new SubmissionsWebSocketManager()
 
-export function useStatsWebSocket(): UseStatsWebSocketReturn {
-  const [stats, setStats] = useState<StatsData | null>(null)
+export function useSubmissionsWebSocket(): UseSubmissionsWebSocketReturn {
+  const [updateCount, setUpdateCount] = useState(0)
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = manager.subscribe((newStats, connected, err) => {
-      setStats(newStats)
+    const unsubscribe = manager.subscribe((count, connected, err) => {
+      setUpdateCount(count)
       setIsConnected(connected)
       setError(err)
     })
@@ -203,5 +193,5 @@ export function useStatsWebSocket(): UseStatsWebSocketReturn {
     return unsubscribe
   }, [])
 
-  return { stats, isConnected, error }
+  return { updateCount, isConnected, error }
 }

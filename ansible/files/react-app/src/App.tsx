@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw, ScrollText } from 'lucide-react'
 import { LoginButton } from '@/components/LoginButton'
 import { UserMenu } from '@/components/UserMenu'
+import { useSubmissionsWebSocket } from '@/hooks/useSubmissionsWebSocket'
 
 type Page = 'home' | 'stats' | 'logs'
 
@@ -290,6 +291,10 @@ function App() {
   const [logsNewestCursor, setLogsNewestCursor] = useState<number>(0)
   const [logsOldestCursor, setLogsOldestCursor] = useState<number>(0)
   const logsLoadMoreRef = useRef<HTMLDivElement>(null)
+  const logsNewestCursorRef = useRef<number>(0)
+
+  // WebSocket for logs page real-time updates
+  const { updateCount: logsUpdateCount, isConnected: logsWsConnected } = useSubmissionsWebSocket()
 
   // Check authentication on mount
   useEffect(() => {
@@ -597,6 +602,7 @@ function App() {
       .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
         setLogsData(json.data)
         setLogsNewestCursor(json.cursors.newest)
+        logsNewestCursorRef.current = json.cursors.newest
         setLogsOldestCursor(json.cursors.oldest)
         setLogsHasMore(json.has_more)
         setLogsLoading(false)
@@ -656,13 +662,43 @@ function App() {
     }
   }, [loadMoreLogs, logsHasMore, logsLoadingMore, currentPage])
 
-  // Poll for new log entries (real-time updates)
+  // WebSocket-triggered fetch for new log entries (real-time updates)
   useEffect(() => {
-    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursor === 0) return
+    const currentCursor = logsNewestCursorRef.current
+
+    if (currentPage !== 'logs' || user?.role !== 'admin' || currentCursor === 0 || logsUpdateCount === 0) {
+      return
+    }
+
+    // Fetch entries newer than the current newest cursor
+    fetch(`/api/recent?limit=50&cursor=${currentCursor}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch new logs')
+        }
+        return response.json()
+      })
+      .then((json: { data: RecentSubmission[], cursors: { newest: number, oldest: number }, has_more: boolean }) => {
+        if (json.data.length > 0) {
+          // Prepend new entries to the beginning of the list
+          setLogsData(prev => prev ? [...json.data, ...prev] : json.data)
+          setLogsNewestCursor(json.cursors.newest)
+          logsNewestCursorRef.current = json.cursors.newest
+        }
+      })
+      .catch(() => {
+        // Silently fail - don't disrupt the UI
+      })
+  }, [currentPage, user?.role, logsUpdateCount])
+
+  // Fallback polling when WebSocket disconnected
+  useEffect(() => {
+    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || logsWsConnected) return
 
     const pollInterval = setInterval(() => {
+      const currentCursor = logsNewestCursorRef.current
       // Fetch entries newer than the current newest cursor
-      fetch(`/api/recent?limit=50&cursor=${logsNewestCursor}`)
+      fetch(`/api/recent?limit=50&cursor=${currentCursor}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch new logs')
@@ -674,15 +710,16 @@ function App() {
             // Prepend new entries to the beginning of the list
             setLogsData(prev => prev ? [...json.data, ...prev] : json.data)
             setLogsNewestCursor(json.cursors.newest)
+            logsNewestCursorRef.current = json.cursors.newest
           }
         })
         .catch(() => {
           // Silently fail - don't disrupt the UI
         })
-    }, 5000) // Poll every 5 seconds
+    }, 5000) // Poll every 5 seconds when WebSocket unavailable
 
     return () => clearInterval(pollInterval)
-  }, [currentPage, user?.role, logsNewestCursor])
+  }, [currentPage, user?.role, logsWsConnected])
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
@@ -1003,7 +1040,18 @@ function App() {
               )}
 
               {!logsLoading && logsData && logsData.length > 0 && (
-                <div className="table-wrapper logs-table">
+                <>
+                  {logsWsConnected && (
+                    <div className="stats-totals" style={{ marginBottom: '1rem' }}>
+                      <div className="totals-item">
+                        <span className="live-indicator" title="Live updates via WebSocket">
+                          <span className="live-dot"></span>
+                          Live
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="table-wrapper logs-table">
                   <table>
                     <thead>
                       <tr>
@@ -1056,6 +1104,7 @@ function App() {
                     {!logsHasMore && logsData.length > 0 && <span className="no-more">No more logs</span>}
                   </div>
                 </div>
+                </>
               )}
             </>
           )}

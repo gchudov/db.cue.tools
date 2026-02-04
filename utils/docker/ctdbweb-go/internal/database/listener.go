@@ -131,6 +131,19 @@ func (l *Listener) handleNotification(notification *pq.Notification) {
 	l.lastBroadcast = now
 
 	log.Printf("Stats broadcast: unique_tocs=%d, submissions=%d", statsMap["unique_tocs"], statsMap["submissions"])
+
+	// Broadcast submissions update notification (lightweight, no DB query)
+	submissionsMessage, err := json.Marshal(map[string]interface{}{
+		"type":      "submissions_update",
+		"timestamp": now.Unix(),
+	})
+	if err != nil {
+		log.Printf("Failed to marshal submissions notification: %v", err)
+		return
+	}
+
+	l.hub.Broadcast(submissionsMessage)
+	log.Printf("Submissions update notification broadcast")
 }
 
 // Close stops the listener
