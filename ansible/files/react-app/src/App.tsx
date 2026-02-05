@@ -221,7 +221,7 @@ function App() {
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const [selectedRow, setSelectedRow] = useState<number | null>(null)
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null)
   const [metadata, setMetadata] = useState<Metadata[] | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(false)
   const [selectedMetadataRow, setSelectedMetadataRow] = useState<number | null>(null)
@@ -294,7 +294,7 @@ function App() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    setSelectedRow(null)
+    setSelectedRowId(null)
     setSelectedEntryInfo(null)
     setMetadata(null)
     setHasMore(true)
@@ -488,14 +488,14 @@ function App() {
 
   // Memoize selected row data to avoid re-fetching when more rows are loaded
   const selectedRowData = useMemo(() => {
-    if (selectedRow === null || data.length === 0) return null
-    const submission = data[selectedRow]
+    if (selectedRowId === null || data.length === 0) return null
+    const submission = data.find(s => s.id === selectedRowId)
     if (!submission) return null
     return {
       toc: submission.toc_formatted,
       discId: submission.tocid,
     }
-  }, [selectedRow, data[selectedRow ?? -1]])
+  }, [selectedRowId, data])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -820,11 +820,11 @@ function App() {
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
-    if (selectedRow === null || data.length === 0) {
+    if (selectedRowId === null || data.length === 0) {
       return null
     }
 
-    const submission = data[selectedRow]
+    const submission = data.find(s => s.id === selectedRowId)
     if (!submission) return null
 
     const tocString = submission.toc_formatted
@@ -841,7 +841,7 @@ function App() {
     }
 
     return buildTracks(tocString, crcsString, tracklist, mainArtist)
-  }, [selectedRow, data, metadata, selectedMetadataRow])
+  }, [selectedRowId, data, metadata, selectedMetadataRow])
 
   // Extract cover art from metadata
   interface CoverArtImage {
@@ -883,8 +883,8 @@ function App() {
     return { primary, secondary }
   }, [metadata, selectedMetadataRow])
 
-  const handleRowClick = (rowIndex: number) => {
-    setSelectedRow(selectedRow === rowIndex ? null : rowIndex)
+  const handleRowClick = (submissionId: number) => {
+    setSelectedRowId(selectedRowId === submissionId ? null : submissionId)
   }
 
   const handleMetadataRowClick = (rowIndex: number) => {
@@ -1208,11 +1208,11 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {data.map((submission, rowIndex) => (
+            {data.map((submission) => (
               <tr
                 key={submission.id}
-                onClick={() => handleRowClick(rowIndex)}
-                className={selectedRow === rowIndex ? 'selected' : ''}
+                onClick={() => handleRowClick(submission.id)}
+                className={selectedRowId === submission.id ? 'selected' : ''}
               >
                 <td className="col-artist">
                   <span className="filterable-cell">
@@ -1260,7 +1260,7 @@ function App() {
       </div>
 
       {/* Metadata section with links */}
-      {selectedRow !== null && (
+      {selectedRowId !== null && (
         <div className="metadata-layout">
           {/* Links box */}
           {selectedEntryInfo && (
@@ -1443,7 +1443,7 @@ function App() {
       )}
 
       {/* Submissions log (admin only) */}
-      {user?.role === 'admin' && selectedRow !== null && (
+      {user?.role === 'admin' && selectedRowId !== null && (
         <div className="submissions-section">
           <button
             className="submissions-header"
