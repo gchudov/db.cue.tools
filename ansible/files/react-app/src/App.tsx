@@ -21,27 +21,30 @@ import { useSubmissionsWebSocket } from '@/hooks/useSubmissionsWebSocket'
 
 type Page = 'home' | 'stats' | 'logs'
 
-interface Column {
-  label: string
-  type: string
+// Submission interface for /api/latest and /api/top
+interface Submission {
+  id: number
+  artist: string
+  title: string
+  tocid: string
+  first_audio: number
+  audio_tracks: number
+  track_count: number
+  track_offsets: string
+  sub_count: number
+  crc32: number
+  track_crcs?: number[]
+  toc_formatted: string
+  track_count_formatted: string
+  track_crcs_formatted?: string
 }
 
-interface Cell {
-  v: unknown
+// Response format for /api/latest and /api/top
+interface SubmissionsResponse {
+  data: Submission[]
+  cursors: { newest: number; oldest: number }
+  has_more: boolean
 }
-
-interface Row {
-  c: Cell[]
-}
-
-// Google Visualization API format (still used for main table - latest/popular)
-interface GoogleVizResponse {
-  cols: Column[]
-  rows: Row[]
-}
-
-// Legacy alias for backwards compatibility
-type ApiResponse = GoogleVizResponse
 
 // Clean JSON interface for recent submissions
 interface RecentSubmission {
@@ -119,41 +122,6 @@ function formatReleaseValue(value: unknown): { flags: React.ReactNode; tooltip: 
     flags: flagElements.length > 0 ? flagElements : tooltipParts.join(', '),
     tooltip: tooltipParts.join(', ')
   }
-}
-
-// Helper to format cell values (handles objects like Release and Label)
-function formatCellValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return ''
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    return String(value)
-  }
-  if (Array.isArray(value)) {
-    return value
-      .map(item => {
-        if (typeof item === 'object' && item !== null) {
-          if ('name' in item) {
-            const name = (item as { name?: string }).name || ''
-            const catno = (item as { catno?: string }).catno
-            return catno ? `${name} (${catno})` : name
-          }
-          if ('country' in item || 'date' in item) {
-            const country = (item as { country?: string }).country || ''
-            const date = (item as { date?: string }).date || ''
-            return [country, date].filter(Boolean).join(': ')
-          }
-          return JSON.stringify(item)
-        }
-        return String(item)
-      })
-      .filter(Boolean)
-      .join(', ')
-  }
-  if (typeof value === 'object') {
-    return JSON.stringify(value)
-  }
-  return String(value)
 }
 
 // Format timestamp as relative time (e.g., "2 hours ago")
@@ -245,7 +213,8 @@ function App() {
   const [filters, setFilters] = useState<Filters>(initialState.filters)
   const [pendingFilters, setPendingFilters] = useState<Filters>(initialState.filters)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [data, setData] = useState<ApiResponse | null>(null)
+  const [data, setData] = useState<Submission[]>([])
+  const [oldestCursor, setOldestCursor] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -323,8 +292,10 @@ function App() {
     setSelectedEntryInfo(null)
     setMetadata(null)
     setHasMore(true)
+    setData([])
+    setOldestCursor(0)
 
-    const params = new URLSearchParams({ json: '1', start: '0' })
+    const params = new URLSearchParams({ limit: '50' })
     if (filters.tocid.trim()) {
       params.set('tocid', filters.tocid.trim())
     }
@@ -339,12 +310,11 @@ function App() {
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
-        setData(json)
+      .then((json: SubmissionsResponse) => {
+        setData(json.data)
+        setOldestCursor(json.cursors.oldest)
+        setHasMore(json.has_more)
         setLoading(false)
-        if (json.rows.length < 10) {
-          setHasMore(false)
-        }
       })
       .catch(err => {
         setError(err.message)
@@ -354,12 +324,11 @@ function App() {
 
   // Load more data function
   const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore || !data) return
+    if (loadingMore || !hasMore || data.length === 0 || oldestCursor === 0) return
 
     setLoadingMore(true)
-    const nextStart = data.rows.length
 
-    const params = new URLSearchParams({ json: '1', start: String(nextStart) })
+    const params = new URLSearchParams({ limit: '50', before: String(oldestCursor) })
     if (filters.tocid.trim()) {
       params.set('tocid', filters.tocid.trim())
     }
@@ -374,20 +343,16 @@ function App() {
         }
         return response.json()
       })
-      .then((json: ApiResponse) => {
-        setData(prev => prev ? {
-          ...prev,
-          rows: [...prev.rows, ...json.rows]
-        } : json)
+      .then((json: SubmissionsResponse) => {
+        setData(prev => [...prev, ...json.data])
+        setOldestCursor(json.cursors.oldest)
+        setHasMore(json.has_more)
         setLoadingMore(false)
-        if (json.rows.length < 10) {
-          setHasMore(false)
-        }
       })
       .catch(() => {
         setLoadingMore(false)
       })
-  }, [loadingMore, hasMore, data, filters, viewMode])
+  }, [loadingMore, hasMore, data.length, oldestCursor, filters, viewMode])
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -417,17 +382,14 @@ function App() {
 
   // Memoize selected row data to avoid re-fetching when more rows are loaded
   const selectedRowData = useMemo(() => {
-    if (selectedRow === null || !data) return null
-    const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
-    const discIdIndex = data.cols.findIndex(col => col.label === 'Disc Id')
-    if (tocIndex === -1 || discIdIndex === -1) return null
-    const row = data.rows[selectedRow]
-    if (!row) return null
+    if (selectedRow === null || data.length === 0) return null
+    const submission = data[selectedRow]
+    if (!submission) return null
     return {
-      toc: String(row.c[tocIndex]?.v || ''),
-      discId: String(row.c[discIdIndex]?.v || ''),
+      toc: submission.toc_formatted,
+      discId: submission.tocid,
     }
-  }, [selectedRow, data?.rows[selectedRow ?? -1]])
+  }, [selectedRow, data[selectedRow ?? -1]])
 
   // Fetch metadata when a row is selected
   useEffect(() => {
@@ -755,17 +717,15 @@ function App() {
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
-    if (selectedRow === null || !data) {
+    if (selectedRow === null || data.length === 0) {
       return null
     }
 
-    const tocIndex = data.cols.findIndex(col => col.label === 'TOC')
-    const crcsIndex = data.cols.findIndex(col => col.label === 'Track CRCs')
+    const submission = data[selectedRow]
+    if (!submission) return null
 
-    if (tocIndex === -1) return null
-
-    const tocString = String(data.rows[selectedRow].c[tocIndex].v || '')
-    const crcsString = crcsIndex !== -1 ? String(data.rows[selectedRow].c[crcsIndex].v || '') : null
+    const tocString = submission.toc_formatted
+    const crcsString = submission.track_crcs_formatted || null
 
     // Get track info and main artist directly from metadata
     let tracklist: Array<{ name?: string; artist?: string }> | null = null
@@ -872,7 +832,7 @@ function App() {
     )
   }
 
-  if (!data) {
+  if (data.length === 0 && !loading) {
     return (
       <div className="container">
         <h1>CUETools DB</h1>
@@ -880,17 +840,6 @@ function App() {
       </div>
     )
   }
-
-  // Columns to hide in main table
-  const hiddenColumns = ['CRC32', 'TOC', 'Track CRCs']
-  const visibleColIndices = data.cols
-    .map((col, index) => ({ col, index }))
-    .filter(({ col }) => !hiddenColumns.includes(col.label))
-    .map(({ index }) => index)
-  
-  const discIdColIndex = data.cols.findIndex(col => col.label === 'Disc Id')
-  const artistColIndex = data.cols.findIndex(col => col.label === 'Artist')
-  const crc32ColIndex = data.cols.findIndex(col => col.label === 'CRC32')
 
   // Map source names to icon URLs
   const sourceIcons: Record<string, string> = {
@@ -1147,57 +1096,55 @@ function App() {
         <table>
           <thead>
             <tr>
-              {visibleColIndices.map((colIndex) => (
-                <th key={colIndex} className={`col-${data.cols[colIndex].label.toLowerCase().replace(/\s+/g, '-')}`}>
-                  {data.cols[colIndex].label}
-                </th>
-              ))}
+              <th className="col-artist">Artist</th>
+              <th className="col-album">Album</th>
+              <th className="col-disc-id">Disc Id</th>
+              <th className="col-tracks">Tracks</th>
+              <th className="col-ctdb-id">CTDB Id</th>
+              <th className="col-cf">Cf</th>
             </tr>
           </thead>
           <tbody>
-            {data.rows.map((row, rowIndex) => (
+            {data.map((submission, rowIndex) => (
               <tr
-                key={rowIndex}
+                key={submission.id}
                 onClick={() => handleRowClick(rowIndex)}
                 className={selectedRow === rowIndex ? 'selected' : ''}
               >
-                {visibleColIndices.map((colIndex) => (
-                  <td key={colIndex} className={`col-${data.cols[colIndex].label.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {colIndex === discIdColIndex ? (
-                      <span className="filterable-cell">
-                        <button
-                          className="inline-filter-btn"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setTocidFilter(String(row.c[colIndex].v || ''))
-                          }}
-                          title="Filter by this Disc ID"
-                        >
-                          <Filter className="size-3" />
-                        </button>
-                        {formatCellValue(row.c[colIndex].v)}
-                      </span>
-                    ) : colIndex === artistColIndex ? (
-                      <span className="filterable-cell">
-                        <button
-                          className="inline-filter-btn"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setArtistFilter(String(row.c[colIndex].v || ''))
-                          }}
-                          title="Filter by this Artist"
-                        >
-                          <Filter className="size-3" />
-                        </button>
-                        {formatCellValue(row.c[colIndex].v)}
-                      </span>
-                    ) : colIndex === crc32ColIndex ? (
-                      formatCRC32(Number(row.c[colIndex].v || 0))
-                    ) : (
-                      formatCellValue(row.c[colIndex].v)
-                    )}
-                  </td>
-                ))}
+                <td className="col-artist">
+                  <span className="filterable-cell">
+                    <button
+                      className="inline-filter-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setArtistFilter(submission.artist || '')
+                      }}
+                      title="Filter by this Artist"
+                    >
+                      <Filter className="size-3" />
+                    </button>
+                    {submission.artist}
+                  </span>
+                </td>
+                <td className="col-album">{submission.title}</td>
+                <td className="col-disc-id">
+                  <span className="filterable-cell">
+                    <button
+                      className="inline-filter-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setTocidFilter(submission.tocid || '')
+                      }}
+                      title="Filter by this Disc ID"
+                    >
+                      <Filter className="size-3" />
+                    </button>
+                    {submission.tocid}
+                  </span>
+                </td>
+                <td className="col-tracks">{submission.track_count_formatted}</td>
+                <td className="col-ctdb-id">{submission.id}</td>
+                <td className="col-cf">{submission.sub_count}</td>
               </tr>
             ))}
           </tbody>
@@ -1205,7 +1152,7 @@ function App() {
         {/* Infinite scroll trigger */}
         <div ref={loadMoreRef} className="load-more-trigger">
           {loadingMore && <span className="loading-more">Loading more...</span>}
-          {!hasMore && data.rows.length > 0 && <span className="no-more">No more entries</span>}
+          {!hasMore && data.length > 0 && <span className="no-more">No more entries</span>}
         </div>
       </div>
 

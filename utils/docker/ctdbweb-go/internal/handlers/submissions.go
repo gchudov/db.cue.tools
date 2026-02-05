@@ -2,14 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/cuetools/ctdbweb/internal/database"
-	"github.com/cuetools/ctdbweb/internal/models"
-	"github.com/cuetools/ctdbweb/internal/toc"
 )
 
 // SubmissionsHandler handles requests for CD submissions with different sort modes
@@ -28,27 +24,35 @@ func NewSubmissionsHandler(db *database.DB, sortBy string) *SubmissionsHandler {
 
 // ServeHTTP handles the /api/latest and /api/top endpoints
 func (h *SubmissionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters
-	startParam := r.URL.Query().Get("start")
-	start := 0
-	if startParam != "" {
-		if s, err := strconv.Atoi(startParam); err == nil {
-			start = s
+	query := r.URL.Query()
+
+	// Parse limit (default 50, max 1000)
+	limit := 50
+	if limitStr := query.Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 1000 {
+			limit = l
 		}
 	}
 
-	limitParam := r.URL.Query().Get("limit")
-	limit := 50
-	if limitParam != "" {
-		if l, err := strconv.Atoi(limitParam); err == nil && l > 0 && l <= 1000 {
-			limit = l
+	// Parse cursor parameters for cursor-based pagination
+	var cursor int64 = 0
+	if cursorStr := query.Get("cursor"); cursorStr != "" {
+		if c, err := strconv.ParseInt(cursorStr, 10, 64); err == nil {
+			cursor = c
+		}
+	}
+
+	var before int64 = 0
+	if beforeStr := query.Get("before"); beforeStr != "" {
+		if b, err := strconv.ParseInt(beforeStr, 10, 64); err == nil {
+			before = b
 		}
 	}
 
 	// Parse filter parameters
 	var filters *database.SubmissionFilters
-	tocidFilter := r.URL.Query().Get("tocid")
-	artistFilter := r.URL.Query().Get("artist")
+	tocidFilter := query.Get("tocid")
+	artistFilter := query.Get("artist")
 	if tocidFilter != "" || artistFilter != "" {
 		filters = &database.SubmissionFilters{
 			TOCID:  tocidFilter,
@@ -56,122 +60,49 @@ func (h *SubmissionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Query database using unified function
-	submissions, err := database.GetSubmissions(h.db.CTDB, start, limit, h.sortBy, filters)
+	// Query database with cursor-based pagination
+	submissions, err := database.GetSubmissions(h.db.CTDB, limit, cursor, before, h.sortBy, filters)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch submissions: `+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
 
-	// Check if Google Visualization format is requested
-	jsonParam := r.URL.Query().Get("json")
-	if jsonParam == "1" {
-		// Return in Google Visualization API format
-		response := formatSubmissionsAsGoogleViz(submissions)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		encoder := json.NewEncoder(w)
-		if err := encoder.Encode(response); err != nil {
-			http.Error(w, `{"error":"Failed to encode response"}`, http.StatusInternalServerError)
-		}
-		return
+	// Populate computed fields for all submissions
+	for i := range submissions {
+		submissions[i].PopulateComputedFields()
 	}
 
-	// Return plain JSON
+	// Build cursor-based response with metadata
+	var newestID, oldestID int64
+	hasMore := len(submissions) >= limit
+
+	if len(submissions) > 0 {
+		// For "latest" with cursor param, results are ASC order, so reverse for response
+		if h.sortBy == "latest" && cursor > 0 {
+			// Reverse the slice to get DESC order (newest first)
+			for i, j := 0, len(submissions)-1; i < j; i, j = i+1, j-1 {
+				submissions[i], submissions[j] = submissions[j], submissions[i]
+			}
+		}
+
+		// After potential reversal: first entry has newest id, last has oldest
+		newestID = int64(submissions[0].ID)
+		oldestID = int64(submissions[len(submissions)-1].ID)
+	}
+
+	response := map[string]interface{}{
+		"data": submissions,
+		"cursors": map[string]interface{}{
+			"newest": newestID,
+			"oldest": oldestID,
+		},
+		"has_more": hasMore,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(submissions); err != nil {
+	if err := encoder.Encode(response); err != nil {
 		http.Error(w, `{"error":"Failed to encode response"}`, http.StatusInternalServerError)
-	}
-}
-
-// formatSubmissionsAsGoogleViz converts submissions to Google Visualization API format
-func formatSubmissionsAsGoogleViz(submissions interface{}) map[string]interface{} {
-	cols := []map[string]interface{}{
-		{"label": "Artist", "type": "string"},
-		{"label": "Album", "type": "string"},
-		{"label": "Disc Id", "type": "string"},
-		{"label": "Tracks", "type": "string"},
-		{"label": "CTDB Id", "type": "number"},
-		{"label": "Cf", "type": "number"},
-		{"label": "CRC32", "type": "number"},
-		{"label": "TOC", "type": "string"},
-		{"label": "Track CRCs", "type": "string"},
-	}
-
-	// Convert submissions to rows
-	submissionList, ok := submissions.([]models.Submission)
-	if !ok {
-		return map[string]interface{}{
-			"cols": cols,
-			"rows": []map[string]interface{}{},
-		}
-	}
-
-	rows := make([]map[string]interface{}, len(submissionList))
-	for i, sub := range submissionList {
-		// Format tracks string (e.g., "12" or "1+12" or "12+1")
-		tracksStr := sub.TrackCountString()
-
-		// Format track CRCs as space-separated hex values
-		trackCRCsStr := ""
-		if len(sub.TrackCRCs) > 0 {
-			crcStrs := make([]string, len(sub.TrackCRCs))
-			for j, crc := range sub.TrackCRCs {
-				crcStrs[j] = fmt.Sprintf("%08x", uint32(crc))
-			}
-			trackCRCsStr = strings.Join(crcStrs, " ")
-		}
-
-		// Convert space-separated TOC offsets to colon-separated format with data track markers
-		// Port of PHP: phpCTDB::toc_toc2s()
-		tocStr := sub.TrackOffsets // Default to raw offsets if parsing fails
-		if sub.TrackOffsets != "" {
-			// Parse space-separated offsets from database
-			offsetParts := strings.Fields(sub.TrackOffsets)
-			offsets := make([]int, len(offsetParts))
-			parseOk := true
-			for idx, part := range offsetParts {
-				offset, err := strconv.Atoi(part)
-				if err != nil {
-					parseOk = false
-					break
-				}
-				offsets[idx] = offset
-			}
-
-			if parseOk && len(offsets) > 0 {
-				// Create TOC struct from database fields
-				tocStruct := &toc.TOC{
-					FirstAudio:  sub.FirstAudio,
-					AudioTracks: sub.AudioTracks,
-					TrackCount:  sub.TrackCount,
-					Offsets:     offsets,
-				}
-				// Convert to colon-separated format with '-' prefixes for data tracks
-				tocStr = tocStruct.String()
-			}
-		}
-
-		rows[i] = map[string]interface{}{
-			"c": []map[string]interface{}{
-				{"v": sub.Artist},
-				{"v": sub.Title},
-				{"v": sub.TOCID},
-				{"v": tracksStr},
-				{"v": sub.ID},
-				{"v": sub.SubCount},
-				{"v": sub.CRC32},
-				{"v": tocStr},
-				{"v": trackCRCsStr},
-			},
-		}
-	}
-
-	return map[string]interface{}{
-		"cols": cols,
-		"rows": rows,
 	}
 }

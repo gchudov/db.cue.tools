@@ -29,10 +29,21 @@ type RecentSubmissionFilters struct {
 	IP        string // Exact match on IP address
 }
 
-// GetSubmissions retrieves CD submissions from CTDB with different sort modes
+// GetSubmissions retrieves CD submissions from CTDB with cursor-based pagination
 // sortBy: "latest" (newest first) or "top" (most popular first)
+// cursor: fetch entries with id > cursor (for polling new entries)
+// before: fetch entries with id < before (for pagination backward)
+// limit: max number of results
 // filters: optional filters for TOCID and artist
-func GetSubmissions(db *sql.DB, start, limit int, sortBy string, filters *SubmissionFilters) ([]models.Submission, error) {
+func GetSubmissions(db *sql.DB, limit int, cursor, before int64, sortBy string, filters *SubmissionFilters) ([]models.Submission, error) {
+	// Default and cap limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
 	// Build base SELECT clause
 	selectClause := `
 		SELECT
@@ -49,12 +60,40 @@ func GetSubmissions(db *sql.DB, start, limit int, sortBy string, filters *Submis
 			s.track_crcs
 		FROM submissions2 s`
 
-	// Build WHERE clause based on sort type and filters
+	// Build WHERE clause based on sort type, cursor, and filters
 	var whereClauses []string
 	var args []interface{}
 	paramCounter := 1
 
-	// Add filter conditions first
+	// Cursor-based pagination (using id for "latest" mode)
+	useCursor := cursor > 0 || before > 0
+	var orderByClause string
+
+	if sortBy == "latest" {
+		if cursor > 0 {
+			// Fetch newer entries (id > cursor), ascending to get oldest-first of new entries
+			whereClauses = append(whereClauses, fmt.Sprintf("s.id > $%d", paramCounter))
+			args = append(args, cursor)
+			paramCounter++
+			orderByClause = " ORDER BY s.id ASC"
+		} else if before > 0 {
+			// Fetch older entries (id < before), descending
+			whereClauses = append(whereClauses, fmt.Sprintf("s.id < $%d", paramCounter))
+			args = append(args, before)
+			paramCounter++
+			orderByClause = " ORDER BY s.id DESC"
+		} else {
+			// Default: newest first
+			orderByClause = " ORDER BY s.id DESC"
+		}
+	} else if sortBy == "top" {
+		// Top mode doesn't support cursor pagination (subcount changes over time)
+		orderByClause = " ORDER BY s.subcount DESC, s.id DESC"
+	} else {
+		return nil, fmt.Errorf("invalid sortBy parameter: %s (must be 'latest' or 'top')", sortBy)
+	}
+
+	// Add filter conditions
 	hasFilters := false
 	if filters != nil {
 		if filters.TOCID != "" {
@@ -73,8 +112,8 @@ func GetSubmissions(db *sql.DB, start, limit int, sortBy string, filters *Submis
 
 	// Add sort-specific WHERE clause only if no filters are provided
 	// This matches PHP behavior: top.php only adds subcount constraint when no filters
-	if sortBy == "top" && !hasFilters {
-		whereClauses = append(whereClauses, fmt.Sprintf("s.subcount > 50"))
+	if sortBy == "top" && !hasFilters && !useCursor {
+		whereClauses = append(whereClauses, "s.subcount > 50")
 	}
 
 	// Build WHERE clause
@@ -83,25 +122,12 @@ func GetSubmissions(db *sql.DB, start, limit int, sortBy string, filters *Submis
 		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	// Build ORDER BY clause
-	var orderByClause string
-	switch sortBy {
-	case "latest":
-		orderByClause = " ORDER BY s.id DESC"
-	case "top":
-		orderByClause = " ORDER BY s.subcount DESC, s.id DESC"
-	default:
-		return nil, fmt.Errorf("invalid sortBy parameter: %s (must be 'latest' or 'top')", sortBy)
-	}
-
-	// Add LIMIT and OFFSET parameters
+	// Add LIMIT parameter
 	limitParam := fmt.Sprintf("$%d", paramCounter)
-	paramCounter++
-	offsetParam := fmt.Sprintf("$%d", paramCounter)
-	args = append(args, limit, start)
+	args = append(args, limit)
 
-	// Build complete query
-	query := selectClause + whereClause + orderByClause + fmt.Sprintf(" LIMIT %s OFFSET %s", limitParam, offsetParam)
+	// Build complete query (no OFFSET - cursor-based pagination only)
+	query := selectClause + whereClause + orderByClause + fmt.Sprintf(" LIMIT %s", limitParam)
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -169,15 +195,17 @@ func GetSubmissions(db *sql.DB, start, limit int, sortBy string, filters *Submis
 }
 
 // GetLatestSubmissions retrieves the latest CD submissions from CTDB
-// Deprecated: Use GetSubmissions(db, start, limit, "latest", filters) instead
+// Deprecated: Use GetSubmissions(db, limit, cursor, before, "latest", filters) instead
 func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
-	return GetSubmissions(db, start, limit, "latest", nil)
+	// Legacy: no cursor support, just get latest
+	return GetSubmissions(db, limit, 0, 0, "latest", nil)
 }
 
 // GetTopSubmissions retrieves the most popular CD submissions from CTDB
-// Deprecated: Use GetSubmissions(db, start, limit, "top", filters) instead
+// Deprecated: Use GetSubmissions(db, limit, cursor, before, "top", filters) instead
 func GetTopSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
-	return GetSubmissions(db, start, limit, "top", nil)
+	// Legacy: no cursor support for top (ordering by subcount is not stable)
+	return GetSubmissions(db, limit, 0, 0, "top", nil)
 }
 
 // GetRecentSubmissions retrieves recent CD submissions with optional filters
