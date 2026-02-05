@@ -240,6 +240,11 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>(initialState.page)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  // Real-time updates state for home page (Latest view)
+  const [newestCursor, setNewestCursor] = useState<number>(0)
+  const newestCursorRef = useRef<number>(0)
+  const fetchingNewRef = useRef<boolean>(false)
+
   // Auth state
   const [user, setUser] = useState<{ email: string; role: string } | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -263,10 +268,10 @@ function App() {
   const logsLoadMoreRef = useRef<HTMLDivElement>(null)
   const logsNewestCursorRef = useRef<number>(0)
   const logsFetchingNewRef = useRef<boolean>(false)
-  const logsUpdateCountRef = useRef<number>(0)
+  const updateCountRef = useRef<number>(0)
 
-  // WebSocket for logs page real-time updates
-  const { updateCount: logsUpdateCount, isConnected: logsWsConnected } = useSubmissionsWebSocket()
+  // WebSocket for real-time updates (home page Latest view and logs page)
+  const { updateCount, isConnected: wsConnected } = useSubmissionsWebSocket()
 
   // Check authentication on mount
   useEffect(() => {
@@ -295,6 +300,9 @@ function App() {
     setHasMore(true)
     setData([])
     setOldestCursor(0)
+    // Reset real-time cursor tracking
+    setNewestCursor(0)
+    newestCursorRef.current = 0
 
     const params = new URLSearchParams({ limit: '50' })
     if (filters.tocid.trim()) {
@@ -314,6 +322,11 @@ function App() {
       .then((json: SubmissionsResponse) => {
         setData(json.data)
         setOldestCursor(json.cursors.oldest)
+        // Track newest cursor for real-time updates (only for "latest" mode)
+        if (viewMode === 'latest' && typeof json.cursors.newest === 'number') {
+          setNewestCursor(json.cursors.newest)
+          newestCursorRef.current = json.cursors.newest
+        }
         setHasMore(json.has_more)
         setLoading(false)
       })
@@ -382,6 +395,96 @@ function App() {
       }
     }
   }, [currentPage, loadMore, hasMore, loadingMore])
+
+  // Keep ref in sync with updateCount for access in async callbacks (shared by home and logs)
+  updateCountRef.current = updateCount
+
+  // WebSocket-triggered fetch for new home entries (real-time updates - Latest view only)
+  useEffect(() => {
+    if (currentPage !== 'home' || viewMode !== 'latest' || newestCursorRef.current === 0 || updateCount === 0) {
+      return
+    }
+
+    if (fetchingNewRef.current) return
+
+    const doFetch = (processingCount: number, iteration: number) => {
+      const maxIterations = 5
+      if (iteration >= maxIterations) return
+
+      const currentCursor = newestCursorRef.current
+      if (currentCursor === 0) return
+
+      fetchingNewRef.current = true
+
+      const params = new URLSearchParams({ limit: '50', cursor: String(currentCursor) })
+      if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
+      if (filters.artist.trim()) params.set('artist', filters.artist.trim())
+
+      fetch(`/api/latest?${params.toString()}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch')
+          return response.json()
+        })
+        .then((json: SubmissionsResponse) => {
+          if (json.data.length > 0) {
+            setData(prev => [...json.data, ...prev])
+            if (typeof json.cursors.newest === 'number') {
+              setNewestCursor(json.cursors.newest)
+              newestCursorRef.current = json.cursors.newest
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          fetchingNewRef.current = false
+          const latestCount = updateCountRef.current
+          if (latestCount > processingCount) {
+            doFetch(latestCount, iteration + 1)
+          }
+        })
+    }
+
+    doFetch(updateCount, 0)
+  }, [currentPage, viewMode, updateCount, filters])
+
+  // Fallback polling when WebSocket disconnected (home page Latest view only)
+  useEffect(() => {
+    if (currentPage !== 'home' || viewMode !== 'latest' || newestCursorRef.current === 0 || wsConnected) {
+      return
+    }
+
+    const pollInterval = setInterval(() => {
+      if (fetchingNewRef.current) return
+
+      const currentCursor = newestCursorRef.current
+      fetchingNewRef.current = true
+
+      const params = new URLSearchParams({ limit: '50', cursor: String(currentCursor) })
+      if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
+      if (filters.artist.trim()) params.set('artist', filters.artist.trim())
+
+      fetch(`/api/latest?${params.toString()}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch')
+          return response.json()
+        })
+        .then((json: SubmissionsResponse) => {
+          if (json.data.length > 0) {
+            setData(prev => [...json.data, ...prev])
+            if (typeof json.cursors.newest === 'number') {
+              setNewestCursor(json.cursors.newest)
+              newestCursorRef.current = json.cursors.newest
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          fetchingNewRef.current = false
+        })
+    }, 5000)
+
+    return () => clearInterval(pollInterval)
+  }, [currentPage, viewMode, wsConnected, filters])
 
   // Memoize selected row data to avoid re-fetching when more rows are loaded
   const selectedRowData = useMemo(() => {
@@ -629,12 +732,9 @@ function App() {
     }
   }, [loadMoreLogs, logsHasMore, logsLoadingMore, currentPage])
 
-  // Keep ref in sync with logsUpdateCount for access in async callbacks
-  logsUpdateCountRef.current = logsUpdateCount
-
   // WebSocket-triggered fetch for new log entries (real-time updates)
   useEffect(() => {
-    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || logsUpdateCount === 0) {
+    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || updateCount === 0) {
       return
     }
 
@@ -670,19 +770,19 @@ function App() {
         .finally(() => {
           logsFetchingNewRef.current = false
           // Check if more updates came in while we were fetching
-          const latestCount = logsUpdateCountRef.current
+          const latestCount = updateCountRef.current
           if (latestCount > processingCount) {
             doFetch(latestCount, iteration + 1)
           }
         })
     }
 
-    doFetch(logsUpdateCount, 0)
-  }, [currentPage, user?.role, logsUpdateCount])
+    doFetch(updateCount, 0)
+  }, [currentPage, user?.role, updateCount])
 
   // Fallback polling when WebSocket disconnected
   useEffect(() => {
-    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || logsWsConnected) return
+    if (currentPage !== 'logs' || user?.role !== 'admin' || logsNewestCursorRef.current === 0 || wsConnected) return
 
     const pollInterval = setInterval(() => {
       // Don't start a new fetch if one is already in progress
@@ -716,7 +816,7 @@ function App() {
     }, 5000) // Poll every 5 seconds when WebSocket unavailable
 
     return () => clearInterval(pollInterval)
-  }, [currentPage, user?.role, logsWsConnected])
+  }, [currentPage, user?.role, wsConnected])
 
   // Build tracks data
   const tracks = useMemo<Track[] | null>(() => {
@@ -1025,7 +1125,7 @@ function App() {
 
               {!logsLoading && logsData && logsData.length > 0 && (
                 <>
-                  {logsWsConnected && (
+                  {wsConnected && (
                     <div className="stats-totals" style={{ marginBottom: '1rem' }}>
                       <div className="totals-item">
                         <span className="live-indicator" title="Live updates via WebSocket">
