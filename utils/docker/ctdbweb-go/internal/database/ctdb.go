@@ -12,6 +12,37 @@ import (
 	"github.com/cuetools/ctdbweb/pkg/pgarray"
 )
 
+// TopCursor represents a composite cursor for "top" pagination (subcount:id)
+type TopCursor struct {
+	SubCount int64
+	ID       int64
+}
+
+// ParseTopCursor parses a "subcount:id" cursor string
+func ParseTopCursor(s string) (*TopCursor, error) {
+	if s == "" {
+		return nil, nil
+	}
+	parts := strings.Split(s, ":")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid cursor format: expected 'subcount:id'")
+	}
+	subcount, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid subcount in cursor: %w", err)
+	}
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id in cursor: %w", err)
+	}
+	return &TopCursor{SubCount: subcount, ID: id}, nil
+}
+
+// String returns the cursor as "subcount:id"
+func (c *TopCursor) String() string {
+	return fmt.Sprintf("%d:%d", c.SubCount, c.ID)
+}
+
 // SubmissionFilters holds optional filter parameters for submission queries
 type SubmissionFilters struct {
 	TOCID  string // Exact match on TOCID
@@ -29,14 +60,25 @@ type RecentSubmissionFilters struct {
 	IP        string // Exact match on IP address
 }
 
+// SubmissionParams holds parameters for GetSubmissions
+type SubmissionParams struct {
+	Limit   int
+	SortBy  string // "latest" or "top"
+	Filters *SubmissionFilters
+
+	// For "latest" mode
+	Cursor int64 // fetch newer than this id
+	Before int64 // fetch older than this id
+
+	// For "top" mode
+	TopBefore *TopCursor // fetch items ranked lower than this
+}
+
 // GetSubmissions retrieves CD submissions from CTDB with cursor-based pagination
-// sortBy: "latest" (newest first) or "top" (most popular first)
-// cursor: fetch entries with id > cursor (for polling new entries)
-// before: fetch entries with id < before (for pagination backward)
-// limit: max number of results
-// filters: optional filters for TOCID and artist
-func GetSubmissions(db *sql.DB, limit int, cursor, before int64, sortBy string, filters *SubmissionFilters) ([]models.Submission, error) {
+// Uses SubmissionParams to configure sort mode, pagination, and filters
+func GetSubmissions(db *sql.DB, params SubmissionParams) ([]models.Submission, error) {
 	// Default and cap limit
+	limit := params.Limit
 	if limit <= 0 {
 		limit = 50
 	}
@@ -64,56 +106,57 @@ func GetSubmissions(db *sql.DB, limit int, cursor, before int64, sortBy string, 
 	var whereClauses []string
 	var args []interface{}
 	paramCounter := 1
-
-	// Cursor-based pagination (using id for "latest" mode)
-	useCursor := cursor > 0 || before > 0
 	var orderByClause string
 
-	if sortBy == "latest" {
-		if cursor > 0 {
+	if params.SortBy == "latest" {
+		if params.Cursor > 0 {
 			// Fetch newer entries (id > cursor), ascending to get oldest-first of new entries
 			whereClauses = append(whereClauses, fmt.Sprintf("s.id > $%d", paramCounter))
-			args = append(args, cursor)
+			args = append(args, params.Cursor)
 			paramCounter++
 			orderByClause = " ORDER BY s.id ASC"
-		} else if before > 0 {
+		} else if params.Before > 0 {
 			// Fetch older entries (id < before), descending
 			whereClauses = append(whereClauses, fmt.Sprintf("s.id < $%d", paramCounter))
-			args = append(args, before)
+			args = append(args, params.Before)
 			paramCounter++
 			orderByClause = " ORDER BY s.id DESC"
 		} else {
 			// Default: newest first
 			orderByClause = " ORDER BY s.id DESC"
 		}
-	} else if sortBy == "top" {
-		// Top mode doesn't support cursor pagination (subcount changes over time)
+	} else if params.SortBy == "top" {
+		// Always include partial index predicate (matches WHERE subcount >= 5 in index)
+		whereClauses = append(whereClauses, "s.subcount >= 5")
+
+		// Add composite cursor condition if provided
+		if params.TopBefore != nil {
+			// (subcount < cursor_subcount) OR (subcount = cursor_subcount AND id < cursor_id)
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(s.subcount < $%d OR (s.subcount = $%d AND s.id < $%d))",
+				paramCounter, paramCounter+1, paramCounter+2,
+			))
+			args = append(args, params.TopBefore.SubCount, params.TopBefore.SubCount, params.TopBefore.ID)
+			paramCounter += 3
+		}
+
 		orderByClause = " ORDER BY s.subcount DESC, s.id DESC"
 	} else {
-		return nil, fmt.Errorf("invalid sortBy parameter: %s (must be 'latest' or 'top')", sortBy)
+		return nil, fmt.Errorf("invalid sortBy parameter: %s (must be 'latest' or 'top')", params.SortBy)
 	}
 
 	// Add filter conditions
-	hasFilters := false
-	if filters != nil {
-		if filters.TOCID != "" {
+	if params.Filters != nil {
+		if params.Filters.TOCID != "" {
 			whereClauses = append(whereClauses, fmt.Sprintf("s.tocid = $%d", paramCounter))
-			args = append(args, filters.TOCID)
+			args = append(args, params.Filters.TOCID)
 			paramCounter++
-			hasFilters = true
 		}
-		if filters.Artist != "" {
+		if params.Filters.Artist != "" {
 			whereClauses = append(whereClauses, fmt.Sprintf("s.artist ILIKE $%d", paramCounter))
-			args = append(args, filters.Artist)
+			args = append(args, params.Filters.Artist)
 			paramCounter++
-			hasFilters = true
 		}
-	}
-
-	// Add sort-specific WHERE clause only if no filters are provided
-	// This matches PHP behavior: top.php only adds subcount constraint when no filters
-	if sortBy == "top" && !hasFilters && !useCursor {
-		whereClauses = append(whereClauses, "s.subcount > 50")
 	}
 
 	// Build WHERE clause
@@ -195,17 +238,15 @@ func GetSubmissions(db *sql.DB, limit int, cursor, before int64, sortBy string, 
 }
 
 // GetLatestSubmissions retrieves the latest CD submissions from CTDB
-// Deprecated: Use GetSubmissions(db, limit, cursor, before, "latest", filters) instead
+// Deprecated: Use GetSubmissions(db, SubmissionParams{...}) instead
 func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
-	// Legacy: no cursor support, just get latest
-	return GetSubmissions(db, limit, 0, 0, "latest", nil)
+	return GetSubmissions(db, SubmissionParams{Limit: limit, SortBy: "latest"})
 }
 
 // GetTopSubmissions retrieves the most popular CD submissions from CTDB
-// Deprecated: Use GetSubmissions(db, limit, cursor, before, "top", filters) instead
+// Deprecated: Use GetSubmissions(db, SubmissionParams{...}) instead
 func GetTopSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
-	// Legacy: no cursor support for top (ordering by subcount is not stable)
-	return GetSubmissions(db, limit, 0, 0, "top", nil)
+	return GetSubmissions(db, SubmissionParams{Limit: limit, SortBy: "top"})
 }
 
 // GetRecentSubmissions retrieves recent CD submissions with optional filters

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -34,34 +35,49 @@ func (h *SubmissionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse cursor parameters for cursor-based pagination
-	var cursor int64 = 0
-	if cursorStr := query.Get("cursor"); cursorStr != "" {
-		if c, err := strconv.ParseInt(cursorStr, 10, 64); err == nil {
-			cursor = c
-		}
-	}
-
-	var before int64 = 0
-	if beforeStr := query.Get("before"); beforeStr != "" {
-		if b, err := strconv.ParseInt(beforeStr, 10, 64); err == nil {
-			before = b
-		}
+	// Build params based on sort mode
+	params := database.SubmissionParams{
+		Limit:  limit,
+		SortBy: h.sortBy,
 	}
 
 	// Parse filter parameters
-	var filters *database.SubmissionFilters
 	tocidFilter := query.Get("tocid")
 	artistFilter := query.Get("artist")
 	if tocidFilter != "" || artistFilter != "" {
-		filters = &database.SubmissionFilters{
+		params.Filters = &database.SubmissionFilters{
 			TOCID:  tocidFilter,
 			Artist: artistFilter,
 		}
 	}
 
-	// Query database with cursor-based pagination
-	submissions, err := database.GetSubmissions(h.db.CTDB, limit, cursor, before, h.sortBy, filters)
+	// Parse cursor parameters based on sort mode
+	if h.sortBy == "latest" {
+		// Parse simple numeric cursors for "latest" mode
+		if cursorStr := query.Get("cursor"); cursorStr != "" {
+			if c, err := strconv.ParseInt(cursorStr, 10, 64); err == nil {
+				params.Cursor = c
+			}
+		}
+		if beforeStr := query.Get("before"); beforeStr != "" {
+			if b, err := strconv.ParseInt(beforeStr, 10, 64); err == nil {
+				params.Before = b
+			}
+		}
+	} else if h.sortBy == "top" {
+		// Parse composite cursor for "top" mode (format: "subcount:id")
+		if beforeStr := query.Get("before"); beforeStr != "" {
+			topCursor, err := database.ParseTopCursor(beforeStr)
+			if err != nil {
+				http.Error(w, `{"error":"Invalid cursor format for top mode: expected 'subcount:id'"}`, http.StatusBadRequest)
+				return
+			}
+			params.TopBefore = topCursor
+		}
+	}
+
+	// Query database
+	submissions, err := database.GetSubmissions(h.db.CTDB, params)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch submissions: `+err.Error()+`"}`, http.StatusInternalServerError)
 		return
@@ -72,31 +88,52 @@ func (h *SubmissionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		submissions[i].PopulateComputedFields()
 	}
 
-	// Build cursor-based response with metadata
-	var newestID, oldestID int64
+	// Build response based on mode
 	hasMore := len(submissions) >= limit
+	var response map[string]interface{}
 
-	if len(submissions) > 0 {
-		// For "latest" with cursor param, results are ASC order, so reverse for response
-		if h.sortBy == "latest" && cursor > 0 {
-			// Reverse the slice to get DESC order (newest first)
-			for i, j := 0, len(submissions)-1; i < j; i, j = i+1, j-1 {
-				submissions[i], submissions[j] = submissions[j], submissions[i]
-			}
+	if h.sortBy == "top" {
+		// Composite string cursors for "top" mode
+		var newestCursor, oldestCursor string
+		if len(submissions) > 0 {
+			first := submissions[0]
+			last := submissions[len(submissions)-1]
+			newestCursor = fmt.Sprintf("%d:%d", first.SubCount, first.ID)
+			oldestCursor = fmt.Sprintf("%d:%d", last.SubCount, last.ID)
 		}
 
-		// After potential reversal: first entry has newest id, last has oldest
-		newestID = int64(submissions[0].ID)
-		oldestID = int64(submissions[len(submissions)-1].ID)
-	}
+		response = map[string]interface{}{
+			"data": submissions,
+			"cursors": map[string]interface{}{
+				"newest": newestCursor,
+				"oldest": oldestCursor,
+			},
+			"has_more": hasMore,
+		}
+	} else {
+		// Simple ID cursors for "latest" mode (existing behavior)
+		var newestID, oldestID int64
 
-	response := map[string]interface{}{
-		"data": submissions,
-		"cursors": map[string]interface{}{
-			"newest": newestID,
-			"oldest": oldestID,
-		},
-		"has_more": hasMore,
+		if len(submissions) > 0 {
+			// For "latest" with cursor param, results are ASC order, so reverse for response
+			if params.Cursor > 0 {
+				// Reverse the slice to get DESC order (newest first)
+				for i, j := 0, len(submissions)-1; i < j; i, j = i+1, j-1 {
+					submissions[i], submissions[j] = submissions[j], submissions[i]
+				}
+			}
+			newestID = int64(submissions[0].ID)
+			oldestID = int64(submissions[len(submissions)-1].ID)
+		}
+
+		response = map[string]interface{}{
+			"data": submissions,
+			"cursors": map[string]interface{}{
+				"newest": newestID,
+				"oldest": oldestID,
+			},
+			"has_more": hasMore,
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -40,9 +40,10 @@ interface Submission {
 }
 
 // Response format for /api/latest and /api/top
+// Cursors are numbers for "latest" mode, strings ("subcount:id") for "top" mode
 interface SubmissionsResponse {
   data: Submission[]
-  cursors: { newest: number; oldest: number }
+  cursors: { newest: number | string; oldest: number | string }
   has_more: boolean
 }
 
@@ -214,7 +215,7 @@ function App() {
   const [pendingFilters, setPendingFilters] = useState<Filters>(initialState.filters)
   const [filterOpen, setFilterOpen] = useState(false)
   const [data, setData] = useState<Submission[]>([])
-  const [oldestCursor, setOldestCursor] = useState<number>(0)
+  const [oldestCursor, setOldestCursor] = useState<number | string>(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -324,7 +325,9 @@ function App() {
 
   // Load more data function
   const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore || data.length === 0 || oldestCursor === 0) return
+    // Check for valid cursor: non-zero number or non-empty string
+    const hasCursor = typeof oldestCursor === 'string' ? oldestCursor !== '' : oldestCursor !== 0
+    if (loadingMore || !hasMore || data.length === 0 || !hasCursor) return
 
     setLoadingMore(true)
 
