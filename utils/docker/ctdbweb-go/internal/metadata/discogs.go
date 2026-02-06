@@ -3,6 +3,7 @@ package metadata
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/cuetools/ctdbweb/internal/models"
@@ -162,8 +163,8 @@ func (c *DiscogsClient) fuzzyLookup(tocString string) ([]models.Metadata, error)
 			ref.DiscNo = int(discNo.Int64)
 		}
 
-		// Calculate relevance: exp(-distance/6) * 100
-		ref.Relevance = int(100.0 * (1.0 / (1.0 + ref.Distance/6.0)))
+		// Calculate relevance: exp(-distance/6) * 100 (matches PHP)
+		ref.Relevance = int(math.Exp(-ref.Distance/6.0) * 100)
 
 		refs = append(refs, releaseRef{
 			ID:        ref.ID,

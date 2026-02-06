@@ -3,6 +3,7 @@ package metadata
 import (
 	"database/sql"
 	"fmt"
+	"math"
 
 	"github.com/cuetools/ctdbweb/internal/models"
 	"github.com/cuetools/ctdbweb/internal/toc"
@@ -85,7 +86,7 @@ func (c *FreeDBClient) LookupByTOC(tocString string, fuzzy bool) ([]models.Metad
 			LIMIT 30
 		`
 
-		fuzzyThreshold := 3 // sectors
+		fuzzyThreshold := 150 // sectors (matches PHP tolerance)
 		trackCount := len(offsets)
 
 		rows, err = c.db.Query(query, offsetsArray, fuzzyThreshold, trackCount)
@@ -164,7 +165,7 @@ func (c *FreeDBClient) LookupByTOC(tocString string, fuzzy bool) ([]models.Metad
 		// Calculate relevance if fuzzy match
 		if fuzzy && distance.Valid {
 			// Relevance calculation: exp(-distance/450) * 100
-			relevance := int(100.0 * (1.0 / (1.0 + distance.Float64/450.0)))
+			relevance := int(math.Exp(-distance.Float64/450.0) * 100)
 			m.Relevance = &relevance
 		}
 

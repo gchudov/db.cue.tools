@@ -3,6 +3,7 @@ package metadata
 import (
 	"database/sql"
 	"fmt"
+	"math"
 
 	"github.com/cuetools/ctdbweb/internal/models"
 	"github.com/cuetools/ctdbweb/internal/toc"
@@ -648,11 +649,6 @@ func arrayToPostgresString(arr []int) string {
 }
 
 func calculateRelevance(distance float64, scale float64) int {
-	// Relevance calculation: exp(-distance/scale) * 100
-	// Returns 0-100, or nil if relevance is > 100
-	relevance := int(100.0 * (1.0 / (1.0 + distance/scale)))
-	if relevance > 100 {
-		return 0
-	}
-	return relevance
+	// Relevance calculation: exp(-distance/scale) * 100 (matches PHP)
+	return int(math.Exp(-distance/scale) * 100)
 }
