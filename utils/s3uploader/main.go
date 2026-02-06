@@ -20,7 +20,7 @@ const (
 	bucket     = "p.cuetools.net"
 	parityDir  = "/var/www/html/parity/"
 	batchSize  = 10
-	dbConnStr  = "dbname=ctdb user=ctdb_user host=/var/run/postgresql port=6432 sslmode=disable"
+	dbConnStr  = "dbname=ctdb user=ctdb_user host=pgbouncer port=6432 sslmode=disable"
 )
 
 type submission struct {

@@ -550,7 +550,7 @@
       ansible.builtin.cron:
         name: "s3 sync"
         minute: "0-59/10"
-        job: "/bin/docker exec ctdbweb php /var/www/html/utils/s3.php >> /var/log/s3 2>&1"
+        job: "/bin/docker start s3uploader && /bin/docker wait s3uploader"
         user: "root"
         # state: absent
 
