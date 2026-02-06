@@ -87,17 +87,7 @@ if ($dodiscogs != 0)
   $mbmetas = array_merge($mbmetas, phpCTDB::discogslookup(phpCTDB::discogsids($mbmetas)));
 usort($mbmetas, 'phpCTDB::metadataOrder');
 
-if (isset($_GET['jsonp']))
-{
-  $body = $_GET['jsonp'] . '(' . phpCTDB::musicbrainz2json($mbmetas) . ')';
-  header('Content-type: text/javascript; charset=UTF-8');
-}
-else if ($type == 'json')
-{
-  $body = phpCTDB::musicbrainz2json($mbmetas);
-  header('Content-type: application/json; charset=UTF-8');
-}
-else if ($type == 'xml')
+if ($type == 'xml')
 {
   if (!$records && !$mbmetas)
   {

@@ -76,23 +76,11 @@ export default defineConfig({
 })
 ```
 
-## Reference PHP Implementation
+## Reference Implementation
 
-This React app is modeled on the existing PHP implementation located at:
-
-### Main Files
-- **`utils/docker/ctdbweb/db.cue.tools/index.php`** - Latest entries endpoint (`?json=1&start=0`) - Legacy PHP
-- **`utils/docker/ctdbweb/db.cue.tools/top.php`** - Popular entries endpoint (`?json=1&start=0`) - Legacy PHP
-- **`utils/docker/ctdbweb-go/internal/handlers/lookup.go`** - Metadata lookup handler (Go backend)
+### Go Backend
+- **`utils/docker/ctdbweb-go/internal/handlers/lookup.go`** - Metadata lookup handler
 - **`utils/docker/ctdbweb-go/internal/metadata/`** - Metadata clients (MusicBrainz, Discogs, FreeDB)
-- **`utils/docker/ctdbweb/db.cue.tools/list1.php`** - Original HTML table/JS logic for metadata display (reference only)
-
-### JavaScript Reference
-- **`utils/docker/ctdbweb/db.cue.tools/s3/ctdb.js`** - Client-side JavaScript with:
-  - `tocs2mbid()` - MusicBrainz disc ID calculation
-  - `tocs2mbtoc()` - MusicBrainz TOC format conversion
-  - `resetMetadata()` - Metadata fetching logic
-  - Table rendering and row selection handlers
 
 ## Project Structure
 
@@ -129,9 +117,7 @@ docker exec react-dev npx shadcn@latest add <component-name> --yes
 
 | Endpoint | Purpose |
 |----------|---------|
-| `/index.php?json=1&start=0` | Fetch latest CD entries (PHP, legacy format) |
-| `/top.php?json=1&start=0` | Fetch popular CD entries (PHP, legacy format) |
-| `/api/lookup?metadata=default&fuzzy=1&toc=...` | Fetch metadata for a TOC (Go backend, clean JSON) |
+| `/api/lookup?metadata=default&fuzzy=1&toc=...` | Fetch metadata for a TOC |
 
 ## Running Locally
 
@@ -157,22 +143,7 @@ npm test
 
 ### Data Formats
 
-**Main table endpoints** (index.php, top.php) return Google Visualization API format:
-```json
-{
-  "cols": [
-    { "label": "Disc Id", "type": "string" },
-    { "label": "Artist", "type": "string" },
-    ...
-  ],
-  "rows": [
-    { "c": [{ "v": "abc123" }, { "v": "Artist Name" }, ...] },
-    ...
-  ]
-}
-```
-
-**Metadata endpoint** (/api/lookup) returns clean JSON array:
+**Metadata endpoint** (/api/lookup) returns:
 ```json
 [
   {

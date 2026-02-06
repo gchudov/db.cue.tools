@@ -478,23 +478,6 @@ References use integer foreign keys instead of repeating strings.
 ]
 ```
 
-**PHP Backend (Legacy XML/Google Viz format)** - Returns Google Visualization API format:
-
-```json
-{
-  "cols": [
-    { "label": "Column Name", "type": "string" },
-    ...
-  ],
-  "rows": [
-    { "c": [{ "v": "value1" }, { "v": "value2" }, ...] },
-    ...
-  ]
-}
-```
-
-The React frontend consumes the Go JSON API for modern features.
-
 ## File Structure
 
 ```
@@ -634,5 +617,5 @@ The project is actively migrating from PHP to Go for improved performance and ty
 - 10x smaller Docker image (50 MB vs 500+ MB)
 - Parallel database queries (goroutines vs sequential PHP)
 - Compile-time type safety
-- Clean JSON API (vs Google Visualization API format)
+- Clean JSON API
 - Hot-reload development (~1 second rebuild vs full restart)

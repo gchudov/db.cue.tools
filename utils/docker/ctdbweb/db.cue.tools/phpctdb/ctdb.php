@@ -3,113 +3,11 @@
 require_once 'ctdbcfg.php';
 
 class phpCTDB{
-  static function query2json($conn, $query)
-  {
-    $result = @pg_query($conn, $query);
-    if (!$result) {
-      header($_SERVER["SERVER_PROTOCOL"]." 500 Internal Server Error");
-      die(pg_last_error());
-    }
-    if (pg_num_rows($result) == 0)
-      return ''; 
-    $records = pg_fetch_all($result);
-    pg_free_result($result);
-    return phpCTDB::records2json($records);
-  }
-
-  static function records2json($records)
-  {
-    $json_entries = array();
-    foreach($records as $record)
-    {
-      $trcnt = ($record['firstaudio'] > 1) ?
-        (($record['firstaudio'] - 1) . '+' . $record['audiotracks']) :
-        (($record['audiotracks'] < $record['trackcount'])
-         ? ($record['audiotracks'] . '+1')
-         : $record['audiotracks']);
-      $track_crcs_s = null;
-      if ($record['track_crcs'] != null) {
-        $track_crcs = null;
-        phpCTDB::pg_array_parse($record['track_crcs'], $track_crcs);
-        foreach($track_crcs as &$track_crc) $track_crc = sprintf("%08x", $track_crc&0xffffffff);
-        $track_crcs_s = implode(' ', $track_crcs);
-      }
-      $json_entries[] = array('c' => array(
-            array('v' => $record['artist']),
-            array('v' => $record['title']),
-            array('v' => $record['tocid']),
-            array('v' => $trcnt),
-            array('v' => (int)$record['id']),
-            array('v' => (int)$record['subcount']),
-            array('v' => (int)$record['crc32']),
-            array('v' => phpCTDB::toc_toc2s($record)),
-            array('v' => $track_crcs_s),
-            ));
-    }
-    $json_entries_table = array('cols' => array(
-          array('label' => 'Artist', 'type' => 'string'),
-          array('label' => 'Album', 'type' => 'string'),
-          array('label' => 'Disc Id', 'type' => 'string'),
-          array('label' => 'Tracks', 'type' => 'string'),
-          array('label' => 'CTDB Id', 'type' => 'number'),
-          array('label' => 'Cf', 'type' => 'number'),
-          array('label' => 'CRC32', 'type' => 'number'),
-          array('label' => 'TOC', 'type' => 'string'),
-          array('label' => 'Track CRCs', 'type' => 'string'),
-          ), 'rows' => $json_entries);
-
-    return json_encode($json_entries_table);
-  }
-
   static function bytea_to_string($str)
   {
       if ($str == null) return null;     
       if ($str[0] == '\\' && $str[1]=='x') return pack("H*",substr($str,2));
       return stripcslashes($str);
-  }
-
-  static function musicbrainz2json($mbmeta)
-  {
-    if (!$mbmeta)
-      return json_encode(null);
-    $json_releases = null;
-    foreach ($mbmeta as $mbr)
-    {
-      $json_releases[] = array(
-          'c' => array(
-            array('v' => $mbr['first_release_date_year'] == 0 ? null : (int)$mbr['first_release_date_year']),
-            array('v' => $mbr['artistname']),
-            array('v' => $mbr['albumname']),
-            array('v' => ($mbr['totaldiscs'] ?: 1) != 1 || ($mbr['discnumber'] ?: 1) != 1 ? ($mbr['discnumber'] ?: '?') . '/' . ($mbr['totaldiscs'] ?: '?') . ($mbr['discname'] ? ': ' . $mbr['discname'] : '') : ''),
-            array('v' => $mbr['release']),
-            array('v' => $mbr['label']),
-            array('v' => $mbr['barcode']),
-            array('v' => $mbr['id']),
-            array('v' => $mbr['source']),
-            array('v' => $mbr['relevance']),
-            array('v' => @$mbr['coverart']),
-            array('v' => @$mbr['videos']),
-            array('v' => $mbr['tracklist']),
-            ));
-    }
-    $json_releases_table = array(
-        'cols' => array(
-          array('label' => 'Date', 'type' => 'number'),
-          array('label' => 'Artist', 'type' => 'string'),
-          array('label' => 'Album', 'type' => 'string'),
-          array('label' => 'Disc', 'type' => 'string'),
-          array('label' => 'Release', 'type' => 'string'),
-          array('label' => 'Label', 'type' => 'string'),
-          array('label' => 'Barcode', 'type' => 'string'),
-          array('label' => 'Id', 'type' => 'string'),
-          array('label' => 'Source', 'type' => 'string'),
-          array('label' => 'Rel', 'type' => 'number'),
-          array('label' => 'Coverart', 'type' => 'string'),
-          array('label' => 'Videos', 'type' => 'string'),
-          array('label' => 'Tracks', 'type' => 'string'),
-          ), 
-        'rows' => $json_releases);
-    return json_encode($json_releases_table);
   }
 
 	static function toc2mbtoc($record)
