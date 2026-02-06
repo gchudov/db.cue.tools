@@ -46,7 +46,7 @@ All containers run on a shared Docker network named `ct`.
 
 The system uses PostgreSQL with three main databases:
 
-1. **ctdb** - Main CUETools database containing:
+1. **ctdb** - Main CUETools database (full schema: [`docs/schema-ctdb.sql`](docs/schema-ctdb.sql)):
    - `submissions2`: Deduplicated CD TOC submissions with parity data
    - `submissions`: Raw submission data with user agent info
    - `users`: Authentication (email PK, role, created_at, last_login)
