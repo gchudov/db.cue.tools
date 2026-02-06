@@ -19,12 +19,33 @@
         groups: docker
         append: yes
 
-    - name: Enable and startDocker service
+    - name: Enable and start Docker service
       become: yes
       service:
         name: docker
         enabled: yes
         state: started
+
+    - name: Configure Docker log rotation
+      become: yes
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            }
+          }
+      register: docker_daemon_config
+
+    - name: Restart Docker to apply log config
+      become: yes
+      service:
+        name: docker
+        state: restarted
+      when: docker_daemon_config is changed
 
     - name: Enable and start crond service
       become: yes
