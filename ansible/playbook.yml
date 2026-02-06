@@ -254,6 +254,7 @@
           path: /opt/db.cue.tools/utils/docker/ctdbweb
           dockerfile: Dockerfile
           target: production
+      register: ctdbweb_image
 
     - name: Run CTDB database container
       become: yes
@@ -261,6 +262,7 @@
         name: ctdbweb
         image: ctdbweb:latest
         state: started
+        recreate: "{{ ctdbweb_image is changed }}"
         restart_policy: always
         network_mode: ct
         volumes:
@@ -279,6 +281,7 @@
           path: /opt/db.cue.tools/utils/docker/ctdbweb
           dockerfile: Dockerfile
           target: development
+      register: ctdbweb_dev_image
 
     - name: Run CTDB Web Dev container
       become: yes
@@ -286,6 +289,7 @@
         name: ctdbweb-dev
         image: ctdbweb-dev:latest
         state: started
+        recreate: "{{ ctdbweb_dev_image is changed }}"
         restart_policy: unless-stopped
         network_mode: ct
         volumes:
@@ -307,6 +311,7 @@
           path: /opt/db.cue.tools/utils/docker/ctdbweb-go
           dockerfile: Dockerfile
           target: production
+      register: ctdbweb_go_image
 
     - name: Run CTDB Web Go Backend container
       become: yes
@@ -314,6 +319,7 @@
         name: ctdbweb-go
         image: ctdbweb-go:latest
         state: started
+        recreate: "{{ ctdbweb_go_image is changed }}"
         restart_policy: always
         network_mode: ct
         env:
@@ -338,6 +344,7 @@
           path: /opt/db.cue.tools/utils/docker/ctdbweb-go
           dockerfile: Dockerfile
           target: development
+      register: ctdbweb_go_dev_image
 
     - name: Run CTDB Web Go Backend Dev container
       become: yes
@@ -345,6 +352,7 @@
         name: ctdbweb-go-dev
         image: ctdbweb-go-dev:latest
         state: started
+        recreate: "{{ ctdbweb_go_dev_image is changed }}"
         restart_policy: unless-stopped
         network_mode: ct
         volumes:
@@ -361,28 +369,30 @@
           COOKIE_DOMAIN: ".db.cue.tools"
         # No port forwarding - access via Apache proxy
 
-    # - name: Build a container image for the s3uploader
-    #   become: yes
-    #   community.docker.docker_image:
-    #     name: s3uploader
-    #     tag: latest
-    #     source: build
-    #     state: present
-    #     build:
-    #       path: /opt/db.cue.tools/utils/s3uploader
-    #       dockerfile: Dockerfile
+    - name: Build a container image for the s3uploader
+      become: yes
+      community.docker.docker_image:
+        name: s3uploader
+        tag: latest
+        source: build
+        state: present
+        build:
+          path: /opt/db.cue.tools/utils/s3uploader
+          dockerfile: Dockerfile
+      register: s3uploader_image
 
-    # - name: Run s3uploader container
-    #   become: yes
-    #   community.docker.docker_container:
-    #     name: s3uploader
-    #     image: s3uploader:latest
-    #     state: present
-    #     restart_policy: no
-    #     network_mode: ct
-    #     volumes:
-    #       - ctparity:/var/www/html/parity
-    #       - /var/run/postgresql:/var/run/postgresql
+    - name: Run s3uploader container
+      become: yes
+      community.docker.docker_container:
+        name: s3uploader
+        image: s3uploader:latest
+        state: present
+        recreate: "{{ s3uploader_image is changed }}"
+        restart_policy: no
+        network_mode: ct
+        volumes:
+          - ctparity:/var/www/html/parity
+          - /var/run/postgresql:/var/run/postgresql
 
     - name: Build MediaWiki container image
       become: yes
@@ -394,6 +404,7 @@
         build:
           path: /opt/db.cue.tools/utils/docker/mediawiki
           dockerfile: Dockerfile
+      register: ctwiki_image
 
     - name: Run MediaWiki container
       become: yes
@@ -401,6 +412,7 @@
         name: ctwiki
         image: ctwiki:latest
         state: started
+        recreate: "{{ ctwiki_image is changed }}"
         restart_policy: always
         network_mode: ct
         volumes:
@@ -419,6 +431,7 @@
         build:
           path: /opt/db.cue.tools/utils/docker/sendmail
           dockerfile: Dockerfile
+      register: sendmail_image
 
     - name: Run Sendmail container
       become: yes
@@ -427,6 +440,7 @@
         image: sendmail:latest
         hostname: mail.cue.tools
         state: started
+        recreate: "{{ sendmail_image is changed }}"
         restart_policy: always
         network_mode: ct
         env:
@@ -458,6 +472,7 @@
         build:
           path: /opt/db.cue.tools/ansible/files/react-app
           dockerfile: Dockerfile.prod
+      register: react_prod_image
 
     - name: Run React production container
       become: yes
@@ -465,6 +480,7 @@
         name: react-prod
         image: react-prod:latest
         state: started
+        recreate: "{{ react_prod_image is changed }}"
         restart_policy: always
         network_mode: ct
 
