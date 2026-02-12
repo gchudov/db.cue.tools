@@ -19,7 +19,7 @@ import { LoginButton } from '@/components/LoginButton'
 import { UserMenu } from '@/components/UserMenu'
 import { useSubmissionsWebSocket } from '@/hooks/useSubmissionsWebSocket'
 
-type Page = 'home' | 'stats' | 'logs'
+type Page = 'home' | 'stats' | 'logs' | 'cd'
 
 // Submission interface for /api/latest and /api/top
 interface Submission {
@@ -179,6 +179,17 @@ interface Filters {
 
 // Helper to read state from URL parameters
 function getInitialStateFromUrl() {
+  // Check for /ui/cd/<id> path
+  const cdMatch = window.location.pathname.match(/\/ui\/cd\/(\d+)/)
+  if (cdMatch) {
+    return {
+      page: 'cd' as Page,
+      viewMode: 'latest' as ViewMode,
+      filters: { tocid: '', artist: '' },
+      cdId: parseInt(cdMatch[1], 10),
+    }
+  }
+
   const params = new URLSearchParams(window.location.search)
   const page = params.get('page') as Page | null
   const view = params.get('view') as ViewMode | null
@@ -189,20 +200,25 @@ function getInitialStateFromUrl() {
     page: page === 'stats' ? 'stats' : page === 'logs' ? 'logs' : 'home' as Page,
     viewMode: view === 'popular' ? 'popular' : 'latest' as ViewMode,
     filters: { tocid, artist },
+    cdId: null as number | null,
   }
 }
 
 // Helper to update URL without triggering navigation
 function updateUrl(page: Page, viewMode: ViewMode, filters: Filters) {
+  // Don't modify URL on cd page — it's already /ui/cd/<id>
+  if (page === 'cd') return
+
   const params = new URLSearchParams()
   if (page !== 'home') params.set('page', page)
   if (viewMode !== 'latest') params.set('view', viewMode)
   if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
   if (filters.artist.trim()) params.set('artist', filters.artist.trim())
-  
-  const newUrl = params.toString() 
-    ? `${window.location.pathname}?${params.toString()}`
-    : window.location.pathname
+
+  const basePath = '/ui/'
+  const newUrl = params.toString()
+    ? `${basePath}?${params.toString()}`
+    : basePath
   window.history.replaceState({}, '', newUrl)
 }
 
@@ -238,6 +254,7 @@ function App() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState<Page>(initialState.page)
+  const [cdId] = useState<number | null>(initialState.cdId)
   const [refreshKey, setRefreshKey] = useState(0)
 
   // Real-time updates state for home page (Latest view)
@@ -290,8 +307,39 @@ function App() {
     updateUrl(currentPage, viewMode, filters)
   }, [currentPage, viewMode, filters])
 
+  // Fetch single entry for /ui/cd/<id> page
+  useEffect(() => {
+    if (currentPage !== 'cd' || cdId === null) return
+
+    setLoading(true)
+    setError(null)
+    setHasMore(false)
+
+    fetch(`/api/fetch?id=${cdId}`)
+      .then(response => {
+        if (response.status === 404) {
+          throw new Error('Entry not found')
+        }
+        if (!response.ok) {
+          throw new Error('Failed to fetch data')
+        }
+        return response.json()
+      })
+      .then((submission: Submission) => {
+        setData([submission])
+        setSelectedRowId(submission.id)
+        setLoading(false)
+      })
+      .catch(err => {
+        setError(err.message)
+        setLoading(false)
+      })
+  }, [currentPage, cdId])
+
   // Fetch initial data when view mode or filters change
   useEffect(() => {
+    if (currentPage === 'cd') return
+
     setLoading(true)
     setError(null)
     setSelectedRowId(null)
@@ -334,7 +382,7 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
-  }, [viewMode, filters, refreshKey])
+  }, [currentPage, viewMode, filters, refreshKey])
 
   // Load more data function
   const loadMore = useCallback(() => {
@@ -964,9 +1012,15 @@ function App() {
           </button>
         </div>
         <div className="side-menu-items">
-          <button 
-            className={`menu-item ${currentPage === 'home' ? 'active' : ''}`} 
-            onClick={() => { setCurrentPage('home'); setMenuOpen(false); }}
+          <button
+            className={`menu-item ${currentPage === 'home' ? 'active' : ''}`}
+            onClick={() => {
+              if (currentPage === 'cd') {
+                window.location.href = '/ui/'
+                return
+              }
+              setCurrentPage('home'); setMenuOpen(false);
+            }}
           >
             <Home className="size-5" />
             <span>Home</span>
@@ -1215,35 +1269,43 @@ function App() {
                 className={selectedRowId === submission.id ? 'selected' : ''}
               >
                 <td className="col-artist">
-                  <span className="filterable-cell">
-                    <button
-                      className="inline-filter-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setArtistFilter(submission.artist || '')
-                      }}
-                      title="Filter by this Artist"
-                    >
-                      <Filter className="size-3" />
-                    </button>
-                    {submission.artist}
-                  </span>
+                  {currentPage === 'cd' ? (
+                    submission.artist
+                  ) : (
+                    <span className="filterable-cell">
+                      <button
+                        className="inline-filter-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setArtistFilter(submission.artist || '')
+                        }}
+                        title="Filter by this Artist"
+                      >
+                        <Filter className="size-3" />
+                      </button>
+                      {submission.artist}
+                    </span>
+                  )}
                 </td>
                 <td className="col-album">{submission.title}</td>
                 <td className="col-disc-id">
-                  <span className="filterable-cell">
-                    <button
-                      className="inline-filter-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setTocidFilter(submission.tocid || '')
-                      }}
-                      title="Filter by this Disc ID"
-                    >
-                      <Filter className="size-3" />
-                    </button>
-                    {submission.tocid}
-                  </span>
+                  {currentPage === 'cd' ? (
+                    submission.tocid
+                  ) : (
+                    <span className="filterable-cell">
+                      <button
+                        className="inline-filter-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTocidFilter(submission.tocid || '')
+                        }}
+                        title="Filter by this Disc ID"
+                      >
+                        <Filter className="size-3" />
+                      </button>
+                      {submission.tocid}
+                    </span>
+                  )}
                 </td>
                 <td className="col-tracks">{submission.track_count_formatted}</td>
                 <td className="col-ctdb-id">{submission.id}</td>

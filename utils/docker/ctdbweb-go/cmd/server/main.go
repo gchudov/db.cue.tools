@@ -87,6 +87,7 @@ func main() {
 	api.Handle("/latest", latestHandler).Methods("GET")
 	api.Handle("/top", topHandler).Methods("GET")
 	api.Handle("/stats", statsHandler).Methods("GET")
+	api.Handle("/fetch", handlers.NewFetchHandler(db)).Methods("GET")
 
 	// WebSocket endpoints
 	api.HandleFunc("/ws/stats", wsHandler.ServeHTTP).Methods("GET")

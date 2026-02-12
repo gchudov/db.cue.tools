@@ -237,6 +237,75 @@ func GetSubmissions(db *sql.DB, params SubmissionParams) ([]models.Submission, e
 	return submissions, nil
 }
 
+// GetSubmissionByID retrieves a single CD submission by its ID
+func GetSubmissionByID(db *sql.DB, id int) (*models.Submission, error) {
+	query := `
+		SELECT
+			s.id,
+			s.artist,
+			s.title,
+			s.tocid,
+			s.firstaudio,
+			s.audiotracks,
+			s.trackcount,
+			s.trackoffsets,
+			s.subcount,
+			s.crc32,
+			s.track_crcs
+		FROM submissions2 s
+		WHERE s.id = $1`
+
+	var s models.Submission
+	var artist, title, tocid sql.NullString
+	var trackCRCsStr sql.NullString
+
+	err := db.QueryRow(query, id).Scan(
+		&s.ID,
+		&artist,
+		&title,
+		&tocid,
+		&s.FirstAudio,
+		&s.AudioTracks,
+		&s.TrackCount,
+		&s.TrackOffsets,
+		&s.SubCount,
+		&s.CRC32,
+		&trackCRCsStr,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+
+	if artist.Valid {
+		s.Artist = artist.String
+	}
+	if title.Valid {
+		s.Title = title.String
+	}
+	if tocid.Valid {
+		s.TOCID = tocid.String
+	}
+
+	if trackCRCsStr.Valid {
+		trackCRCs, err := pgarray.Parse(trackCRCsStr.String)
+		if err == nil {
+			s.TrackCRCs = make([]int32, len(trackCRCs))
+			for i, crc := range trackCRCs {
+				if crcStr, ok := crc.(string); ok {
+					var crcVal int32
+					fmt.Sscanf(crcStr, "%d", &crcVal)
+					s.TrackCRCs[i] = crcVal
+				}
+			}
+		}
+	}
+
+	return &s, nil
+}
+
 // GetLatestSubmissions retrieves the latest CD submissions from CTDB
 // Deprecated: Use GetSubmissions(db, SubmissionParams{...}) instead
 func GetLatestSubmissions(db *sql.DB, start, limit int) ([]models.Submission, error) {
