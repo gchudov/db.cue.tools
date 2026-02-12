@@ -14,7 +14,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Filter, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw, ScrollText } from 'lucide-react'
+import { Filter, Link, Menu, X, Home, BarChart3, Info, MessageSquare, Plug, Wrench, ExternalLink, Heart, RefreshCw, ScrollText } from 'lucide-react'
 import { LoginButton } from '@/components/LoginButton'
 import { UserMenu } from '@/components/UserMenu'
 import { useSubmissionsWebSocket } from '@/hooks/useSubmissionsWebSocket'
@@ -1308,7 +1308,23 @@ function App() {
                   )}
                 </td>
                 <td className="col-tracks">{submission.track_count_formatted}</td>
-                <td className="col-ctdb-id">{submission.id}</td>
+                <td className="col-ctdb-id">
+                  {currentPage === 'cd' ? (
+                    submission.id
+                  ) : (
+                    <span className="filterable-cell">
+                      <a
+                        className="inline-filter-btn"
+                        href={`/ui/cd/${submission.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Open permalink"
+                      >
+                        <Link className="size-3" />
+                      </a>
+                      {submission.id}
+                    </span>
+                  )}
+                </td>
                 <td className="col-cf">{submission.sub_count}</td>
               </tr>
             ))}
