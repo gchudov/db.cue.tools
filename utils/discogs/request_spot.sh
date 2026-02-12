@@ -54,11 +54,8 @@ discogs_rel=discogs_`date +%Y%m01`_releases.xml.gz
 discogs_year=`date +%Y`
 if [ -z "$RERUN" ]; then
   echo "Downloading $discogs_rel"
-  if [ -n "$DEBUG" ]; then
-    aws s3 cp --metadata-directive REPLACE --storage-class REDUCED_REDUNDANCY s3://discogs-data-dumps/data/$discogs_year/$discogs_rel s3://private.cuetools.net/$discogs_rel || exit $?
-  else
-    aws s3 cp --quiet --metadata-directive REPLACE --storage-class REDUCED_REDUNDANCY s3://discogs-data-dumps/data/$discogs_year/$discogs_rel s3://private.cuetools.net/$discogs_rel || exit $?
-  fi
+  curl --no-progress-meter -L https://data.discogs.com/?download=data%2F2026%2F$discogs_rel \
+    | aws s3 cp --storage-class REDUCED_REDUNDANCY - s3://private.cuetools.net/$discogs_rel || exit $?
 fi
 CPFILES=
 UDATA="$( cat <<EOF
