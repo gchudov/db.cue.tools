@@ -21,7 +21,7 @@ import { useSubmissionsWebSocket } from '@/hooks/useSubmissionsWebSocket'
 
 type Page = 'home' | 'stats' | 'logs' | 'cd'
 
-// Submission interface for /api/latest and /api/top
+// Submission interface for /api/additions and /api/top
 interface Submission {
   id: number
   artist: string
@@ -39,8 +39,8 @@ interface Submission {
   track_crcs_formatted?: string
 }
 
-// Response format for /api/latest and /api/top
-// Cursors are numbers for "latest" mode, strings ("subcount:id") for "top" mode
+// Response format for /api/additions and /api/top
+// Cursors are numbers for "additions" mode, strings ("subcount:id") for "top" mode
 interface SubmissionsResponse {
   data: Submission[]
   cursors: { newest: number | string; oldest: number | string }
@@ -165,10 +165,10 @@ function formatCRC32(crc32: number): string {
   return '0x' + (crc32 >>> 0).toString(16).toUpperCase().padStart(8, '0')
 }
 
-type ViewMode = 'latest' | 'popular'
+type ViewMode = 'additions' | 'popular'
 
 const VIEW_ENDPOINTS: Record<ViewMode, string> = {
-  latest: '/api/latest',
+  additions: '/api/additions',
   popular: '/api/top',
 }
 
@@ -184,7 +184,7 @@ function getInitialStateFromUrl() {
   if (cdMatch) {
     return {
       page: 'cd' as Page,
-      viewMode: 'latest' as ViewMode,
+      viewMode: 'additions' as ViewMode,
       filters: { tocid: '', artist: '' },
       cdId: parseInt(cdMatch[1], 10),
     }
@@ -198,7 +198,7 @@ function getInitialStateFromUrl() {
 
   return {
     page: page === 'stats' ? 'stats' : page === 'logs' ? 'logs' : 'home' as Page,
-    viewMode: view === 'popular' ? 'popular' : 'latest' as ViewMode,
+    viewMode: view === 'popular' ? 'popular' : 'additions' as ViewMode,
     filters: { tocid, artist },
     cdId: null as number | null,
   }
@@ -211,7 +211,7 @@ function updateUrl(page: Page, viewMode: ViewMode, filters: Filters) {
 
   const params = new URLSearchParams()
   if (page !== 'home') params.set('page', page)
-  if (viewMode !== 'latest') params.set('view', viewMode)
+  if (viewMode !== 'additions') params.set('view', viewMode)
   if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
   if (filters.artist.trim()) params.set('artist', filters.artist.trim())
 
@@ -370,8 +370,8 @@ function App() {
       .then((json: SubmissionsResponse) => {
         setData(json.data)
         setOldestCursor(json.cursors.oldest)
-        // Track newest cursor for real-time updates (only for "latest" mode)
-        if (viewMode === 'latest' && typeof json.cursors.newest === 'number') {
+        // Track newest cursor for real-time updates (only for "additions" mode)
+        if (viewMode === 'additions' && typeof json.cursors.newest === 'number') {
           setNewestCursor(json.cursors.newest)
           newestCursorRef.current = json.cursors.newest
         }
@@ -447,9 +447,9 @@ function App() {
   // Keep ref in sync with updateCount for access in async callbacks (shared by home and logs)
   updateCountRef.current = updateCount
 
-  // WebSocket-triggered fetch for new home entries (real-time updates - Latest view only)
+  // WebSocket-triggered fetch for new home entries (real-time updates - Additions view only)
   useEffect(() => {
-    if (currentPage !== 'home' || viewMode !== 'latest' || newestCursorRef.current === 0 || updateCount === 0) {
+    if (currentPage !== 'home' || viewMode !== 'additions' || newestCursorRef.current === 0 || updateCount === 0) {
       return
     }
 
@@ -468,7 +468,7 @@ function App() {
       if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
       if (filters.artist.trim()) params.set('artist', filters.artist.trim())
 
-      fetch(`/api/latest?${params.toString()}`)
+      fetch(`/api/additions?${params.toString()}`)
         .then(response => {
           if (!response.ok) throw new Error('Failed to fetch')
           return response.json()
@@ -495,9 +495,9 @@ function App() {
     doFetch(updateCount, 0)
   }, [currentPage, viewMode, updateCount, filters])
 
-  // Fallback polling when WebSocket disconnected (home page Latest view only)
+  // Fallback polling when WebSocket disconnected (home page Additions view only)
   useEffect(() => {
-    if (currentPage !== 'home' || viewMode !== 'latest' || newestCursorRef.current === 0 || wsConnected) {
+    if (currentPage !== 'home' || viewMode !== 'additions' || newestCursorRef.current === 0 || wsConnected) {
       return
     }
 
@@ -511,7 +511,7 @@ function App() {
       if (filters.tocid.trim()) params.set('tocid', filters.tocid.trim())
       if (filters.artist.trim()) params.set('artist', filters.artist.trim())
 
-      fetch(`/api/latest?${params.toString()}`)
+      fetch(`/api/additions?${params.toString()}`)
         .then(response => {
           if (!response.ok) throw new Error('Failed to fetch')
           return response.json()
@@ -1096,7 +1096,7 @@ function App() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper" side="bottom" align="start">
-                  <SelectItem value="latest">Latest</SelectItem>
+                  <SelectItem value="additions">Additions</SelectItem>
                   <SelectItem value="popular">Popular</SelectItem>
                 </SelectContent>
               </Select>

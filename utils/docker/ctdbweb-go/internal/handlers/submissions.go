@@ -23,7 +23,7 @@ func NewSubmissionsHandler(db *database.DB, sortBy string) *SubmissionsHandler {
 	}
 }
 
-// ServeHTTP handles the /api/latest and /api/top endpoints
+// ServeHTTP handles the /api/additions and /api/top endpoints
 func (h *SubmissionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 

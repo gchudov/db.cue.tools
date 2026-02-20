@@ -106,7 +106,7 @@ Modern Go 1.23 backend serving JSON APIs at https://db.cue.tools/api/
   [{"date": "01-26 22:00", "eac": 1016, "cueripper": 25, "cuetools": 0}, ...]
   ```
 
-- **GET /api/latest?limit=10&start=0** - Latest CD submissions
+- **GET /api/additions?limit=10&start=0** - Latest CD submissions
 - **GET /api/top?limit=10&start=0** - Most popular CD submissions
 - **GET /api/lookup?toc=...** - CD metadata lookup (in development)
 
@@ -177,7 +177,7 @@ Technology stack:
 
 API Integration:
 - Statistics: `/api/stats` (Go backend)
-- CD listings: `/api/latest`, `/api/top` (Go backend)
+- CD listings: `/api/additions`, `/api/top` (Go backend)
 - Legacy endpoints: PHP backend for XML compatibility
 
 Important configuration:
@@ -346,7 +346,7 @@ curl "http://localhost:8080/api/stats?type=submissions&count=7"
 curl "http://localhost:8080/api/stats?type=submissions&count=24&hourly=1"
 
 # CD listings
-curl "http://localhost:8080/api/latest?limit=5"
+curl "http://localhost:8080/api/additions?limit=5"
 curl "http://localhost:8080/api/top?limit=5"
 
 # Health check
@@ -465,7 +465,7 @@ References use integer foreign keys instead of repeating strings.
 // GET /api/stats?type=drives
 [{"drive": "HL-DT-STDVDRAM", "count": 10898}, ...]
 
-// GET /api/latest?limit=2
+// GET /api/additions?limit=2
 [
   {
     "id": 12616939,
@@ -594,7 +594,7 @@ The project is actively migrating from PHP to Go for improved performance and ty
 
 **Completed:**
 - ✅ Statistics API (`/api/stats`) - All 5 stat types (totals, drives, agents, pregaps, submissions)
-- ✅ Latest/Top listings (`/api/latest`, `/api/top`)
+- ✅ Latest/Top listings (`/api/additions`, `/api/top`)
 - ✅ React frontend updated to consume Go JSON APIs
 - ✅ Development environment with Air hot-reload
 - ✅ Production deployment via Ansible

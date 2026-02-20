@@ -47,7 +47,7 @@ func main() {
 	// Create handlers
 	lookupHandler := handlers.NewLookupHandler(db)
 	submitHandler := handlers.NewSubmitHandler(db)
-	latestHandler := handlers.NewSubmissionsHandler(db, "latest")
+	additionsHandler := handlers.NewSubmissionsHandler(db, "latest")
 	topHandler := handlers.NewSubmissionsHandler(db, "top")
 	statsHandler := handlers.NewStatsHandler(db)
 	authHandler := handlers.NewAuthHandler(db, authConfig)
@@ -84,7 +84,7 @@ func main() {
 	api := r.PathPrefix("/api").Subrouter()
 	api.Handle("/lookup", lookupHandler).Methods("GET")
 	api.Handle("/submit", submitHandler).Methods("POST")
-	api.Handle("/latest", latestHandler).Methods("GET")
+	api.Handle("/additions", additionsHandler).Methods("GET")
 	api.Handle("/top", topHandler).Methods("GET")
 	api.Handle("/stats", statsHandler).Methods("GET")
 	api.Handle("/fetch", handlers.NewFetchHandler(db)).Methods("GET")
