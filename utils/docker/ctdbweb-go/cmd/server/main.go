@@ -51,6 +51,7 @@ func main() {
 	topHandler := handlers.NewSubmissionsHandler(db, "top")
 	statsHandler := handlers.NewStatsHandler(db)
 	authHandler := handlers.NewAuthHandler(db, authConfig)
+	updatesHandler := handlers.NewUpdatesHandler(db)
 	recentHandler := handlers.NewRecentHandler(db)
 	wsHandler := handlers.NewWebSocketHandler(hub)
 
@@ -85,6 +86,7 @@ func main() {
 	api.Handle("/lookup", lookupHandler).Methods("GET")
 	api.Handle("/submit", submitHandler).Methods("POST")
 	api.Handle("/additions", additionsHandler).Methods("GET")
+	api.Handle("/updates", updatesHandler).Methods("GET")
 	api.Handle("/top", topHandler).Methods("GET")
 	api.Handle("/stats", statsHandler).Methods("GET")
 	api.Handle("/fetch", handlers.NewFetchHandler(db)).Methods("GET")

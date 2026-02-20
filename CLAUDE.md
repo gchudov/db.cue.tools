@@ -106,7 +106,8 @@ Modern Go 1.23 backend serving JSON APIs at https://db.cue.tools/api/
   [{"date": "01-26 22:00", "eac": 1016, "cueripper": 25, "cuetools": 0}, ...]
   ```
 
-- **GET /api/additions?limit=10&start=0** - Latest CD submissions
+- **GET /api/additions?limit=10&start=0** - Latest CD submissions (ordered by submissions2.id)
+- **GET /api/updates?limit=10** - Submission activity feed (ordered by submissions.subid)
 - **GET /api/top?limit=10&start=0** - Most popular CD submissions
 - **GET /api/lookup?toc=...** - CD metadata lookup (in development)
 
@@ -347,6 +348,7 @@ curl "http://localhost:8080/api/stats?type=submissions&count=24&hourly=1"
 
 # CD listings
 curl "http://localhost:8080/api/additions?limit=5"
+curl "http://localhost:8080/api/updates?limit=5"
 curl "http://localhost:8080/api/top?limit=5"
 
 # Health check

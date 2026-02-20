@@ -237,6 +237,135 @@ func GetSubmissions(db *sql.DB, params SubmissionParams) ([]models.Submission, e
 	return submissions, nil
 }
 
+// GetUpdateSubmissions retrieves CD submissions ordered by submissions.subid (submission activity order)
+// Joins submissions with submissions2 to get CD data, but cursors are based on submissions.subid
+// Returns submissions, their corresponding subIDs (for cursor tracking), and any error
+func GetUpdateSubmissions(db *sql.DB, limit int, cursor int64, before int64, filters *SubmissionFilters) ([]models.Submission, []int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	selectClause := `
+		SELECT
+			s.subid,
+			e.id, e.artist, e.title, e.tocid,
+			e.firstaudio, e.audiotracks, e.trackcount, e.trackoffsets,
+			e.subcount, e.crc32, e.track_crcs
+		FROM submissions s
+		INNER JOIN submissions2 e ON e.id = s.entryid`
+
+	var whereClauses []string
+	var args []interface{}
+	paramCounter := 1
+	var orderByClause string
+
+	if cursor > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf("s.subid > $%d", paramCounter))
+		args = append(args, cursor)
+		paramCounter++
+		orderByClause = " ORDER BY s.subid ASC"
+	} else if before > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf("s.subid < $%d", paramCounter))
+		args = append(args, before)
+		paramCounter++
+		orderByClause = " ORDER BY s.subid DESC"
+	} else {
+		orderByClause = " ORDER BY s.subid DESC"
+	}
+
+	if filters != nil {
+		if filters.TOCID != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("e.tocid = $%d", paramCounter))
+			args = append(args, filters.TOCID)
+			paramCounter++
+		}
+		if filters.Artist != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("e.artist ILIKE $%d", paramCounter))
+			args = append(args, filters.Artist)
+			paramCounter++
+		}
+	}
+
+	whereClause := ""
+	if len(whereClauses) > 0 {
+		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	limitParam := fmt.Sprintf("$%d", paramCounter)
+	args = append(args, limit)
+
+	query := selectClause + whereClause + orderByClause + fmt.Sprintf(" LIMIT %s", limitParam)
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var submissions []models.Submission
+	var subIDs []int64
+	for rows.Next() {
+		var s models.Submission
+		var subID int64
+		var artist, title, tocid sql.NullString
+		var trackCRCsStr sql.NullString
+
+		err := rows.Scan(
+			&subID,
+			&s.ID,
+			&artist,
+			&title,
+			&tocid,
+			&s.FirstAudio,
+			&s.AudioTracks,
+			&s.TrackCount,
+			&s.TrackOffsets,
+			&s.SubCount,
+			&s.CRC32,
+			&trackCRCsStr,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("scan failed: %w", err)
+		}
+
+		if artist.Valid {
+			s.Artist = artist.String
+		}
+		if title.Valid {
+			s.Title = title.String
+		}
+		if tocid.Valid {
+			s.TOCID = tocid.String
+		}
+
+		if trackCRCsStr.Valid {
+			trackCRCs, err := pgarray.Parse(trackCRCsStr.String)
+			if err == nil {
+				s.TrackCRCs = make([]int32, len(trackCRCs))
+				for i, crc := range trackCRCs {
+					if crcStr, ok := crc.(string); ok {
+						var crcVal int32
+						fmt.Sscanf(crcStr, "%d", &crcVal)
+						s.TrackCRCs[i] = crcVal
+					}
+				}
+			}
+		}
+
+		submissions = append(submissions, s)
+		subIDs = append(subIDs, subID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("rows iteration failed: %w", err)
+	}
+
+	return submissions, subIDs, nil
+}
+
 // GetSubmissionByID retrieves a single CD submission by its ID
 func GetSubmissionByID(db *sql.DB, id int) (*models.Submission, error) {
 	query := `

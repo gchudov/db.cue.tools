@@ -22,7 +22,8 @@ curl http://localhost:8081/health
 All accessible via `https://db.cue.tools/api/`:
 
 - `GET /api/lookup?toc=...&metadata=default&fuzzy=1` - Metadata lookup
-- `GET /api/additions?limit=10` - Latest CD submissions  
+- `GET /api/additions?limit=10` - Latest CD submissions (ordered by submissions2.id)
+- `GET /api/updates?limit=10` - Submission activity feed (ordered by submissions.subid)
 - `GET /api/top?limit=10` - Popular CDs
 - `GET /api/stats?type=totals` - Database statistics
 - `POST /api/submit` - Submit CD (placeholder)
