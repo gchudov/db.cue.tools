@@ -165,12 +165,13 @@
           - /var/run/postgresql:/var/run/postgresql
           - /opt/db.cue.tools/utils/docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
         env:
-          DATABASES: "ctwiki = host=postgres16,freedb = host=postgres16,discogs = host=postgres16,musicbrainz = host=musicbrainz-docker-db-1 dbname=musicbrainz_db,ctdb = host=postgres16"
+          DATABASES: "ctwiki = host=postgres16 pool_size=30,freedb = host=postgres16,discogs = host=postgres16,musicbrainz = host=musicbrainz-docker-db-1 dbname=musicbrainz_db,ctdb = host=postgres16"
           PGBOUNCER_AUTH_TYPE: trust
           PGBOUNCER_AUTH_FILE: /etc/pgbouncer/userlist.txt
           PGBOUNCER_UNIX_SOCKET_DIR: /var/run/postgresql
           PGBOUNCER_LOG_CONNECTIONS: "0"
           PGBOUNCER_LOG_DISCONNECTIONS: "0"
+          PGBOUNCER_MAX_CLIENT_CONN: "200"
         # PGBOUNCER_LISTEN_PORT: 6544
 
     - name: Check if Certbot certificate exists

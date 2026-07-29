@@ -1,5 +1,6 @@
 parity/
 vendor/
+.claude/
 composer.json
 composer.lock
 composer.phar

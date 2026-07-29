@@ -42,5 +42,7 @@ COPY remoteip.conf /etc/apache2/conf-available/
 RUN ln -s ../mods-available/remoteip.load /etc/apache2/mods-enabled/ \
     && ln -s ../conf-available/remoteip.conf /etc/apache2/conf-enabled/
 
+COPY mpm_prefork.conf /etc/apache2/mods-available/mpm_prefork.conf
+
 COPY extensions/googleAnalyticsLinks/ /var/www/html/extensions/googleAnalyticsLinks/
 COPY .htaccess /var/www/html/
