@@ -1,7 +1,9 @@
 package database
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/cuetools/ctdbweb/internal/models"
 	"github.com/cuetools/ctdbweb/pkg/pgarray"
+	"github.com/lib/pq"
 )
 
 // TopCursor represents a composite cursor for "top" pagination (subcount:id)
@@ -239,8 +242,10 @@ func GetSubmissions(db *sql.DB, params SubmissionParams) ([]models.Submission, e
 
 // GetUpdateSubmissions retrieves CD submissions ordered by submissions.subid (submission activity order)
 // Joins submissions with submissions2 to get CD data, but cursors are based on submissions.subid
-// Returns submissions, their corresponding subIDs (for cursor tracking), and any error
-func GetUpdateSubmissions(db *sql.DB, limit int, cursor int64, before int64, filters *SubmissionFilters) ([]models.Submission, []int64, error) {
+// Returns submissions, their corresponding subIDs (for cursor tracking), and any error.
+// The query runs with UpdatesQueryTimeout as a server-side statement_timeout and is
+// cancelled if ctx is done (e.g. the client disconnects); in both cases ErrQueryTimeout is returned.
+func GetUpdateSubmissions(ctx context.Context, db *sql.DB, limit int, cursor int64, before int64, filters *SubmissionFilters) ([]models.Submission, []int64, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -248,60 +253,113 @@ func GetUpdateSubmissions(db *sql.DB, limit int, cursor int64, before int64, fil
 		limit = 1000
 	}
 
-	selectClause := `
-		SELECT
-			s.subid,
-			e.id, e.artist, e.title, e.tocid,
-			e.firstaudio, e.audiotracks, e.trackcount, e.trackoffsets,
-			e.subcount, e.crc32, e.track_crcs
-		FROM submissions s
-		INNER JOIN submissions2 e ON e.id = s.entryid`
-
-	var whereClauses []string
-	var args []interface{}
-	paramCounter := 1
-	var orderByClause string
-
-	if cursor > 0 {
-		whereClauses = append(whereClauses, fmt.Sprintf("s.subid > $%d", paramCounter))
-		args = append(args, cursor)
-		paramCounter++
-		orderByClause = " ORDER BY s.subid ASC"
-	} else if before > 0 {
-		whereClauses = append(whereClauses, fmt.Sprintf("s.subid < $%d", paramCounter))
-		args = append(args, before)
-		paramCounter++
-		orderByClause = " ORDER BY s.subid DESC"
-	} else {
-		orderByClause = " ORDER BY s.subid DESC"
-	}
-
+	// Conditions on submissions2 (e). An artist filter without LIKE wildcards is matched
+	// case-insensitively via lower(), which can use submissions2_lower_artist_idx.
+	var entryConds []string
+	var entryArgs []interface{}
+	exactArtist := false
 	if filters != nil {
 		if filters.TOCID != "" {
-			whereClauses = append(whereClauses, fmt.Sprintf("e.tocid = $%d", paramCounter))
-			args = append(args, filters.TOCID)
-			paramCounter++
+			entryArgs = append(entryArgs, filters.TOCID)
+			entryConds = append(entryConds, fmt.Sprintf("e.tocid = $%d", len(entryArgs)))
 		}
 		if filters.Artist != "" {
-			whereClauses = append(whereClauses, fmt.Sprintf("e.artist ILIKE $%d", paramCounter))
-			args = append(args, filters.Artist)
-			paramCounter++
+			entryArgs = append(entryArgs, filters.Artist)
+			if strings.ContainsAny(filters.Artist, `%_\`) {
+				entryConds = append(entryConds, fmt.Sprintf("e.artist ILIKE $%d", len(entryArgs)))
+			} else {
+				exactArtist = true
+				entryConds = append(entryConds, fmt.Sprintf("lower(e.artist) = lower($%d)", len(entryArgs)))
+			}
 		}
 	}
 
-	whereClause := ""
-	if len(whereClauses) > 0 {
-		whereClause = " WHERE " + strings.Join(whereClauses, " AND ")
+	// Run in a read-only transaction so SET LOCAL statement_timeout applies only to this
+	// query (safe with pgbouncer transaction pooling) and never leaks to other users of the pool.
+	ctx, cancel := context.WithTimeout(ctx, UpdatesQueryTimeout+5*time.Second)
+	defer cancel()
+
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, nil, wrapQueryErr(ctx, "begin failed", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf("SET LOCAL statement_timeout = %d", UpdatesQueryTimeout.Milliseconds())); err != nil {
+		return nil, nil, wrapQueryErr(ctx, "set statement_timeout failed", err)
 	}
 
-	limitParam := fmt.Sprintf("$%d", paramCounter)
+	// Pick a strategy. Scanning submissions newest-first and filtering by artist is fast when
+	// matches are dense, but walks the whole 40M-row table for a rare artist. When the entry
+	// filter is selective (a TOC ID, or an artist with few entries), find the matching entries
+	// first and look up their submissions instead.
+	entryFirst := filters != nil && filters.TOCID != ""
+	if !entryFirst && exactArtist {
+		var n int
+		probe := fmt.Sprintf("SELECT count(*) FROM (SELECT 1 FROM submissions2 e WHERE %s LIMIT %d) t",
+			strings.Join(entryConds, " AND "), entryFirstMaxEntries)
+		if err := tx.QueryRowContext(ctx, probe, entryArgs...).Scan(&n); err != nil {
+			return nil, nil, wrapQueryErr(ctx, "probe failed", err)
+		}
+		entryFirst = n < entryFirstMaxEntries
+	}
+
+	// Cursor condition and sort direction on submissions.subid
+	args := append([]interface{}{}, entryArgs...)
+	subCond := ""
+	order := "DESC"
+	if cursor > 0 {
+		args = append(args, cursor)
+		subCond = fmt.Sprintf("subid > $%d", len(args))
+		order = "ASC"
+	} else if before > 0 {
+		args = append(args, before)
+		subCond = fmt.Sprintf("subid < $%d", len(args))
+	}
 	args = append(args, limit)
+	limitParam := fmt.Sprintf("$%d", len(args))
 
-	query := selectClause + whereClause + orderByClause + fmt.Sprintf(" LIMIT %s", limitParam)
+	const entryCols = `e.id, e.artist, e.title, e.tocid,
+			e.firstaudio, e.audiotracks, e.trackcount, e.trackoffsets,
+			e.subcount, e.crc32, e.track_crcs`
 
-	rows, err := db.Query(query, args...)
+	var query string
+	if entryFirst {
+		lateralWhere := "entryid = e.id"
+		if subCond != "" {
+			lateralWhere += " AND " + subCond
+		}
+		query = fmt.Sprintf(`
+		SELECT s.subid, %s
+		FROM submissions2 e
+		CROSS JOIN LATERAL (
+			SELECT subid FROM submissions
+			WHERE %s ORDER BY subid %s LIMIT %s
+		) s
+		WHERE %s
+		ORDER BY s.subid %s LIMIT %s`,
+			entryCols, lateralWhere, order, limitParam,
+			strings.Join(entryConds, " AND "), order, limitParam)
+	} else {
+		where := append([]string{}, entryConds...)
+		if subCond != "" {
+			where = append(where, "s."+subCond)
+		}
+		whereClause := ""
+		if len(where) > 0 {
+			whereClause = " WHERE " + strings.Join(where, " AND ")
+		}
+		query = fmt.Sprintf(`
+		SELECT s.subid, %s
+		FROM submissions s
+		INNER JOIN submissions2 e ON e.id = s.entryid%s
+		ORDER BY s.subid %s LIMIT %s`,
+			entryCols, whereClause, order, limitParam)
+	}
+
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, nil, fmt.Errorf("query failed: %w", err)
+		return nil, nil, wrapQueryErr(ctx, "query failed", err)
 	}
 	defer rows.Close()
 
@@ -360,10 +418,30 @@ func GetUpdateSubmissions(db *sql.DB, limit int, cursor int64, before int64, fil
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, nil, fmt.Errorf("rows iteration failed: %w", err)
+		return nil, nil, wrapQueryErr(ctx, "rows iteration failed", err)
 	}
 
 	return submissions, subIDs, nil
+}
+
+// entryFirstMaxEntries is the largest number of matching submissions2 entries for which
+// GetUpdateSubmissions looks up submissions per entry instead of scanning submissions newest-first.
+const entryFirstMaxEntries = 1000
+
+// UpdatesQueryTimeout bounds how long a single /api/updates query may run in Postgres.
+// Kept below the proxy's 60s timeout so the client gets a clean error instead of a 502.
+const UpdatesQueryTimeout = 15 * time.Second
+
+// ErrQueryTimeout is returned when a query hit its statement_timeout or its context was cancelled.
+var ErrQueryTimeout = errors.New("query timed out")
+
+// wrapQueryErr maps statement_timeout (SQLSTATE 57014) and context cancellation to ErrQueryTimeout.
+func wrapQueryErr(ctx context.Context, msg string, err error) error {
+	var pqErr *pq.Error
+	if ctx.Err() != nil || (errors.As(err, &pqErr) && pqErr.Code == "57014") {
+		return fmt.Errorf("%s: %w", msg, ErrQueryTimeout)
+	}
+	return fmt.Errorf("%s: %w", msg, err)
 }
 
 // GetSubmissionByID retrieves a single CD submission by its ID
