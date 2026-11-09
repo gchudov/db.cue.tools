@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -55,7 +56,13 @@ func (h *UpdatesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query database
-	submissions, subIDs, err := database.GetUpdateSubmissions(h.db.CTDB, limit, cursor, before, filters)
+	submissions, subIDs, err := database.GetUpdateSubmissions(r.Context(), h.db.CTDB, limit, cursor, before, filters)
+	if errors.Is(err, database.ErrQueryTimeout) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(`{"error":"Query took too long; try a more specific filter"}`))
+		return
+	}
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch updates: `+err.Error()+`"}`, http.StatusInternalServerError)
 		return
